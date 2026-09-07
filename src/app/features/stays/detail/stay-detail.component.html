@@ -1,0 +1,185 @@
+<main>
+  @if (loading()) {
+    <section class="loading" aria-label="Loading stay">
+      <div></div>
+      <div></div>
+    </section>
+  } @else if (notFound()) {
+    <section class="not-found">
+      <p>Stay unavailable</p>
+      <h1>This stay is no longer available on SurePlace.</h1>
+      <div><a routerLink="/stays">Browse stays</a><a routerLink="/">Home</a></div>
+    </section>
+  } @else if (error()) {
+    <section class="state">
+      <sp-feedback
+        title="We couldn't load this stay"
+        [message]="error()!.message"
+        [requestId]="error()!.requestId"
+        actionLabel="Try again"
+        (action)="retry()"
+      />
+    </section>
+  } @else if (stay(); as item) {
+    <section class="shell">
+      <div class="main-column">
+        <sp-stay-gallery [images]="item.images" [title]="item.name" />
+        <header class="identity">
+          <div>
+            <p class="eyebrow">{{ typeLabel(item.stay_type) }}</p>
+            <h1>{{ item.name }}</h1>
+            <p>{{ item.suburb ? item.suburb + ', ' : '' }}{{ item.town }}, {{ item.region }}</p>
+            <div class="badges">
+              @for (badge of item.verification_badges; track badge.type) {
+                <sp-verification-badge [label]="badge.label" />
+              }
+            </div>
+          </div>
+          <div class="identity-actions">
+            <button type="button" [disabled]="saving()" (click)="toggleFavourite()">
+              {{ item.is_favourited ? '♥ Saved' : '♡ Save' }}</button
+            ><button type="button" (click)="share()">Share</button>
+          </div>
+        </header>
+        <section class="description">
+          <h2>About this stay</h2>
+          <div [class.clamped]="!expanded()">
+            {{ item.description || 'Contact the stay for more information.' }}
+          </div>
+          @if (item.description.length > 420) {
+            <button type="button" (click)="expanded.set(!expanded())">
+              {{ expanded() ? 'Show less' : 'Read more' }}
+            </button>
+          }
+        </section>
+        @if (item.amenities.length) {
+          <section>
+            <h2>Amenities</h2>
+            <div class="amenities">
+              @for (a of item.amenities; track a.id) {
+                <div>
+                  <span aria-hidden="true">✓</span><strong>{{ a.name }}</strong>
+                </div>
+              }
+            </div>
+          </section>
+        }
+        <section class="rooms" id="rooms">
+          <div>
+            <h2>Choose a room</h2>
+            <p>
+              @if (validCriteria()) {
+                Availability for your selected dates
+              } @else {
+                Choose dates to check availability
+              }
+            </p>
+          </div>
+          <form
+            class="availability-search"
+            [formGroup]="searchForm"
+            (ngSubmit)="applyAvailability()"
+          >
+            <label>Check-in<input type="date" formControlName="check_in" [min]="minDate" /></label
+            ><label
+              >Check-out<input
+                type="date"
+                formControlName="check_out"
+                [min]="searchForm.controls.check_in.value || minDate" /></label
+            ><label>Adults<input type="number" min="1" formControlName="adults" /></label
+            ><label>Children<input type="number" min="0" formControlName="children" /></label
+            ><label>Rooms<input type="number" min="1" formControlName="rooms" /></label
+            ><button type="submit">Check availability</button>
+          </form>
+          @if (availabilityError()) {
+            <div class="availability-error" role="alert">
+              <p>{{ availabilityError() }}</p>
+              <button type="button" (click)="loadAvailability()">Retry</button>
+            </div>
+          }
+          @if (availabilityLoading()) {
+            <div class="room-skeletons" aria-live="polite">
+              <p>Checking room availability…</p>
+              <div></div>
+              <div></div>
+            </div>
+          } @else {
+            @for (room of item.room_types; track room.id) {
+              <sp-room-card
+                [room]="room"
+                [availability]="availabilityFor(room.id)"
+                [selected]="selectedRoomId() === room.id"
+                (selectedRoom)="selectRoom($event)"
+              />
+            }
+            @if (validCriteria() && !availability().length) {
+              <div class="no-rooms">
+                <h3>No rooms are available for those dates.</h3>
+                <p>Change dates, adjust guests, or contact the stay.</p>
+              </div>
+            }
+          }
+        </section>
+        @if (markers().length) {
+          <section>
+            <h2>Location</h2>
+            <p>{{ item.suburb ? item.suburb + ', ' : '' }}{{ item.town }}, {{ item.region }}</p>
+            <div class="location-map">
+              <sp-listing-map
+                [markers]="markers()"
+                [selectedId]="item.id"
+                [center]="[item.latitude!, item.longitude!]"
+                [zoom]="14"
+              />
+            </div>
+          </section>
+        }
+        <section class="policies">
+          <h2>Stay details</h2>
+          <div>
+            <p>
+              <span>Check-in</span><strong>{{ time(item.check_in_time) }}</strong>
+            </p>
+            <p>
+              <span>Check-out</span><strong>{{ time(item.check_out_time) }}</strong>
+            </p>
+            <p><span>Minimum stay</span><strong>Varies by room</strong></p>
+          </div>
+        </section>
+        <sp-stay-contact [stay]="item" [dates]="criteria()" />
+      </div>
+      <aside class="booking-column" id="booking">
+        <sp-stay-booking
+          [stay]="item"
+          [room]="selectedRoom()"
+          [availability]="selectedAvailability()"
+          [criteria]="criteria()"
+          (inventoryConflict)="loadAvailability()"
+        />
+      </aside>
+    </section>
+    @if (related().length) {
+      <section class="related">
+        <header>
+          <p class="eyebrow">Keep exploring</p>
+          <h2>Similar Stays</h2>
+        </header>
+        <swiper-container
+          slides-per-view="1.1"
+          space-between="16"
+          breakpoints='{"650":{"slidesPerView":2.1},"950":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
+        >
+          @for (other of related(); track other.id) {
+            <swiper-slide><sp-stay-card [item]="other" /></swiper-slide>
+          }
+        </swiper-container>
+      </section>
+    }
+    <div class="mobile-booking">
+      <span>{{ selectedRoom()?.name || 'Choose a room' }}</span
+      ><a [href]="selectedRoom() ? '#booking' : '#rooms'">{{
+        selectedRoom() ? 'Request booking' : 'Check availability'
+      }}</a>
+    </div>
+  }
+</main>

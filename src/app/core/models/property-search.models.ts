@@ -1,0 +1,3 @@
+export type PropertyOrdering='newest'|'oldest'|'price_asc'|'price_desc';export type PropertyView='list'|'map';
+export interface PropertySearchParams{listing_type?:'RENT'|'SALE';property_type?:string;region?:string;town?:string;suburb?:string;min_price?:string;max_price?:string;min_bedrooms?:string;min_bathrooms?:string;furnished?:boolean;pet_friendly?:boolean;amenities?:string[];featured?:boolean;verification_status?:string;search?:string;ordering?:PropertyOrdering;page?:number;view?:PropertyView;north?:string;south?:string;east?:string;west?:string}
+export interface MapBounds{north:string;south:string;east:string;west:string}

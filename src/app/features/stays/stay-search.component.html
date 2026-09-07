@@ -1,0 +1,334 @@
+<main class="stay-search-page">
+  <section class="intro">
+    <p class="eyebrow">Stay search</p>
+    <h1>{{ heading() }}</h1>
+    <p class="count">
+      @if (loading()) {
+        Updating results…
+      } @else {
+        <span>{{ count() }} {{ count() === 1 ? 'stay' : 'stays' }}</span>
+      }
+    </p>
+  </section>
+  <section class="toolbar" aria-label="Stay search controls">
+    <form class="primary" [formGroup]="form" (ngSubmit)="apply()">
+      <label
+        ><span>Destination</span
+        ><input
+          formControlName="destination"
+          list="destinations"
+          placeholder="Town or region" /><datalist id="destinations">
+          @for (region of references.data().regions; track region.value) {
+            <option [value]="region.label"></option>
+            @for (town of region.areas; track town) {
+              <option [value]="town"></option>
+            }
+          }</datalist
+      ></label>
+      <label
+        ><span>Check-in</span
+        ><input type="date" formControlName="check_in" [min]="minDate" (change)="checkInChanged()"
+      /></label>
+      <label
+        ><span>Check-out</span
+        ><input
+          type="date"
+          formControlName="check_out"
+          [min]="form.controls.check_in.value || minDate"
+      /></label>
+      <div class="guest-wrap">
+        <span>Guests</span
+        ><button
+          class="guest-toggle"
+          type="button"
+          (click)="guestsOpen.set(!guestsOpen())"
+          [attr.aria-expanded]="guestsOpen()"
+        >
+          {{ guestSummary() }}
+        </button>
+        @if (guestsOpen()) {
+          <div class="guest-popover">
+            @for (
+              row of [
+                { key: 'adults', label: 'Adults' },
+                { key: 'children', label: 'Children' },
+                { key: 'rooms', label: 'Rooms' },
+              ];
+              track row.key
+            ) {
+              <div>
+                <span>{{ row.label }}</span
+                ><button
+                  type="button"
+                  [attr.aria-label]="'Decrease ' + row.label"
+                  (click)="changeGuest($any(row.key), -1)"
+                >
+                  −</button
+              ><strong>{{ guestValue(row.key) }}</strong
+                ><button
+                  type="button"
+                  [attr.aria-label]="'Increase ' + row.label"
+                  (click)="changeGuest($any(row.key), 1)"
+                >
+                  +
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <button class="search" type="submit">Search</button>
+      @if (dateError()) {
+        <p class="date-error" role="alert">{{ dateError() }}</p>
+      }
+    </form>
+    <div class="mobile-actions">
+      <button type="button" (click)="filtersOpen.set(true)">Filters</button
+      ><label
+        ><span class="sr-only">Sort stays</span
+        ><select [value]="state().ordering" (change)="sort($any($event.target).value)">
+          <option value="newest">Newest</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="name">Name A–Z</option>
+        </select></label
+      ><button type="button" (click)="setView(state().view === 'map' ? 'list' : 'map')">
+        {{ state().view === 'map' ? 'List' : 'Map' }}
+      </button>
+    </div>
+    <form class="secondary" [formGroup]="form" (ngSubmit)="apply()">
+      <label
+        >Stay type<select formControlName="stay_type">
+          <option value="">Any type</option>
+          @for (type of references.data().stay_types; track type.value) {
+            <option [value]="type.value">{{ type.label }}</option>
+          }
+        </select></label
+      ><label
+        >Min nightly price<input
+          type="number"
+          min="0"
+          formControlName="min_price"
+          placeholder="E0" /></label
+      ><label
+        >Max nightly price<input
+          type="number"
+          min="0"
+          formControlName="max_price"
+          placeholder="Any" /></label
+      ><label class="check"
+        ><input type="checkbox" formControlName="verified" /> Verified stays only</label
+      ><button type="button" (click)="filtersOpen.set(true)">More filters</button
+      ><button class="apply" type="submit">Apply</button>
+    </form>
+  </section>
+  @if (filtersOpen()) {
+    <div class="sheet-backdrop" (click)="filtersOpen.set(false)">
+      <section
+        class="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stay-filter-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header>
+          <h2 id="stay-filter-title">Filter stays</h2>
+          <button type="button" aria-label="Close filters" (click)="filtersOpen.set(false)">
+            ×
+          </button>
+        </header>
+        <form [formGroup]="form" (ngSubmit)="apply()">
+          <label
+            >Region<select formControlName="region">
+              <option value="">All regions</option>
+              @for (region of references.data().regions; track region.value) {
+                <option [value]="region.label">{{ region.label }}</option>
+              }
+            </select></label
+          ><label
+            >Town<select formControlName="town">
+              <option value="">All towns</option>
+              @for (region of references.data().regions; track region.value) {
+                @for (town of region.areas; track town) {
+                  <option [value]="town">{{ town }}</option>
+                }
+              }
+            </select></label
+          ><label>Suburb<input formControlName="suburb" /></label
+          ><label
+            >Stay type<select formControlName="stay_type">
+              <option value="">Any type</option>
+              @for (type of references.data().stay_types; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select></label
+          >
+          <div class="pair">
+            <label
+              >Minimum nightly price<input
+                type="number"
+                min="0"
+                formControlName="min_price" /></label
+            ><label
+              >Maximum nightly price<input type="number" min="0" formControlName="max_price"
+            /></label>
+          </div>
+          <label class="check"
+            ><input type="checkbox" formControlName="verified" /> Verified stays only</label
+          ><label class="check"
+            ><input type="checkbox" formControlName="featured" /> Featured stays</label
+          >
+          <fieldset>
+            <legend>Amenities</legend>
+            @for (amenity of references.data().stay_amenities; track amenity.id) {
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  [checked]="isAmenity(amenity.id)"
+                  (change)="toggleAmenity(amenity.id, $any($event.target).checked)"
+                />
+                {{ amenity.name }}</label
+              >
+            }
+          </fieldset>
+          <div class="sheet-actions">
+            <button type="button" (click)="clearAll()">Clear all</button
+            ><button class="apply" type="submit">Show stays</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+  <section class="chips" aria-label="Active filters">
+    @for (chip of chips(); track chip.key) {
+      <button type="button" (click)="remove(chip.key)">
+        {{ chip.label }} <span aria-hidden="true">×</span>
+      </button>
+    }
+    @if (chips().length) {
+      <button class="clear" type="button" (click)="clearAll()">Clear all</button>
+    }
+    <div class="view-controls">
+      <label
+        >Sort
+        <select [value]="state().ordering" (change)="sort($any($event.target).value)">
+          <option value="newest">Newest</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="name">Name A–Z</option>
+        </select></label
+      >
+      <div>
+        <button type="button" [class.active]="state().view === 'list'" (click)="setView('list')">
+          List</button
+        ><button type="button" [class.active]="state().view === 'map'" (click)="setView('map')">
+          Map
+        </button>
+      </div>
+    </div>
+  </section>
+  @if (error()) {
+    <section class="state">
+      <sp-feedback
+        title="We couldn't load stays"
+        [message]="error()!.message"
+        [requestId]="error()!.requestId"
+        actionLabel="Try again"
+        (action)="retry()"
+      />
+    </section>
+  } @else if (!loading() && !results().length) {
+    <section class="empty">
+      <sp-icon name="home" />
+      <h2>
+        {{
+          availabilityActive()
+            ? 'No stays are available for those dates.'
+            : 'No stays match those filters.'
+        }}
+      </h2>
+      <p>
+        {{
+          availabilityActive()
+            ? 'Try changing your dates or reducing the guest and room count.'
+            : 'Try widening your destination or nightly price range.'
+        }}
+      </p>
+      <div>
+        @if (state().north) {
+          <button type="button" (click)="searchAllAreas()">Search all Eswatini</button>
+        }
+        @if (availabilityActive()) {
+          <button type="button" (click)="remove('dates')">Change dates</button
+          ><button type="button" (click)="remove('guests')">Reduce guests</button>
+        }
+        <button type="button" (click)="clearAll()">Clear filters</button>
+      </div>
+    </section>
+  } @else {
+    <section class="results" [class.map-mode]="state().view === 'map'" [class.loading]="loading()">
+      <div class="listing-pane" aria-live="polite">
+        <div class="grid">
+          @if (loading() && !results().length) {
+            @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+              <div class="skeleton"></div>
+            }
+          } @else {
+            @for (stay of results(); track stay.id) {
+              <sp-stay-card
+                [item]="stay"
+                [class.selected]="selectedId() === stay.id"
+                (mouseenter)="selectedId.set(stay.id)"
+                (focusin)="selectedId.set(stay.id)"
+              />
+            }
+          }
+        </div>
+        @if (!loading() && results().length) {
+          <nav class="pagination" aria-label="Stay result pages">
+            <button type="button" [disabled]="!previous()" (click)="page((state().page || 1) - 1)">
+              Previous</button
+            ><span>Page {{ state().page || 1 }} of {{ pages() }}</span
+            ><button type="button" [disabled]="!next()" (click)="page((state().page || 1) + 1)">
+              Next
+            </button>
+          </nav>
+        }
+      </div>
+      @if (state().view === 'map') {
+        <aside class="map-pane">
+          <sp-listing-map
+            [markers]="markers()"
+            [selectedId]="selectedId()"
+            [center]="[config.config().map.default_latitude, config.config().map.default_longitude]"
+            [zoom]="config.config().map.default_zoom"
+            [showSearchArea]="true"
+            (markerSelected)="selectedId.set($event)"
+            (boundsSelected)="applyBounds($event)"
+          />
+          @if (selected(); as stay) {
+            <div class="map-preview">
+              <button type="button" aria-label="Close preview" (click)="selectedId.set(null)">
+                ×</button
+              ><sp-image [src]="stay.cover_image" [alt]="stay.name" ratio="16 / 7" /><span>{{
+                typeLabel(stay.stay_type)
+              }}</span
+              ><strong>{{ stay.name }}</strong
+              ><span>{{ stay.suburb ? stay.suburb + ', ' : '' }}{{ stay.town }}</span
+              ><strong
+                >{{ formatMoney(stay.minimum_nightly_price) || 'View rooms' }}
+                @if (stay.minimum_nightly_price) {
+                  <small>/ night</small>
+                }
+              </strong>
+              @if (stay.verification_status === 'VERIFIED') {
+                <span>Verified Stay</span>
+              }
+              <a [routerLink]="['/stays', stay.slug]">View Stay</a>
+            </div>
+          }
+        </aside>
+      }
+    </section>
+  }
+</main>

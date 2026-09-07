@@ -1,0 +1,345 @@
+<main class="property-search-page">
+  <section class="intro">
+    <p class="eyebrow">Property search</p>
+    <h1>{{ heading() }}</h1>
+    <p class="count">
+      @if (loading()) {
+        Updating results…
+      } @else {
+        <span>{{ count() }} {{ count() === 1 ? 'property' : 'properties' }}</span>
+      }
+    </p>
+  </section>
+  <section class="toolbar" aria-label="Property search filters">
+    <div class="mobile-actions">
+      <button type="button" (click)="filtersOpen.set(true)">Filters</button>
+      <label
+        >Sort
+        <select [value]="state().ordering" (change)="sort($any($event.target).value)">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select></label
+      >
+      <button type="button" (click)="setView(state().view === 'map' ? 'list' : 'map')">
+        {{ state().view === 'map' ? 'List' : 'Map' }}
+      </button>
+    </div>
+    <form class="desktop-filters" [formGroup]="form" (ngSubmit)="apply()">
+      <div class="mode">
+        <button
+          type="button"
+          [class.active]="form.controls.listing_type.value === 'RENT'"
+          (click)="setMode('RENT')"
+        >
+          Rent</button
+        ><button
+          type="button"
+          [class.active]="form.controls.listing_type.value === 'SALE'"
+          (click)="setMode('SALE')"
+        >
+          Buy
+        </button>
+      </div>
+      <label
+        ><span>Region</span
+        ><select formControlName="region">
+          <option value="">All regions</option>
+          @for (region of references.data().regions; track region.value) {
+            <option [value]="region.label">{{ region.label }}</option>
+          }
+        </select></label
+      >
+      <label
+        ><span>Town</span
+        ><select formControlName="town">
+          <option value="">All towns</option>
+          @for (region of references.data().regions; track region.value) {
+            @for (town of region.areas; track town) {
+              <option [value]="town">{{ town }}</option>
+            }
+          }
+        </select></label
+      >
+      <label
+        ><span>Property type</span
+        ><select formControlName="property_type">
+          <option value="">Any type</option>
+          @for (type of references.data().property_types; track type.value) {
+            <option [value]="type.value">{{ type.label }}</option>
+          }
+        </select></label
+      >
+      <label
+        ><span>Min price</span
+        ><input type="number" min="0" placeholder="E0" formControlName="min_price"
+      /></label>
+      <label
+        ><span>Max price</span
+        ><input type="number" min="0" placeholder="Any" formControlName="max_price"
+      /></label>
+      <label
+        ><span>Beds</span
+        ><select formControlName="min_bedrooms">
+          <option value="">Any</option>
+          <option value="1">1 or more</option>
+          <option value="2">2 or more</option>
+          <option value="3">3 or more</option>
+          <option value="4">4 or more</option>
+        </select></label
+      >
+      <button
+        type="button"
+        class="more"
+        (click)="moreOpen.set(!moreOpen())"
+        [attr.aria-expanded]="moreOpen()"
+      >
+        More filters</button
+      ><button class="apply" type="submit">Search</button>
+      @if (moreOpen()) {
+        <div class="more-panel">
+          <label
+            ><span>Bathrooms</span
+            ><select formControlName="min_bathrooms">
+              <option value="">Any</option>
+              <option value="1">1 or more</option>
+              <option value="2">2 or more</option>
+              <option value="3">3 or more</option>
+              <option value="4">4 or more</option>
+            </select></label
+          >
+          <label><span>Suburb</span><input formControlName="suburb" /></label
+          ><label
+            ><span>Keyword</span><input formControlName="search" placeholder="Title or description"
+          /></label>
+          <label class="check"
+            ><input type="checkbox" formControlName="furnished" /> Furnished</label
+          ><label class="check"
+            ><input type="checkbox" formControlName="pet_friendly" /> Pet friendly</label
+          ><label class="check"
+            ><input type="checkbox" formControlName="verified" /> Verified listings only</label
+          >
+          <fieldset>
+            <legend>Amenities</legend>
+            @for (amenity of references.data().property_amenities; track amenity.id) {
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  [checked]="isAmenity(amenity.id)"
+                  (change)="toggleAmenity(amenity.id, $any($event.target).checked)"
+                />
+                {{ amenity.name }}</label
+              >
+            }
+          </fieldset>
+        </div>
+      }
+    </form>
+  </section>
+  @if (filtersOpen()) {
+    <div class="sheet-backdrop" (click)="filtersOpen.set(false)">
+      <section
+        class="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filter-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header>
+          <h2 id="filter-title">Filter properties</h2>
+          <button type="button" aria-label="Close filters" (click)="filtersOpen.set(false)">
+            ×
+          </button>
+        </header>
+        <form [formGroup]="form" (ngSubmit)="apply()">
+          <label
+            >Rent or Buy<select formControlName="listing_type">
+              <option value="RENT">Rent</option>
+              <option value="SALE">Buy</option>
+            </select></label
+          >
+          <label
+            >Region<select formControlName="region">
+              <option value="">All regions</option>
+              @for (region of references.data().regions; track region.value) {
+                <option [value]="region.label">{{ region.label }}</option>
+              }
+            </select></label
+          >
+          <label
+            >Town<select formControlName="town">
+              <option value="">All towns</option>
+              @for (region of references.data().regions; track region.value) {
+                @for (town of region.areas; track town) {
+                  <option [value]="town">{{ town }}</option>
+                }
+              }
+            </select></label
+          >
+          <label>Suburb<input formControlName="suburb" /></label
+          ><label
+            >Property type<select formControlName="property_type">
+              <option value="">Any type</option>
+              @for (type of references.data().property_types; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select></label
+          >
+          <div class="pair">
+            <label>Minimum price<input type="number" min="0" formControlName="min_price" /></label
+            ><label>Maximum price<input type="number" min="0" formControlName="max_price" /></label>
+          </div>
+          <div class="pair">
+            <label
+              >Bedrooms<select formControlName="min_bedrooms">
+                <option value="">Any</option>
+                <option value="1">1 or more</option>
+                <option value="2">2 or more</option>
+                <option value="3">3 or more</option>
+                <option value="4">4 or more</option>
+              </select></label
+            ><label
+              >Bathrooms<select formControlName="min_bathrooms">
+                <option value="">Any</option>
+                <option value="1">1 or more</option>
+                <option value="2">2 or more</option>
+                <option value="3">3 or more</option>
+                <option value="4">4 or more</option>
+              </select></label
+            >
+          </div>
+          <label class="check"
+            ><input type="checkbox" formControlName="furnished" /> Furnished</label
+          ><label class="check"
+            ><input type="checkbox" formControlName="pet_friendly" /> Pet friendly</label
+          ><label class="check"
+            ><input type="checkbox" formControlName="verified" /> Verified listings only</label
+          >
+          <fieldset>
+            <legend>Amenities</legend>
+            @for (amenity of references.data().property_amenities; track amenity.id) {
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  [checked]="isAmenity(amenity.id)"
+                  (change)="toggleAmenity(amenity.id, $any($event.target).checked)"
+                />
+                {{ amenity.name }}</label
+              >
+            }
+          </fieldset>
+          <div class="sheet-actions">
+            <button type="button" (click)="clearAll()">Clear all</button
+            ><button class="apply" type="submit">Show properties</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+  <section class="chips" aria-label="Active filters">
+    @for (chip of chips(); track chip.key) {
+      <button type="button" (click)="remove(chip.key)">
+        {{ chip.label }} <span aria-hidden="true">×</span>
+      </button>
+    }
+    @if (chips().length > 1) {
+      <button class="clear" type="button" (click)="clearAll()">Clear all</button>
+    }
+    <div class="view-controls">
+      <label
+        >Sort
+        <select [value]="state().ordering" (change)="sort($any($event.target).value)">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select></label
+      >
+      <div>
+        <button type="button" [class.active]="state().view === 'list'" (click)="setView('list')">
+          List</button
+        ><button type="button" [class.active]="state().view === 'map'" (click)="setView('map')">
+          Map
+        </button>
+      </div>
+    </div>
+  </section>
+  @if (error()) {
+    <section class="state">
+      <sp-feedback
+        title="We couldn't load properties"
+        [message]="error()!.message"
+        [requestId]="error()!.requestId"
+        actionLabel="Try again"
+        (action)="retry()"
+      />
+    </section>
+  } @else if (!loading() && !results().length) {
+    <section class="empty">
+      <sp-icon name="home" />
+      <h2>No properties match those filters.</h2>
+      <p>Try widening your location or price range.</p>
+      <div>
+        @if (state().north) {
+          <button type="button" (click)="searchAllAreas()">Search all areas</button>
+        }
+        <button type="button" (click)="clearAll()">Clear filters</button>
+      </div>
+    </section>
+  } @else {
+    <section class="results" [class.map-mode]="state().view === 'map'" [class.loading]="loading()">
+      <div class="listing-pane" aria-live="polite">
+        <div class="grid">
+          @if (loading() && !results().length) {
+            @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+              <div class="skeleton"></div>
+            }
+          } @else {
+            @for (property of results(); track property.id) {
+              <sp-property-card
+                [item]="property"
+                [class.selected]="selectedId() === property.id"
+                (mouseenter)="selectedId.set(property.id)"
+                (focusin)="selectedId.set(property.id)"
+              ></sp-property-card>
+            }
+          }
+        </div>
+        @if (!loading() && results().length) {
+          <nav class="pagination" aria-label="Property result pages">
+            <button type="button" [disabled]="!previous()" (click)="page((state().page || 1) - 1)">
+              Previous</button
+            ><span>Page {{ state().page || 1 }} of {{ pages() }}</span
+            ><button type="button" [disabled]="!next()" (click)="page((state().page || 1) + 1)">
+              Next
+            </button>
+          </nav>
+        }
+      </div>
+      @if (state().view === 'map') {
+        <aside class="map-pane">
+          <sp-listing-map
+            [markers]="markers()"
+            [selectedId]="selectedId()"
+            [center]="[config.config().map.default_latitude, config.config().map.default_longitude]"
+            [zoom]="config.config().map.default_zoom"
+            [showSearchArea]="true"
+            (markerSelected)="selectedId.set($event)"
+            (boundsSelected)="applyBounds($event)"
+          />
+          @if (selected(); as property) {
+            <div class="map-preview">
+              <button type="button" aria-label="Close preview" (click)="selectedId.set(null)">
+                &times;</button
+              ><sp-image [src]="property.cover_image" [alt]="property.title" ratio="16 / 7" />
+              <strong>{{ markerPrice(property) }}</strong><strong>{{ property.title }}</strong
+              ><span>{{ property.suburb ? property.suburb + ', ' : '' }}{{ property.town }}</span
+              ><a [href]="'/properties/' + property.slug">View details</a>
+            </div>
+          }
+        </aside>
+      }
+    </section>
+  }
+</main>

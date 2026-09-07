@@ -1,59 +1,43 @@
-# SurePlace
+# SurePlace frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.8.
+Angular standalone SPA for the SurePlace marketplace. The current frontend includes its responsive homepage and search entry, reusable property/stay cards, authentication, API configuration, route placeholders, and shared UI states. Full search-results and listing-detail screens remain intentionally out of scope.
 
-## Development server
+## Requirements
 
-To start a local development server, run:
+- Node.js and npm compatible with Angular 22
+- SurePlace Django API running at `http://localhost:8000`
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Local development
 
 ```bash
-ng generate component component-name
+npm install
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Open `http://localhost:4200`. The development server proxies `/api` to Django using `proxy.conf.json`, avoiding local CORS and cookie-origin issues. Set the backend's allowed origin to `http://localhost:4200` as documented in its `.env.example`.
+
+Runtime API requests use `src/environments/environment.ts`. Production replaces it with `environment.production.ts`; both currently use the deployment-friendly relative base `/api/v1`.
+
+## Verification
 
 ```bash
-ng generate --help
+npm test -- --watch=false
+npm run build -- --configuration development
+npm run build -- --configuration production
 ```
 
-## Building
+No lint target is configured yet. Strict Angular template and TypeScript checks run as part of each build.
 
-To build the project run:
+## Authentication
 
-```bash
-ng build
-```
+Access and refresh tokens are centralized in `TokenStorage`. The default is session storage; selecting “Remember me” uses local storage. The HTTP interceptor only adds authorization to the configured first-party API path, coordinates one refresh request for concurrent failures, retries once, and returns users to login when refresh fails. User profile data is held in signals rather than persisted in browser storage.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Search and maps
 
-## Running unit tests
+Property search state is encoded in `/properties` query parameters, so filters, sorting, pagination, list/map mode, and explicit map bounds can be restored and shared. Leaflet uses OpenStreetMap tiles and requires no commercial API key. Core location/type searches receive descriptive titles; production should emit a canonical `/properties` URL for highly parameterized variants unless curated SEO landing pages are introduced later.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Brand assets
 
-```bash
-ng test
-```
+Approved logo and favicon files live in `public/` and are referenced directly without alteration.
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The local homepage hero image is `public/hero-eswatini-home.png`; production code does not depend on third-party image URLs. Listing imagery continues to come from the backend's media/Cloudinary-compatible URLs.

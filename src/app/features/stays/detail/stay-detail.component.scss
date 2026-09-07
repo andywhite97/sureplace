@@ -1,0 +1,240 @@
+:host {
+  display: block;
+  background: var(--mist);
+  min-height: 80vh;
+}
+.shell {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 2rem auto 4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 2rem;
+}
+.main-column {
+  display: grid;
+  gap: 2rem;
+}
+.booking-column sp-stay-booking {
+  position: sticky;
+  top: 92px;
+}
+.identity {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.eyebrow {
+  color: var(--teal);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  margin: 0;
+}
+.identity h1 {
+  font-size: clamp(2rem, 5vw, 3.3rem);
+  margin: 0.3rem 0;
+}
+.identity p {
+  color: var(--slate);
+}
+.badges,
+.identity-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.identity-actions button,
+.description button {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.9rem;
+}
+.main-column > section,
+.main-column > sp-stay-contact {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+h2 {
+  margin-top: 0;
+}
+.description div {
+  white-space: pre-line;
+  line-height: 1.75;
+  color: #36504f;
+}
+.description .clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.amenities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+}
+.amenities > div {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.7rem;
+  background: var(--mist);
+  border-radius: 0.5rem;
+}
+.amenities span {
+  color: var(--teal);
+}
+.rooms {
+  display: grid;
+  gap: 1rem;
+}
+.availability-search {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+.availability-search label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.availability-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+}
+.availability-search button,
+.availability-error button {
+  padding: 0.62rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 800;
+}
+.availability-error,
+.no-rooms {
+  padding: 1rem;
+  background: #fff4eb;
+  border-radius: 0.6rem;
+}
+.room-skeletons div,
+.loading div {
+  height: 220px;
+  background: linear-gradient(90deg, #e3ebe9, #f7faf9, #e3ebe9);
+  border-radius: var(--radius);
+  margin: 0.7rem 0;
+}
+.location-map {
+  height: 360px;
+  overflow: hidden;
+  border-radius: 0.7rem;
+}
+.policies > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.policies p {
+  display: grid;
+}
+.policies span {
+  color: var(--slate);
+}
+.related {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto 5rem;
+}
+.state,
+.not-found,
+.loading {
+  width: min(900px, calc(100% - 2rem));
+  margin: 4rem auto;
+  text-align: center;
+}
+.not-found {
+  padding: 5rem 1rem;
+}
+.not-found a {
+  display: inline-block;
+  margin: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--teal);
+  color: #fff;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+.mobile-booking {
+  display: none;
+}
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .booking-column {
+    order: -1;
+  }
+  .booking-column sp-stay-booking {
+    position: static;
+  }
+  .amenities {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .availability-search {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .availability-search button {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 600px) {
+  .shell {
+    width: calc(100% - 1rem);
+    margin-top: 0.5rem;
+  }
+  .identity {
+    display: grid;
+  }
+  .amenities,
+  .policies > div {
+    grid-template-columns: 1fr;
+  }
+  .availability-search {
+    grid-template-columns: 1fr 1fr;
+  }
+  .booking-column {
+    display: block;
+    order: initial;
+  }
+  .mobile-booking {
+    position: fixed;
+    z-index: 50;
+    left: 0;
+    right: 0;
+    bottom: 64px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    padding: 0.7rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mobile-booking a {
+    background: var(--teal);
+    color: #fff;
+    padding: 0.65rem 0.9rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 800;
+  }
+  .related {
+    margin-bottom: 8rem;
+  }
+}

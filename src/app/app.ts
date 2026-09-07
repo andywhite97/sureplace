@@ -1,12 +1,2 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-
-@Component({
-  selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
-})
-export class App {
-  protected readonly title = signal('SurePlace');
-}
+import {Component} from '@angular/core';import {RouterOutlet} from '@angular/router';import {PublicHeaderComponent} from './layout/public-header.component';import {FooterComponent} from './layout/footer.component';import {MobileNavigationComponent} from './layout/mobile-navigation.component';import {ToastRegionComponent} from './layout/toast-region.component';
+@Component({selector:'app-root',standalone:true,imports:[RouterOutlet,PublicHeaderComponent,FooterComponent,MobileNavigationComponent,ToastRegionComponent],template:`<sp-header/><router-outlet/><sp-footer/><sp-mobile-nav/><sp-toast-region/>`})export class App{}

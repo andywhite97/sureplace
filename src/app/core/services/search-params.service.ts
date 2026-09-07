@@ -1,0 +1,4 @@
+import {Injectable} from '@angular/core';import {Params} from '@angular/router';
+export interface PropertySearch{listing_type:'RENT'|'SALE';town:string;property_type:string;price_range:string}
+export interface StaySearch{town:string;check_in:string;check_out:string;adults:number;children:number;rooms:number}
+@Injectable({providedIn:'root'}) export class SearchParamsService{property(v:PropertySearch):Params{return this.clean({listing_type:v.listing_type,town:v.town,property_type:v.property_type,...this.price(v.price_range)})}stay(v:StaySearch):Params{return this.clean({...v})}private price(value:string){const [min_price,max_price]=value.split('-');return value?{min_price,max_price}:{} }private clean(v:Record<string,unknown>):Params{return Object.fromEntries(Object.entries(v).filter(([,x])=>x!==''&&x!==null&&x!==undefined))}}

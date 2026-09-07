@@ -1,0 +1,2 @@
+import {Injectable,signal} from '@angular/core';export type ToastKind='success'|'error'|'warning'|'info';export interface Toast{id:number;message:string;kind:ToastKind}
+@Injectable({providedIn:'root'}) export class ToastService{readonly items=signal<Toast[]>([]);show(message:string,kind:ToastKind='info'){const id=Date.now();this.items.update(items=>[...items,{id,message,kind}]);setTimeout(()=>this.dismiss(id),4500)}dismiss(id:number){this.items.update(items=>items.filter(item=>item.id!==id))}}

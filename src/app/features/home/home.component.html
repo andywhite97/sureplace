@@ -1,0 +1,279 @@
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <img
+      src="/hero-eswatini-home.png"
+      alt="A welcoming home overlooking Eswatini's green highveld"
+      width="1536"
+      height="1024"
+      fetchpriority="high"
+    />
+    <div class="shade"></div>
+    <div class="hero-copy">
+      <p class="eyebrow">Property. Without the noise.</p>
+      <h1 id="hero-title">Find your SurePlace.</h1>
+      <p>Discover properties and stays across Eswatini. Simple, trusted and easy to search.</p>
+    </div>
+    <div class="search-panel">
+      <div class="modes" role="tablist" aria-label="Search type">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="mode() === 'RENT'"
+          (click)="setMode('RENT')"
+        >
+          Rent</button
+        ><button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="mode() === 'BUY'"
+          (click)="setMode('BUY')"
+        >
+          Buy
+        </button>
+        @if (config.config().features.stays) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="mode() === 'STAY'"
+            (click)="setMode('STAY')"
+          >
+            Stay
+          </button>
+        }
+      </div>
+      @if (mode() !== 'STAY') {
+        <form class="dock property-dock" [formGroup]="propertyForm" (ngSubmit)="search()">
+          <label
+            ><span>Location</span
+            ><select formControlName="town">
+              <option value="">Anywhere in Eswatini</option>
+              @for (region of references.data().regions; track region.value) {
+                @for (area of region.areas; track area) {
+                  <option [value]="area">{{ area }}</option>
+                }
+              }
+            </select></label
+          ><label
+            ><span>Property type</span
+            ><select formControlName="property_type">
+              <option value="">All property types</option>
+              @for (type of references.data().property_types; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select></label
+          ><label
+            ><span>Price range</span
+            ><select formControlName="price_range">
+              @for (price of prices; track price.value) {
+                <option [value]="price.value">{{ price.label }}</option>
+              }
+            </select></label
+          ><button class="search-button" type="submit">Search</button>
+        </form>
+      } @else {
+        <form class="dock stay-dock" [formGroup]="stayForm" (ngSubmit)="search()">
+          <label
+            ><span>Destination</span
+            ><select formControlName="town">
+              <option value="">Anywhere in Eswatini</option>
+              @for (region of references.data().regions; track region.value) {
+                @for (area of region.areas; track area) {
+                  <option [value]="area">{{ area }}</option>
+                }
+              }
+            </select></label
+          ><label
+            ><span>Check-in</span
+            ><input type="date" formControlName="check_in" [min]="minStayDate" /></label
+          ><label
+            ><span>Check-out</span
+            ><input
+              type="date"
+              formControlName="check_out"
+              [min]="stayForm.controls.check_in.value || minStayDate"
+          /></label>
+          <div class="guests">
+            <span>Guests</span
+            ><button
+              type="button"
+              class="guest-trigger"
+              (click)="guestsOpen.set(!guestsOpen())"
+              [attr.aria-expanded]="guestsOpen()"
+            >
+              {{ guestSummary() }}
+            </button>
+            @if (guestsOpen()) {
+              <div class="guest-popover">
+                <label>Adults <input type="number" min="1" formControlName="adults" /></label
+                ><label>Children <input type="number" min="0" formControlName="children" /></label
+                ><label>Rooms <input type="number" min="1" formControlName="rooms" /></label>
+              </div>
+            }
+          </div>
+          <button class="search-button" type="submit">Search</button>
+        </form>
+      }
+      <div class="popular">
+        <span>Popular:</span>
+        @for (place of locations; track place) {
+          <button type="button" (click)="popular(place)">{{ place }}</button>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="market section" aria-labelledby="featured-properties">
+    <header>
+      <div>
+        <p class="eyebrow">Homes to discover</p>
+        <h2 id="featured-properties">Featured Properties</h2>
+        <p>Handpicked listings across Eswatini.</p>
+      </div>
+      <a routerLink="/properties">Explore properties <span aria-hidden="true">→</span></a>
+    </header>
+    @if (propertiesLoading()) {
+      <div class="skeleton-grid" aria-label="Loading featured properties">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="skeleton"></div>
+        }
+      </div>
+    } @else if (properties().length) {
+      <swiper-container
+        class="listing-swiper"
+        slides-per-view="1.08"
+        space-between="16"
+        breakpoints='{"560":{"slidesPerView":2.1},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
+        pagination="true"
+      >
+        @for (property of properties(); track property.id) {
+          <swiper-slide><sp-property-card [item]="property" /></swiper-slide>
+        }
+      </swiper-container>
+    } @else {
+      <a class="discovery" routerLink="/properties">Browse all available properties</a>
+    }
+  </section>
+
+  <section class="types section" aria-labelledby="property-types">
+    <header>
+      <div>
+        <p class="eyebrow">Explore your way</p>
+        <h2 id="property-types">Browse by Property Type</h2>
+      </div>
+    </header>
+    <div class="type-grid">
+      @for (type of references.data().property_types; track type.value) {
+        <button type="button" (click)="browseType(type.value)">
+          <sp-icon name="building" /><span>{{ type.label }}</span
+          ><small>View listings</small>
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (config.config().features.stays) {
+    <section class="market stays section" aria-labelledby="featured-stays">
+      <header>
+        <div>
+          <p class="eyebrow">Stay somewhere special</p>
+          <h2 id="featured-stays">Featured Stays</h2>
+          <p>Guest houses, lodges and hotels worth discovering.</p>
+        </div>
+        <a routerLink="/stays">Explore stays <span aria-hidden="true">→</span></a>
+      </header>
+      @if (staysLoading()) {
+        <div class="skeleton-grid" aria-label="Loading featured stays">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="skeleton"></div>
+          }
+        </div>
+      } @else if (stays().length) {
+        <swiper-container
+          class="listing-swiper"
+          slides-per-view="1.08"
+          space-between="16"
+          breakpoints='{"560":{"slidesPerView":2.1},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
+          pagination="true"
+        >
+          @for (stay of stays(); track stay.id) {
+            <swiper-slide><sp-stay-card [item]="stay" /></swiper-slide>
+          }
+        </swiper-container>
+      } @else {
+        <a class="discovery" routerLink="/stays">Discover stays across Eswatini</a>
+      }
+    </section>
+  }
+
+  <section class="destinations section" aria-labelledby="destinations">
+    <header>
+      <div>
+        <p class="eyebrow">Closer than you think</p>
+        <h2 id="destinations">Explore Eswatini</h2>
+        <p>Start with places people love to call home—or escape to.</p>
+      </div>
+    </header>
+    <div class="destination-grid">
+      @for (place of locations; track place; let index = $index) {
+        <article>
+          <span>0{{ index + 1 }}</span>
+          <h3>{{ place }}</h3>
+          <div>
+            <a routerLink="/properties" [queryParams]="{ town: place }">Properties</a>
+            @if (config.config().features.stays) {
+              <a routerLink="/stays" [queryParams]="{ town: place }">Stays</a>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="trust section" aria-labelledby="trust">
+    <div class="trust-intro">
+      <p class="eyebrow">Trust, made visible</p>
+      <h2 id="trust">Know who you're dealing with.</h2>
+      <p>
+        SurePlace provides clearer signals so you can make better-informed decisions. Verification
+        supports trust, but never replaces your own checks.
+      </p>
+      <a routerLink="/verification">Learn about SurePlace verification →</a>
+    </div>
+    <div class="trust-grid">
+      <article>
+        <sp-icon name="shield" />
+        <h3>Verified professionals</h3>
+        <p>See when supporting professional evidence has been reviewed.</p>
+      </article>
+      <article>
+        <sp-icon name="building" />
+        <h3>Structured listings</h3>
+        <p>Compare useful property details without digging through noise.</p>
+      </article>
+      <article>
+        <sp-icon name="home" />
+        <h3>Availability signals</h3>
+        <p>Know when an owner or agent last confirmed availability.</p>
+      </article>
+      <article>
+        <sp-icon name="users" />
+        <h3>Reporting & moderation</h3>
+        <p>Flag concerning content for review by the SurePlace team.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="supply section">
+    <div>
+      <p class="eyebrow">Reach active seekers</p>
+      <h2>Have a property or stay to list?</h2>
+      <p>Reach people actively searching for properties and accommodation across Eswatini.</p>
+    </div>
+    <div>
+      <button type="button" (click)="supply('property')">List a Property</button>
+      @if (config.config().features.stays) {
+        <button class="secondary" type="button" (click)="supply('stay')">List a Stay</button>
+      }
+    </div>
+  </section>
+</main>

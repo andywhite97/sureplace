@@ -1,12 +1,2 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
-
-import { routes } from './app.routes';
-import { provideClientHydration } from '@angular/platform-browser';
-
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideRouter(routes), provideClientHydration()
-  ]
-};
+import {ApplicationConfig,inject,provideAppInitializer,provideBrowserGlobalErrorListeners} from '@angular/core';import {provideHttpClient,withInterceptors} from '@angular/common/http';import {provideRouter,withInMemoryScrolling} from '@angular/router';import {firstValueFrom,forkJoin} from 'rxjs';import {routes} from './app.routes';import {authInterceptor} from './core/interceptors/auth.interceptor';import {ConfigApiService} from './core/api/config-api.service';import {ReferenceApiService} from './core/api/reference-api.service';import {AuthService} from './core/auth/auth.service';
+export const appConfig:ApplicationConfig={providers:[provideBrowserGlobalErrorListeners(),provideRouter(routes,withInMemoryScrolling({scrollPositionRestoration:'enabled'})),provideHttpClient(withInterceptors([authInterceptor])),provideAppInitializer(()=>{const config=inject(ConfigApiService),reference=inject(ReferenceApiService),auth=inject(AuthService);return firstValueFrom(forkJoin([config.load(),reference.load(),auth.restore()]))})]};

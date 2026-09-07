@@ -1,0 +1,1 @@
+export function formatMoney(value:string|null,currency='SZL'){if(value===null)return null;return new Intl.NumberFormat('en-SZ',{style:'currency',currency,maximumFractionDigits:0}).format(Number(value)).replace('SZL','E').replace(/\s/g,'')}

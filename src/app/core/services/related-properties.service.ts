@@ -1,0 +1,2 @@
+import {inject,Injectable} from '@angular/core';import {map} from 'rxjs';import {PropertiesApiService} from '../api/properties-api.service';import {PropertyDetail} from '../models/listing.models';
+@Injectable({providedIn:'root'}) export class RelatedPropertiesService{private api=inject(PropertiesApiService);for(property:PropertyDetail){return this.api.search({listing_type:property.listing_type as 'RENT'|'SALE',property_type:property.property_type,town:property.town}).pipe(map(page=>page.results.filter(x=>x.id!==property.id).slice(0,4)))}}
