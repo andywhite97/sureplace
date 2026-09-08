@@ -1,0 +1,1 @@
+function e(r,n=`SZL`){return r===null?null:new Intl.NumberFormat(`en-SZ`,{style:`currency`,currency:n,maximumFractionDigits:0}).format(Number(r)).replace(`SZL`,`E`).replace(/\s/g,``)}export{e as t};

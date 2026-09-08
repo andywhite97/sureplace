@@ -1,0 +1,1 @@
+import{t as Go}from"./chunk-B3bnLV4u.js";var chunk_OVVP7SPE_default=Go();export{chunk_OVVP7SPE_default as default};
