@@ -1,1 +1,5 @@
-export const environment={production:true,name:'production',apiBaseUrl:'/api/v1'} as const;
+export const environment = {
+  production: true,
+  name: 'production',
+  apiBaseUrl: 'https://sureplace-back.onrender.com/api/v1',
+} as const;

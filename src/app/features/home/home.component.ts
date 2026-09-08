@@ -28,7 +28,6 @@ type Mode = 'RENT' | 'BUY' | 'STAY';
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.scss',
 })
 export class HomeComponent implements OnInit {
   private fb = inject(FormBuilder);

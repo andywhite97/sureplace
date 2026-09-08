@@ -22,6 +22,7 @@ export class MessagingStore {
   messages = signal<Message[]>([]);
   listLoading = signal(false);
   threadLoading = signal(false);
+  sending = signal(false);
   listError = signal('');
   threadError = signal('');
   nextMessages = signal<string | null>(null);
@@ -71,9 +72,10 @@ export class MessagingStore {
   }
   send(body: string) {
     const c = this.selected();
-    if (!c) return;
+    if (!c || this.sending()) return;
     const text = body.trim();
     if (!text) return;
+    this.sending.set(true);
     const temp: Message = {
       id: `pending-${Date.now()}`,
       sender: null,
@@ -87,11 +89,16 @@ export class MessagingStore {
     };
     this.messages.update((x) => [...x, temp]);
     this.api.send(c.id, { body: text, message_type: 'TEXT' }).subscribe({
-      next: (m) => this.messages.update((x) => x.map((v) => (v.id === temp.id ? m : v))),
-      error: () =>
+      next: (m) => {
+        this.messages.update((x) => x.map((v) => (v.id === temp.id ? m : v)));
+        this.sending.set(false);
+      },
+      error: () => {
         this.messages.update((x) =>
           x.map((v) => (v.id === temp.id ? { ...v, pending: false, failed: true } : v)),
-        ),
+        );
+        this.sending.set(false);
+      },
     });
   }
   retry(message: Message) {
@@ -103,7 +110,7 @@ export class MessagingStore {
     const conversation = this.selected(),
       next = this.nextMessages();
     if (!conversation || !next) return;
-    const page = Number(new URL(next).searchParams.get('page')) || 2;
+    const page = Number(new URL(next, this.document.location.href).searchParams.get('page')) || 2;
     this.api.messages(conversation.id, page).subscribe((result) => {
       this.messages.set(this.dedupe([...result.results, ...this.messages()]));
       this.nextMessages.set(result.next);
@@ -140,14 +147,16 @@ export class MessagingStore {
   }
   markRead(id: string) {
     const row = this.conversations().find((c) => c.id === id);
-    if (!row?.unread_count) return;
+    const selected = this.selected();
+    if (!row?.unread_count && selected?.id !== id) return;
     this.api
       .markRead(id)
-      .subscribe(() =>
+      .subscribe(() => {
         this.conversations.update((xs) =>
           xs.map((c) => (c.id === id ? { ...c, unread_count: 0 } : c)),
-        ),
-      );
+        );
+        if (selected?.id === id) this.selected.update((c) => (c ? { ...c, unread_count: 0 } : c));
+      });
   }
   private dedupe(items: Message[]) {
     return [...new Map(items.map((m) => [m.id, m])).values()].sort((a, b) =>

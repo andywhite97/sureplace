@@ -16,7 +16,20 @@ npm start
 
 Open `http://localhost:4200`. The development server proxies `/api` to Django using `proxy.conf.json`, avoiding local CORS and cookie-origin issues. Set the backend's allowed origin to `http://localhost:4200` as documented in its `.env.example`.
 
-Runtime API requests use `src/environments/environment.ts`. Production replaces it with `environment.production.ts`; both currently use the deployment-friendly relative base `/api/v1`.
+Runtime API requests use `src/environments/environment.ts`. Local development uses `/api/v1` through the Angular proxy. Production replaces it with `environment.production.ts`, which must point at the public Render API URL and keep the `/api/v1` suffix.
+
+## GitHub Pages deployment
+
+Production GitHub Pages deployment is documented in `docs/github-pages-deployment.md`. The preferred production mode is a custom domain with base href `/`; repository Pages fallback is also supported with base href `/<repo>/`.
+
+Useful scripts:
+
+```bash
+npm run build:prod
+npm run build:ghpages
+npm run build:ghpages:repo
+npm run deploy:ghpages
+```
 
 ## Verification
 

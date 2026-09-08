@@ -17,6 +17,8 @@ import { FeedbackComponent } from '../../shared/ui/feedback.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { formatMoney } from '../../shared/listing/price-format';
+import { SaveSearchButtonComponent } from '../account/save-search-button.component';
+import { SavedSearchCriteria } from '../../core/models/account.models';
 @Component({
   standalone: true,
   imports: [
@@ -26,6 +28,7 @@ import { formatMoney } from '../../shared/listing/price-format';
     FeedbackComponent,
     IconComponent,
     SmartImageComponent,
+    SaveSearchButtonComponent,
   ],
   templateUrl: './property-search.component.html',
   styleUrl: './property-search.component.scss',
@@ -90,6 +93,7 @@ export class PropertySearchComponent {
     return formatMoney(property.price, property.currency);
   }
   chips = computed(() => this.buildChips(this.state()));
+  saveCriteria = computed(() => this.cleanCriteria(this.state()));
   pages = computed(() => Math.max(1, Math.ceil(this.count() / this.pageSize)));
   constructor() {
     this.route.queryParamMap
@@ -281,5 +285,30 @@ export class PropertySearchComponent {
       chips.push({ key: 'amenities', label: `${s.amenities.length} amenities` });
     if (s.north) chips.push({ key: 'bounds', label: 'Map area' });
     return chips;
+  }
+  private cleanCriteria(s: PropertySearchParams): SavedSearchCriteria {
+    const out: SavedSearchCriteria = {};
+    for (const key of [
+      'listing_type',
+      'property_type',
+      'region',
+      'town',
+      'suburb',
+      'min_price',
+      'max_price',
+      'min_bedrooms',
+      'min_bathrooms',
+      'furnished',
+      'pet_friendly',
+      'amenities',
+      'north',
+      'south',
+      'east',
+      'west',
+    ] as const) {
+      const value = s[key];
+      if (value !== undefined && value !== '' && value !== false) out[key] = value;
+    }
+    return out;
   }
 }

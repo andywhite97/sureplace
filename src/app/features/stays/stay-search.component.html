@@ -9,6 +9,7 @@
         <span>{{ count() }} {{ count() === 1 ? 'stay' : 'stays' }}</span>
       }
     </p>
+    <sp-save-search-button searchType="STAY" [criteria]="saveCriteria()" [defaultName]="heading()" />
   </section>
   <section class="toolbar" aria-label="Stay search controls">
     <form class="primary" [formGroup]="form" (ngSubmit)="apply()">

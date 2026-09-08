@@ -23,4 +23,7 @@ export class SeoService {
     }
     link.href = new URL(path, this.document.baseURI).href;
   }
+  robots(content: string) {
+    this.meta.updateTag({ name: 'robots', content });
+  }
 }

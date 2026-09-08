@@ -7,7 +7,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ConversationDetail, Message } from '../../core/models/messaging.models';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
@@ -18,7 +17,6 @@ import { MessageComposerComponent } from './message-composer.component';
   standalone: true,
   imports: [
     RouterLink,
-    DatePipe,
     SmartImageComponent,
     MessageBubbleComponent,
     MessageComposerComponent,
@@ -74,7 +72,7 @@ import { MessageComposerComponent } from './message-composer.component';
         <button class="new" type="button" (click)="toBottom()">New messages</button>
       }
     </div>
-    <footer><sp-message-composer (sent)="send.emit($event)" /></footer>
+    <footer><sp-message-composer [disabled]="sending()" (sent)="send.emit($event)" /></footer>
   </section>`,
   styles: [
     `
@@ -189,6 +187,7 @@ export class ConversationThreadComponent implements AfterViewChecked {
   messages = input<Message[]>([]);
   hasEarlier = input(false);
   newMessages = input(false);
+  sending = input(false);
   send = output<string>();
   retry = output<Message>();
   loadEarlier = output<void>();

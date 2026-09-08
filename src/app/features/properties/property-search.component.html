@@ -9,6 +9,11 @@
         <span>{{ count() }} {{ count() === 1 ? 'property' : 'properties' }}</span>
       }
     </p>
+    <sp-save-search-button
+      searchType="PROPERTY"
+      [criteria]="saveCriteria()"
+      [defaultName]="heading()"
+    />
   </section>
   <section class="toolbar" aria-label="Property search filters">
     <div class="mobile-actions">

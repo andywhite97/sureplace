@@ -17,6 +17,8 @@ import { FeedbackComponent } from '../../shared/ui/feedback.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { formatMoney } from '../../shared/listing/price-format';
+import { SaveSearchButtonComponent } from '../account/save-search-button.component';
+import { SavedSearchCriteria } from '../../core/models/account.models';
 
 @Component({
   standalone: true,
@@ -28,9 +30,9 @@ import { formatMoney } from '../../shared/listing/price-format';
     FeedbackComponent,
     IconComponent,
     SmartImageComponent,
+    SaveSearchButtonComponent,
   ],
   templateUrl: './stay-search.component.html',
-  styleUrl: './stay-search.component.scss',
 })
 export class StaySearchComponent {
   private fb = inject(FormBuilder);
@@ -98,6 +100,7 @@ export class StaySearchComponent {
   selected = computed(() => this.results().find((x) => x.id === this.selectedId()) || null);
   pages = computed(() => Math.max(1, Math.ceil(this.count() / this.pageSize)));
   chips = computed(() => this.buildChips(this.state()));
+  saveCriteria = computed(() => this.cleanCriteria(this.state()));
   minDate = this.query.today();
   constructor() {
     this.route.queryParamMap
@@ -322,6 +325,25 @@ export class StaySearchComponent {
     if (s.amenities?.length) c.push({ key: 'amenities', label: `${s.amenities.length} amenities` });
     if (s.north) c.push({ key: 'bounds', label: 'Map area' });
     return c;
+  }
+  private cleanCriteria(s: StaySearchParams): SavedSearchCriteria {
+    const out: SavedSearchCriteria = {};
+    for (const key of [
+      'stay_type',
+      'region',
+      'town',
+      'suburb',
+      'min_price',
+      'max_price',
+      'amenities',
+      'adults',
+      'children',
+      'rooms',
+    ] as const) {
+      const value = s[key];
+      if (value !== undefined && value !== '') out[key] = value;
+    }
+    return out;
   }
   private prettyDate(v: string) {
     return new Intl.DateTimeFormat('en-SZ', {

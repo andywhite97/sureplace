@@ -1,0 +1,23 @@
+name: SurePlace Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package.json
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm test -- --watch=false
+      - run: npm run build

@@ -13,6 +13,8 @@ describe('AuthService', () => {
   const user: User = { id:'1', email:'user@example.com', phone_number:'', first_name:'Sihle', last_name:'Dlamini', avatar:null, is_email_verified:true, is_phone_verified:false, onboarding_intents:[] };
 
   beforeEach(() => {
+    installStorage('localStorage');
+    installStorage('sessionStorage');
     sessionStorage.clear(); localStorage.clear();
     TestBed.configureTestingModule({providers:[provideHttpClient(),provideHttpClientTesting(),provideRouter([])]});
     auth=TestBed.inject(AuthService); http=TestBed.inject(HttpTestingController); storage=TestBed.inject(TokenStorage);
@@ -42,3 +44,17 @@ describe('AuthService', () => {
     expect(storage.read()).toBeNull(); expect(navigate).toHaveBeenCalledWith('/');
   });
 });
+
+function installStorage(name: 'localStorage' | 'sessionStorage') {
+  if (globalThis[name]) return;
+  const values = new Map<string, string>();
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    value: {
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    },
+  });
+}

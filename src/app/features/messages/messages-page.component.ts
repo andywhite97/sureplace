@@ -47,6 +47,7 @@ import { ConversationThreadComponent } from './conversation-thread.component';
           [messages]="store.messages()"
           [hasEarlier]="!!store.nextMessages()"
           [newMessages]="store.newMessages()"
+          [sending]="store.sending()"
           (send)="store.send($event)"
           (retry)="store.retry($event)"
           (loadEarlier)="store.loadEarlier()"
