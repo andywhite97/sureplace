@@ -1,0 +1,1 @@
+var e={production:!0,name:`production`,apiBaseUrl:`https://sureplace-back-e1u4.onrender.com/api/v1`,frontendOrigin:`https://sureplace.twinpeaksinvestment.com`,seoAllowIndexing:!0,defaultSocialImageUrl:`/hero-eswatini-home.jpg`};export{e as t};
