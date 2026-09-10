@@ -1,1 +1,0 @@
-import{Bt as VD,Cn as g,Xn as r2,Z as L}from"./chunk-BbzdUjEN.js";var a=class e{platformId=g(VD);modulePromise;load(){return r2(this.platformId)?(this.modulePromise??=import(`./chunk-C1EOETLj.js`),this.modulePromise):Promise.resolve(null)}static ɵfac=function(l){return new(l||e)};static ɵprov=L({token:e,factory:e.ɵfac,providedIn:`root`})};export{a as t};
