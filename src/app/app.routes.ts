@@ -67,6 +67,13 @@ export const routes: Routes = [
       import('./features/auth/verify-email.component').then((m) => m.VerifyEmailComponent),
   },
   {
+    path: 'agency-invitations/accept',
+    loadComponent: () =>
+      import('./features/manage/agency-invitation-accept.component').then(
+        (m) => m.AgencyInvitationAcceptComponent,
+      ),
+  },
+  {
     path: 'forgot-password',
     canActivate: [guestGuard],
     loadComponent: () =>
@@ -167,11 +174,43 @@ export const routes: Routes = [
       {
         path: 'manage',
         loadComponent: () =>
-          import('./features/manage/manage-dashboard.component').then(
-            (m) => m.ManageDashboardComponent,
+          import('./features/manage/agency-dashboard.component').then(
+            (m) => m.AgencyDashboardComponent,
           ),
         title: 'Manage listings | SurePlace',
       },
+      {
+        path: 'manage/agency',
+        loadComponent: () =>
+          import('./features/manage/agency-dashboard.component').then(
+            (m) => m.AgencyDashboardComponent,
+          ),
+        title: 'Agency dashboard | SurePlace',
+      },
+      {
+        path: 'manage/agency/create',
+        loadComponent: () =>
+          import('./features/manage/agency-create.component').then((m) => m.AgencyCreateComponent),
+        title: 'Create agency | SurePlace',
+      },
+      {
+        path: 'manage/agency/profile',
+        loadComponent: () =>
+          import('./features/manage/agency-profile.component').then(
+            (m) => m.AgencyProfileComponent,
+          ),
+        title: 'Agency profile | SurePlace',
+      },
+      {
+        path: 'manage/agency/team',
+        loadComponent: () =>
+          import('./features/manage/agency-team.component').then((m) => m.AgencyTeamComponent),
+        title: 'Agency team | SurePlace',
+      },
+      { path: 'manage/agency/listings', redirectTo: 'manage/properties', pathMatch: 'full' },
+      { path: 'manage/agency/enquiries', redirectTo: 'manage/viewings', pathMatch: 'full' },
+      { path: 'manage/agency/verification', redirectTo: 'manage/verification', pathMatch: 'full' },
+      { path: 'manage/agency/settings', redirectTo: 'settings', pathMatch: 'full' },
       {
         path: 'manage/listings/new',
         loadComponent: () =>

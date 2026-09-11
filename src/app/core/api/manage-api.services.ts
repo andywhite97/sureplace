@@ -17,6 +17,11 @@ import {
   VerificationRequestCreate,
   VerificationRequestSummary,
   VerificationTypeInfo,
+  Agency,
+  AgencyDashboard,
+  AgencyInvitation,
+  AgencyMember,
+  AgencyRole,
 } from '../models/manage.models';
 import { RoomTypeSummary } from '../models/listing.models';
 
@@ -161,5 +166,46 @@ export class VerificationApiService {
   }
   uploadDocument(id: string, data: FormData) {
     return this.api.post<unknown>(`/verification/requests/${encodeURIComponent(id)}/documents/`, data);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class AgencyManagementApiService {
+  private api = inject(ApiClient);
+  mine() {
+    return this.api.get<Agency[]>('/agencies/mine/');
+  }
+  create(body: FormData | Partial<Agency>) {
+    return this.api.post<Agency>('/agencies/', body);
+  }
+  detail(id: string) {
+    return this.api.get<Agency>(`/agencies/${encodeURIComponent(id)}/`);
+  }
+  dashboard(id: string) {
+    return this.api.get<AgencyDashboard>(`/agencies/${encodeURIComponent(id)}/dashboard/`);
+  }
+  update(id: string, body: FormData | Partial<Agency>) {
+    return this.api.patch<Agency>(`/agencies/${encodeURIComponent(id)}/`, body);
+  }
+  members(id: string) {
+    return this.api.get<AgencyMember[]>(`/agencies/${encodeURIComponent(id)}/members/`);
+  }
+  invitations(id: string) {
+    return this.api.get<AgencyInvitation[]>(`/agencies/${encodeURIComponent(id)}/invitations/`);
+  }
+  invite(id: string, body: { email: string; role: AgencyRole }) {
+    return this.api.post<AgencyInvitation>(`/agencies/${encodeURIComponent(id)}/invitations/`, body);
+  }
+  updateRole(id: string, memberId: string, role: AgencyRole) {
+    return this.api.patch<AgencyMember>(`/agencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}/role/`, { role });
+  }
+  removeMember(id: string, memberId: string) {
+    return this.api.delete<void>(`/agencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}/`);
+  }
+  acceptInvitation(token: string) {
+    return this.api.post<{ detail: string; agency: Agency }>('/agency-invitations/accept/', { token });
+  }
+  declineInvitation(token: string) {
+    return this.api.post<{ detail: string }>('/agency-invitations/decline/', { token });
   }
 }

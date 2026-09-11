@@ -123,6 +123,66 @@ export interface VerificationTypeInfo {
   disclaimer: string;
 }
 
+export type AgencyRole = 'OWNER' | 'ADMIN' | 'AGENT';
+
+export interface Agency {
+  id: string;
+  name: string;
+  trading_name: string;
+  slug: string;
+  logo: string | null;
+  description: string;
+  phone: string;
+  email: string;
+  whatsapp_number: string;
+  website: string;
+  address: string;
+  region: string;
+  town: string;
+  suburb: string;
+  country_code: string;
+  verification_status: string;
+  is_active: boolean;
+  user_role: AgencyRole | '';
+  team_count?: number;
+}
+
+export interface AgencyDashboard {
+  agency: Agency;
+  role: AgencyRole;
+  active_properties: number;
+  draft_properties: number;
+  active_stays: number;
+  team_members: number;
+  pending_invitations: number;
+  verification_status: string;
+}
+
+export interface AgencyMember {
+  id: string;
+  user: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  role: AgencyRole;
+  bio: string;
+  professional_reference: string;
+  whatsapp_number: string;
+  verification_status: string;
+  is_active: boolean;
+}
+
+export interface AgencyInvitation {
+  id: string;
+  agency: string;
+  email: string;
+  role: AgencyRole;
+  status: string;
+  inviter_name: string;
+  expires_at: string;
+  created_at: string;
+}
+
 export type ManagedPropertyPage = PaginatedResponse<ManagedProperty>;
 export type ManagedStayPage = PaginatedResponse<ManagedStay>;
 export type RoomPage = RoomTypeSummary[];

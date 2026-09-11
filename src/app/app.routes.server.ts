@@ -34,6 +34,7 @@ const PRIVATE_CLIENT_ROUTES = [
   'reset-password',
   'verify-email',
   'verify-email/pending',
+  'agency-invitations/accept',
 ] as const;
 
 const prerenderApiBase = (
