@@ -1,8 +1,13 @@
 <main>
   @if (loading()) {
     <section class="loading" aria-label="Loading stay">
-      <div></div>
-      <div></div>
+      <div class="gallery-skeleton"></div>
+      <div class="line wide"></div>
+      <div class="line"></div>
+      <div class="content-skeleton">
+        <div></div>
+        <div></div>
+      </div>
     </section>
   } @else if (notFound()) {
     <section class="not-found">
@@ -21,148 +26,282 @@
       />
     </section>
   } @else if (stay(); as item) {
-    <section class="shell">
-      <div class="main-column">
-        <sp-stay-gallery [images]="item.images" [title]="item.name" />
-        <header class="identity">
-          <div>
-            <p class="eyebrow">{{ typeLabel(item.stay_type) }}</p>
-            <h1>{{ item.name }}</h1>
-            <p>{{ item.suburb ? item.suburb + ', ' : '' }}{{ item.town }}, {{ item.region }}</p>
-            <div class="badges">
-              @for (badge of item.verification_badges; track badge.type) {
-                <sp-verification-badge [label]="badge.label" />
-              }
-            </div>
-          </div>
-          <div class="identity-actions">
-            <button type="button" [disabled]="saving()" (click)="toggleFavourite()">
-              {{ item.is_favourited ? '♥ Saved' : '♡ Save' }}</button
-            ><button type="button" (click)="share()">Share</button>
-          </div>
-        </header>
-        <section class="description">
-          <h2>About this stay</h2>
-          <div [class.clamped]="!expanded()">
-            {{ item.description || 'Contact the stay for more information.' }}
-          </div>
-          @if (item.description.length > 420) {
-            <button type="button" (click)="expanded.set(!expanded())">
-              {{ expanded() ? 'Show less' : 'Read more' }}
-            </button>
-          }
-        </section>
-        @if (item.amenities.length) {
-          <section>
-            <h2>Amenities</h2>
-            <div class="amenities">
-              @for (a of item.amenities; track a.id) {
-                <div>
-                  <span aria-hidden="true">✓</span><strong>{{ a.name }}</strong>
-                </div>
-              }
-            </div>
-          </section>
+    <section class="detail-shell">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a routerLink="/">Home</a>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        <a routerLink="/stays">Stays</a>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        <a routerLink="/stays" [queryParams]="{ town: item.town }">{{ item.town }}</a>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        <span>{{ item.name }}</span>
+      </nav>
+
+      <div class="gallery-wrap">
+        <sp-stay-gallery
+          [images]="item.images"
+          [title]="item.name"
+          [location]="locationLabel(item)"
+        />
+        @if (item.verification_status === 'VERIFIED') {
+          <span class="verified-stay">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verified Stay
+          </span>
         }
-        <section class="rooms" id="rooms">
-          <div>
-            <h2>Choose a room</h2>
-            <p>
-              @if (validCriteria()) {
-                Availability for your selected dates
-              } @else {
-                Choose dates to check availability
-              }
-            </p>
-          </div>
-          <form
-            class="availability-search"
-            [formGroup]="searchForm"
-            (ngSubmit)="applyAvailability()"
-          >
-            <label>Check-in<input type="date" formControlName="check_in" [min]="minDate" /></label
-            ><label
-              >Check-out<input
-                type="date"
-                formControlName="check_out"
-                [min]="searchForm.controls.check_in.value || minDate" /></label
-            ><label>Adults<input type="number" min="1" formControlName="adults" /></label
-            ><label>Children<input type="number" min="0" formControlName="children" /></label
-            ><label>Rooms<input type="number" min="1" formControlName="rooms" /></label
-            ><button type="submit">Check availability</button>
-          </form>
-          @if (availabilityError()) {
-            <div class="availability-error" role="alert">
-              <p>{{ availabilityError() }}</p>
-              <button type="button" (click)="loadAvailability()">Retry</button>
-            </div>
-          }
-          @if (availabilityLoading()) {
-            <div class="room-skeletons" aria-live="polite">
-              <p>Checking room availability…</p>
-              <div></div>
-              <div></div>
-            </div>
-          } @else {
-            @for (room of item.room_types; track room.id) {
-              <sp-room-card
-                [room]="room"
-                [availability]="availabilityFor(room.id)"
-                [selected]="selectedRoomId() === room.id"
-                (selectedRoom)="selectRoom($event)"
-              />
+      </div>
+
+      <header class="identity">
+        <div>
+          <p class="eyebrow">{{ typeLabel(item.stay_type) }}</p>
+          <h1>{{ item.name }}</h1>
+          <p class="location-line">
+            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+            <span>{{ locationLabel(item) }}</span>
+            @if (markers().length) {
+              <a href="#location">Show on map</a>
             }
-            @if (validCriteria() && !availability().length) {
-              <div class="no-rooms">
-                <h3>No rooms are available for those dates.</h3>
-                <p>Change dates, adjust guests, or contact the stay.</p>
+          </p>
+          @if (item.description) {
+            <p class="summary-copy">{{ shortDescription(item.description) }}</p>
+          }
+        </div>
+        <div class="identity-actions" aria-label="Stay actions">
+          <button type="button" [disabled]="saving()" (click)="toggleFavourite()">
+            <i
+              [class]="item.is_favourited ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"
+              aria-hidden="true"
+            ></i>
+            {{ item.is_favourited ? 'Saved' : 'Save' }}
+          </button>
+          <button type="button" (click)="share()">
+            <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Share
+          </button>
+        </div>
+      </header>
+
+      <div class="facts" aria-label="Stay summary">
+        <div>
+          <i class="fa-solid fa-hotel" aria-hidden="true"></i>
+          <strong>{{ typeLabel(item.stay_type) }}</strong>
+          <span>Stay type</span>
+        </div>
+        <div>
+          <i class="fa-solid fa-users" aria-hidden="true"></i>
+          <strong>{{ guestCapacityLabel(item) }}</strong>
+          <span>Per room</span>
+        </div>
+        <div>
+          <i class="fa-solid fa-bed" aria-hidden="true"></i>
+          <strong
+            >{{ item.room_types.length }} room type{{
+              item.room_types.length === 1 ? '' : 's'
+            }}</strong
+          >
+          <span>Available to request</span>
+        </div>
+        @if (minimumNightlyPrice(item)) {
+          <div>
+            <i class="fa-solid fa-tag" aria-hidden="true"></i>
+            <strong>From {{ minimumNightlyPrice(item) }}</strong>
+            <span>Per night</span>
+          </div>
+        }
+      </div>
+
+      <nav class="section-nav" aria-label="Stay sections">
+        <a href="#overview">Overview</a>
+        <a href="#rooms">Rooms</a>
+        @if (item.amenities.length) {
+          <a href="#amenities">Amenities</a>
+        }
+        @if (markers().length) {
+          <a href="#location">Location</a>
+        }
+        <a href="#policies">Policies</a>
+      </nav>
+
+      <div class="content-grid">
+        <div class="main-column">
+          <section class="description detail-section" id="overview">
+            <p class="section-kicker">Overview</p>
+            <h2>About this stay</h2>
+            <div [class.clamped]="!expanded()">
+              {{ item.description || 'Contact the stay for more information.' }}
+            </div>
+            @if (item.description.length > 420) {
+              <button type="button" (click)="expanded.set(!expanded())">
+                {{ expanded() ? 'Show less' : 'Read more' }}
+              </button>
+            }
+          </section>
+
+          <section class="rooms detail-section" id="rooms">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Rooms</p>
+                <h2>Choose your room</h2>
+              </div>
+              <p>
+                @if (validCriteria()) {
+                  Availability for your selected dates
+                } @else {
+                  Choose dates to check availability
+                }
+              </p>
+            </div>
+            <form
+              class="availability-search"
+              [formGroup]="searchForm"
+              (ngSubmit)="applyAvailability()"
+            >
+              <label
+                ><span>Check-in</span><input type="date" formControlName="check_in" [min]="minDate"
+              /></label>
+              <label
+                ><span>Check-out</span
+                ><input
+                  type="date"
+                  formControlName="check_out"
+                  [min]="searchForm.controls.check_in.value || minDate"
+              /></label>
+              <label
+                ><span>Adults</span><input type="number" min="1" formControlName="adults"
+              /></label>
+              <label
+                ><span>Children</span><input type="number" min="0" formControlName="children"
+              /></label>
+              <label
+                ><span>Rooms</span><input type="number" min="1" formControlName="rooms"
+              /></label>
+              <button type="submit">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Check availability
+              </button>
+            </form>
+            @if (availabilityError()) {
+              <div class="availability-error" role="alert">
+                <p>{{ availabilityError() }}</p>
+                <button type="button" (click)="loadAvailability()">Retry</button>
               </div>
             }
+            @if (availabilityLoading()) {
+              <div class="room-skeletons" aria-live="polite">
+                <p>Checking room availability...</p>
+                <div></div>
+                <div></div>
+              </div>
+            } @else {
+              <div class="room-list">
+                @for (room of item.room_types; track room.id) {
+                  <sp-room-card
+                    [room]="room"
+                    [availability]="availabilityFor(room.id)"
+                    [selected]="selectedRoomId() === room.id"
+                    (selectedRoom)="selectRoom($event)"
+                  />
+                }
+              </div>
+              @if (validCriteria() && !availability().length) {
+                <div class="no-rooms">
+                  <h3>No rooms are available for those dates.</h3>
+                  <p>Change dates, adjust guests, or contact the stay.</p>
+                </div>
+              }
+            }
+          </section>
+
+          @if (item.amenities.length) {
+            <section class="detail-section" id="amenities">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker">Amenities</p>
+                  <h2>Top amenities</h2>
+                </div>
+                @if (item.amenities.length > visibleAmenityCount) {
+                  <button
+                    type="button"
+                    class="text-button"
+                    (click)="amenitiesExpanded.set(!amenitiesExpanded())"
+                  >
+                    {{ amenitiesExpanded() ? 'Show less' : 'See all amenities' }}
+                  </button>
+                }
+              </div>
+              <div class="amenities">
+                @for (a of visibleAmenities(item); track a.id) {
+                  <div>
+                    <i [class]="amenityIcon(a.icon || a.slug)" aria-hidden="true"></i>
+                    <strong>{{ a.name }}</strong>
+                  </div>
+                }
+              </div>
+            </section>
           }
-        </section>
-        @if (markers().length) {
-          <section>
-            <h2>Location</h2>
-            <p>{{ item.suburb ? item.suburb + ', ' : '' }}{{ item.town }}, {{ item.region }}</p>
-            <div class="location-map">
-              <sp-listing-map
-                [markers]="markers()"
-                [selectedId]="item.id"
-                [center]="[item.latitude!, item.longitude!]"
-                [zoom]="14"
-              />
+
+          @if (markers().length) {
+            <section class="detail-section location-section" id="location">
+              <div>
+                <p class="section-kicker">Location</p>
+                <h2>Location</h2>
+              </div>
+              <div class="location-layout">
+                <div class="location-map">
+                  <sp-listing-map
+                    [markers]="markers()"
+                    [selectedId]="item.id"
+                    [center]="[item.latitude!, item.longitude!]"
+                    [zoom]="14"
+                  />
+                </div>
+                <aside>
+                  <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                  <h3>{{ item.town }}</h3>
+                  <p>{{ locationLabel(item) }}</p>
+                  @if (item.address) {
+                    <p>{{ item.address }}</p>
+                  }
+                </aside>
+              </div>
+            </section>
+          }
+
+          <section class="policies detail-section" id="policies">
+            <p class="section-kicker">Policies</p>
+            <h2>Stay policies</h2>
+            <div>
+              <p>
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                <span>Check-in</span><strong>{{ time(item.check_in_time) }}</strong>
+              </p>
+              <p>
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                <span>Check-out</span><strong>{{ time(item.check_out_time) }}</strong>
+              </p>
+              <p>
+                <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                <span>Minimum stay</span><strong>Varies by room</strong>
+              </p>
             </div>
           </section>
-        }
-        <section class="policies">
-          <h2>Stay details</h2>
-          <div>
-            <p>
-              <span>Check-in</span><strong>{{ time(item.check_in_time) }}</strong>
-            </p>
-            <p>
-              <span>Check-out</span><strong>{{ time(item.check_out_time) }}</strong>
-            </p>
-            <p><span>Minimum stay</span><strong>Varies by room</strong></p>
-          </div>
-        </section>
-        <sp-stay-contact [stay]="item" [dates]="criteria()" />
+
+          <sp-stay-contact id="host" [stay]="item" [dates]="criteria()" />
+        </div>
+        <aside class="booking-column" id="booking">
+          <sp-stay-booking
+            [stay]="item"
+            [room]="selectedRoom()"
+            [availability]="selectedAvailability()"
+            [criteria]="criteria()"
+            (inventoryConflict)="loadAvailability()"
+          />
+        </aside>
       </div>
-      <aside class="booking-column" id="booking">
-        <sp-stay-booking
-          [stay]="item"
-          [room]="selectedRoom()"
-          [availability]="selectedAvailability()"
-          [criteria]="criteria()"
-          (inventoryConflict)="loadAvailability()"
-        />
-      </aside>
     </section>
+
     @if (related().length) {
       <section class="related">
         <header>
           <p class="eyebrow">Keep exploring</p>
-          <h2>Similar Stays</h2>
+          <h2>Similar stays in {{ item.town }}</h2>
         </header>
         <swiper-container
           slides-per-view="1.1"
@@ -175,10 +314,16 @@
         </swiper-container>
       </section>
     }
+
     <div class="mobile-booking">
-      <span>{{ selectedRoom()?.name || 'Choose a room' }}</span
-      ><a [href]="selectedRoom() ? '#booking' : '#rooms'">{{
-        selectedRoom() ? 'Request booking' : 'Check availability'
+      <div>
+        <span>{{
+          minimumNightlyPrice(item) ? 'From ' + minimumNightlyPrice(item) : 'Choose a room'
+        }}</span>
+        <strong>{{ selectedRoom()?.name || 'Check availability' }}</strong>
+      </div>
+      <a [href]="selectedRoom() ? '#booking' : '#rooms'">{{
+        selectedRoom() ? 'Reserve' : 'Check availability'
       }}</a>
     </div>
   }

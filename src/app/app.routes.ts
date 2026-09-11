@@ -57,6 +57,16 @@ export const routes: Routes = [
       import('./features/auth/register.component').then((m) => m.RegisterComponent),
   },
   {
+    path: 'verify-email',
+    loadComponent: () =>
+      import('./features/auth/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
+    path: 'verify-email/pending',
+    loadComponent: () =>
+      import('./features/auth/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
     path: 'forgot-password',
     canActivate: [guestGuard],
     loadComponent: () =>
@@ -161,6 +171,14 @@ export const routes: Routes = [
             (m) => m.ManageDashboardComponent,
           ),
         title: 'Manage listings | SurePlace',
+      },
+      {
+        path: 'manage/listings/new',
+        loadComponent: () =>
+          import('./features/manage/listing-type-choice.component').then(
+            (m) => m.ListingTypeChoiceComponent,
+          ),
+        title: 'List on SurePlace',
       },
       {
         path: 'manage/properties',

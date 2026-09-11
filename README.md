@@ -53,4 +53,4 @@ Property search state is encoded in `/properties` query parameters, so filters, 
 
 Approved logo and favicon files live in `public/` and are referenced directly without alteration.
 
-The local homepage hero image is `public/hero-eswatini-home.png`; production code does not depend on third-party image URLs. Listing imagery continues to come from the backend's media/Cloudinary-compatible URLs.
+The local homepage hero image is `public/hero-eswatini-home.jpg`; production code does not depend on third-party image URLs. Listing imagery continues to come from the backend's media/Cloudinary-compatible URLs.

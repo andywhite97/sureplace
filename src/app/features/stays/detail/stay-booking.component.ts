@@ -1,4 +1,13 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
@@ -11,6 +20,7 @@ import {
 import { StaysApiService } from '../../../core/api/stays-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { formatMoney } from '../../../shared/listing/price-format';
+
 export interface BookingCriteria {
   check_in: string;
   check_out: string;
@@ -18,6 +28,7 @@ export interface BookingCriteria {
   children: number;
   rooms: number;
 }
+
 @Component({
   selector: 'sp-stay-booking',
   standalone: true,
@@ -27,8 +38,8 @@ export interface BookingCriteria {
       <div class="success" role="status">
         <p>Booking request sent</p>
         <h2>{{ booking.reference }}</h2>
-        <p>{{ booking.stay_name }} · {{ booking.room_name }}</p>
-        <p>{{ booking.check_in }} – {{ booking.check_out }}</p>
+        <p>{{ booking.stay_name }} &middot; {{ booking.room_name }}</p>
+        <p>{{ booking.check_in }} - {{ booking.check_out }}</p>
         <strong>{{ money(booking.total, booking.currency) }}</strong>
         <p>Status: {{ booking.status }}</p>
         <a routerLink="/account/bookings">View booking</a>
@@ -41,8 +52,9 @@ export interface BookingCriteria {
         ><a routerLink="/stays">Browse more stays</a>
       </div>
     } @else {
-      <p class="eyebrow">Your booking request</p>
-      <h2>{{ stay().name }}</h2>
+      <p class="eyebrow">From</p>
+      <h2>{{ room() ? money(room()!.base_price, room()!.currency) : startingPrice() }}</h2>
+      <p class="per-night">per night</p>
       @if (room(); as room) {
         <div class="summary">
           <p>
@@ -50,12 +62,12 @@ export interface BookingCriteria {
           </p>
           <p>
             <span>Dates</span
-            ><strong>{{ criteria().check_in }} – {{ criteria().check_out }}</strong>
+            ><strong>{{ criteria().check_in }} - {{ criteria().check_out }}</strong>
           </p>
           <p>
             <span>Guests</span
             ><strong
-              >{{ criteria().adults + criteria().children }} · {{ criteria().rooms }} room{{
+              >{{ criteria().adults + criteria().children }} &middot; {{ criteria().rooms }} room{{
                 criteria().rooms === 1 ? '' : 's'
               }}</strong
             >
@@ -75,18 +87,14 @@ export interface BookingCriteria {
               }
             </details>
             <p class="total">
-              <span>Current total</span><strong>{{ money(a.total, room.currency) }}</strong>
+              <span>Total</span><strong>{{ money(a.total, room.currency) }}</strong>
             </p>
-            <small
-              >Taxes and fees, if applicable, are finalized by the backend when the request is
-              created.</small
-            >
           }
         </div>
       } @else {
-        <p>Select an available room to continue.</p>
+        <p class="empty">Select an available room to continue.</p>
       }
-      @if (auth.isAuthenticated() && room() && availability()?.available) {
+      @if (browserReady() && auth.isAuthenticated() && room() && availability()?.available) {
         <form [formGroup]="form" (ngSubmit)="submit()">
           <label>Guest name<input formControlName="guest_name" autocomplete="name" /></label
           ><label
@@ -99,7 +107,7 @@ export interface BookingCriteria {
             <p class="error" role="alert">{{ error() }}</p>
           }
           <button class="primary" type="submit" [disabled]="form.invalid || submitting()">
-            {{ submitting() ? 'Sending…' : 'Request Booking' }}
+            {{ submitting() ? 'Sending...' : 'Request Booking' }}
           </button>
         </form>
       } @else {
@@ -122,26 +130,35 @@ export interface BookingCriteria {
       }
       .booking {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
         background: #fff;
         border: 1px solid var(--line);
-        border-radius: var(--radius);
-        padding: 1.2rem;
+        border-radius: 1.2rem;
+        padding: 1.25rem;
+        box-shadow: 0 22px 54px rgba(21, 43, 42, 0.12);
       }
       .eyebrow {
         color: var(--teal);
         font-size: 0.72rem;
         text-transform: uppercase;
-        font-weight: 800;
+        font-weight: 900;
       }
       h2,
       p {
         margin: 0;
       }
+      h2 {
+        color: var(--midnight);
+        font-size: 1.75rem;
+      }
+      .per-night,
+      .empty {
+        color: var(--slate);
+      }
       .summary {
         display: grid;
-        gap: 0.5rem;
-        padding-block: 0.5rem;
+        gap: 0.62rem;
+        padding-block: 0.7rem;
         border-block: 1px solid var(--line);
       }
       .summary p {
@@ -169,21 +186,22 @@ export interface BookingCriteria {
       }
       input,
       textarea {
-        padding: 0.6rem;
+        padding: 0.68rem;
         border: 1px solid var(--line);
-        border-radius: 0.5rem;
+        border-radius: 0.7rem;
+        font: inherit;
       }
       .primary,
       .success a,
       .success button {
         border: 0;
-        border-radius: 0.5rem;
+        border-radius: 999px;
         background: var(--teal);
         color: #fff;
-        padding: 0.75rem;
+        padding: 0.82rem;
         text-align: center;
         text-decoration: none;
-        font-weight: 800;
+        font-weight: 900;
       }
       .primary:disabled {
         opacity: 0.45;
@@ -212,6 +230,7 @@ export class StayBookingComponent {
   submitting = signal(false);
   error = signal('');
   success = signal<BookingSummary | null>(null);
+  browserReady = signal(false);
   private idempotencyKey: string | null = null;
   inventoryConflict = output<void>();
   form = this.fb.nonNullable.group({
@@ -220,36 +239,57 @@ export class StayBookingComponent {
     guest_phone: [''],
     special_requests: [''],
   });
+
   constructor() {
-    const u = this.auth.user();
-    if (u)
-      this.form.patchValue({
-        guest_name: [u.first_name, u.last_name].filter(Boolean).join(' '),
-        guest_email: u.email,
-        guest_phone: u.phone_number,
-      });
+    afterNextRender(() => this.browserReady.set(true));
+    effect(() => {
+      if (!this.browserReady()) return;
+      const user = this.auth.user();
+      if (!user) return;
+
+      this.form.patchValue(
+        {
+          guest_name: [user.first_name, user.last_name].filter(Boolean).join(' '),
+          guest_email: user.email,
+          guest_phone: user.phone_number,
+        },
+        { emitEvent: false },
+      );
+    });
   }
+
   nights = computed(() => {
-    const c = this.criteria();
-    return c.check_in && c.check_out
+    const criteria = this.criteria();
+    return criteria.check_in && criteria.check_out
       ? Math.max(
           0,
-          (Date.parse(c.check_out + 'T00:00:00Z') - Date.parse(c.check_in + 'T00:00:00Z')) /
+          (Date.parse(criteria.check_out + 'T00:00:00Z') -
+            Date.parse(criteria.check_in + 'T00:00:00Z')) /
             86400000,
         )
       : 0;
   });
-  money(v: string, c = 'SZL') {
-    return formatMoney(v, c);
+
+  money(value: string, currency = 'SZL') {
+    return formatMoney(value, currency);
   }
+
+  startingPrice() {
+    const room = [...this.stay().room_types]
+      .filter((item) => Number(item.base_price) > 0)
+      .sort((a, b) => Number(a.base_price) - Number(b.base_price))[0];
+    return room ? formatMoney(room.base_price, room.currency) : 'Select a room';
+  }
+
   requestBooking() {
     if (this.auth.isAuthenticated()) return;
     void this.router.navigate(['/login'], { queryParams: { returnUrl: this.returnUrl() } });
   }
+
   submit() {
-    const room = this.room(),
-      a = this.availability();
-    if (!room || !a?.available || this.form.invalid || this.submitting()) return;
+    const room = this.room();
+    const availability = this.availability();
+    if (!room || !availability?.available || this.form.invalid || this.submitting()) return;
     if (!this.idempotencyKey)
       this.idempotencyKey =
         globalThis.crypto?.randomUUID?.() || `booking-${Date.now()}-${Math.random()}`;
@@ -262,8 +302,9 @@ export class StayBookingComponent {
         this.idempotencyKey,
       )
       .pipe(
-        catchError((e) => {
-          const message = e?.error?.message || e?.error?.errors?.non_field_errors?.[0] || '';
+        catchError((error) => {
+          const message =
+            error?.error?.message || error?.error?.errors?.non_field_errors?.[0] || '';
           const conflict = /inventory|available|expired/i.test(message);
           if (conflict) this.inventoryConflict.emit();
           this.error.set(
@@ -275,17 +316,21 @@ export class StayBookingComponent {
         }),
         finalize(() => this.submitting.set(false)),
       )
-      .subscribe((x) => {
-        if (x) this.success.set(x);
+      .subscribe((result) => {
+        if (result) this.success.set(result);
       });
   }
+
   newAttempt() {
     this.success.set(null);
     this.idempotencyKey = null;
   }
+
   private returnUrl() {
-    const c = this.criteria(),
-      q = new URLSearchParams(Object.entries(c).map(([k, v]) => [k, String(v)]));
-    return `/stays/${this.stay().slug}?${q}`;
+    const criteria = this.criteria();
+    const query = new URLSearchParams(
+      Object.entries(criteria).map(([key, value]) => [key, String(value)]),
+    );
+    return `/stays/${this.stay().slug}?${query}`;
   }
 }

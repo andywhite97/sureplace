@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { PropertyCardComponent } from './property-card.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -66,5 +66,20 @@ describe('PropertyCardComponent', () => {
     expect(f.nativeElement.querySelector('h3 a').getAttribute('href')).toBe(
       '/properties/green-home',
     );
+  });
+  it('navigates from the card but not from the favourite button', () => {
+    const f = TestBed.createComponent(PropertyCardComponent);
+    f.componentRef.setInput('item', item);
+    f.detectChanges();
+    const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    f.nativeElement.querySelector('article').click();
+    expect(nav).toHaveBeenCalledWith(['/properties', 'green-home']);
+
+    nav.mockClear();
+    f.nativeElement.querySelector('.fav').click();
+    expect(nav).toHaveBeenCalledWith(['/login'], {
+      queryParams: { returnUrl: '/properties/green-home' },
+    });
   });
 });

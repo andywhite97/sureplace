@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { normalizeApiError } from '../../core/api/error-normalizer';
 import { ToastService } from '../../core/services/toast.service';
+import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   standalone: true,
@@ -32,6 +33,7 @@ export class LoginComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
+  private seo = inject(SeoService);
   showPassword = signal(false);
   busy = signal(false);
   error = signal('');
@@ -43,6 +45,7 @@ export class LoginComponent {
   });
 
   constructor() {
+    this.seo.privatePage('Log in to SurePlace', 'Access your SurePlace account.');
     const email = this.route.snapshot.queryParamMap.get('email');
     if (email) this.form.controls.email.setValue(email);
   }

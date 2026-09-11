@@ -43,40 +43,42 @@ describe('StayBookingComponent', () => {
       ],
     });
   });
-  function fixture() {
+  async function fixture() {
     const f = TestBed.createComponent(StayBookingComponent);
     f.componentRef.setInput('stay', stay);
     f.componentRef.setInput('room', room);
     f.componentRef.setInput('availability', availability);
     f.componentRef.setInput('criteria', criteria);
     f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
     return f;
   }
-  it('prefills authenticated guest details', () => {
-    expect(fixture().componentInstance.form.value).toMatchObject({
+  it('prefills authenticated guest details after hydration-safe render', async () => {
+    expect((await fixture()).componentInstance.form.value).toMatchObject({
       guest_name: 'Sihle Dlamini',
       guest_email: 'sihle@example.com',
       guest_phone: '+26876000000',
     });
   });
-  it('prevents double submission and sends one intentional request', () => {
+  it('prevents double submission and sends one intentional request', async () => {
     const pending = new Subject<any>();
     api.createBooking.mockReturnValue(pending);
-    const c = fixture().componentInstance;
+    const c = (await fixture()).componentInstance;
     c.submit();
     c.submit();
     expect(api.createBooking).toHaveBeenCalledTimes(1);
   });
-  it('reuses the idempotency key when retrying the same failed submission', () => {
+  it('reuses the idempotency key when retrying the same failed submission', async () => {
     api.createBooking
       .mockReturnValueOnce(throwError(() => ({ error: { message: 'Temporary error' } })))
       .mockReturnValueOnce(of(null));
-    const c = fixture().componentInstance;
+    const c = (await fixture()).componentInstance;
     c.submit();
     c.submit();
     expect(api.createBooking.mock.calls[0][2]).toBe(api.createBooking.mock.calls[1][2]);
   });
-  it('uses pending success wording', () => {
+  it('uses pending success wording', async () => {
     api.createBooking.mockReturnValue(
       of({
         reference: 'SP-BKG-1',
@@ -90,15 +92,15 @@ describe('StayBookingComponent', () => {
         conversation: 'c1',
       }),
     );
-    const f = fixture();
+    const f = await fixture();
     f.componentInstance.submit();
     f.detectChanges();
     expect(f.nativeElement.textContent).toContain('Booking request sent');
     expect(f.nativeElement.textContent).not.toContain('Booking confirmed');
   });
-  it('redirects anonymous guests with booking criteria preserved', () => {
+  it('redirects anonymous guests with booking criteria preserved', async () => {
     auth.isAuthenticated.set(false);
-    const f = fixture(),
+    const f = await fixture(),
       nav = vi.spyOn(TestBed.inject(Router), 'navigate');
     f.componentInstance.requestBooking();
     expect(nav).toHaveBeenCalledWith(['/login'], {

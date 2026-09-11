@@ -77,6 +77,29 @@ export class PropertySearchComponent {
       mode = s.listing_type === 'SALE' ? 'Sale' : s.listing_type === 'RENT' ? 'Rent' : '';
     return `${type || 'Properties'}${mode ? ' for ' + mode : ''} in ${s.town || s.region || 'Eswatini'}`;
   });
+  resultSummary = computed(() => {
+    if (this.loading()) return 'Updating results...';
+    const total = this.count();
+    return `${total} ${total === 1 ? 'property' : 'properties'} - Discover verified properties across Eswatini.`;
+  });
+  locationLabel = computed(() => {
+    const s = this.state();
+    return [s.suburb, s.town || s.region || 'Eswatini'].filter(Boolean).join(', ');
+  });
+  typeFilterLabel = computed(() => {
+    const value = this.state().property_type;
+    return value ? this.typeLabel(value) || value : 'Type';
+  });
+  priceFilterLabel = computed(() => {
+    const s = this.state();
+    if (!s.min_price && !s.max_price) return 'Price';
+    const min = s.min_price ? `E${Number(s.min_price).toLocaleString()}` : 'Any';
+    const max = s.max_price ? `E${Number(s.max_price).toLocaleString()}` : 'Any';
+    return `${min}-${max}`;
+  });
+  bedsFilterLabel = computed(() =>
+    this.state().min_bedrooms ? `${this.state().min_bedrooms}+ Beds` : 'Beds',
+  );
   markers = computed<MapMarker[]>(() =>
     this.results()
       .filter((x) => x.latitude !== null && x.longitude !== null)
@@ -169,7 +192,9 @@ export class PropertySearchComponent {
   page(page: number) {
     if (page < 1 || page > this.pages()) return;
     void this.navigate({ ...this.state(), page });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
   remove(key: string) {
     const next = { ...this.state() } as Record<string, unknown>;
@@ -254,10 +279,57 @@ export class PropertySearchComponent {
     return this.references.data().property_types.find((x) => x.value === value)?.label;
   }
   private setSeo() {
-    this.seo.set(
-      this.heading(),
-      `Browse ${this.heading().toLowerCase()} with clear prices, verification and availability signals.`,
+    const state = this.state();
+    const title = this.heading();
+    this.seo.apply({
+      title,
+      description: `Browse ${title.toLowerCase()} with clear prices, verification and availability signals.`,
+      path: this.canonicalPath(state),
+      robots: this.shouldIndex(state) ? 'index, follow' : 'noindex, follow',
+      jsonLd: this.collectionJsonLd(title, state),
+    });
+  }
+  private shouldIndex(s: PropertySearchParams) {
+    return !(
+      s.suburb ||
+      s.min_price ||
+      s.max_price ||
+      s.min_bedrooms ||
+      s.min_bathrooms ||
+      s.furnished ||
+      s.pet_friendly ||
+      s.amenities?.length ||
+      s.featured ||
+      s.verification_status ||
+      s.search ||
+      s.north ||
+      s.south ||
+      s.east ||
+      s.west ||
+      s.ordering !== 'newest' ||
+      s.view === 'map' ||
+      (s.page || 1) > 1
     );
+  }
+  private canonicalPath(s: PropertySearchParams) {
+    const params = new URLSearchParams();
+    if (s.listing_type) params.set('listing_type', s.listing_type);
+    if (s.property_type) params.set('property_type', s.property_type);
+    if (s.region) params.set('region', s.region);
+    if (s.town) params.set('town', s.town);
+    const query = params.toString();
+    return query ? `/properties?${query}` : '/properties';
+  }
+  private collectionJsonLd(title: string, s: PropertySearchParams) {
+    const url = this.seo.absoluteUrl(this.canonicalPath(s));
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: title,
+      description: `Browse ${title.toLowerCase()} on SurePlace.`,
+      url,
+      isPartOf: { '@type': 'WebSite', name: 'SurePlace', url: this.seo.absoluteUrl('/') },
+    };
   }
   private buildChips(s: PropertySearchParams) {
     const chips: { key: string; label: string }[] = [];

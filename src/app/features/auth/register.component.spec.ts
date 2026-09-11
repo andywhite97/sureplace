@@ -1,3 +1,4 @@
+import '@angular/compiler';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -13,7 +14,6 @@ class EmptyComponent {}
 describe('RegisterComponent', () => {
   const auth = {
     register: vi.fn(),
-    login: vi.fn(),
     user: signal(null),
     isAuthenticated: computed(() => false),
   };
@@ -21,7 +21,6 @@ describe('RegisterComponent', () => {
 
   beforeEach(async () => {
     auth.register.mockReset();
-    auth.login.mockReset();
     toast.show.mockReset();
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
@@ -33,6 +32,7 @@ describe('RegisterComponent', () => {
           { path: 'account/manage/properties/new', component: EmptyComponent },
           { path: 'account/manage', component: EmptyComponent },
           { path: 'account', component: EmptyComponent },
+          { path: 'verify-email/pending', component: EmptyComponent },
         ]),
         { provide: AuthService, useValue: auth },
         { provide: ToastService, useValue: toast },
@@ -109,8 +109,7 @@ describe('RegisterComponent', () => {
   });
 
   it('submits the registration payload only from the final step and prevents duplicates', () => {
-    auth.register.mockReturnValue(of({ id: 'u1' }));
-    auth.login.mockReturnValue(of({ id: 'u1' }));
+    auth.register.mockReturnValue(of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }));
     const fixture = create();
     const component = fixture.componentInstance;
     accountValid(component);
@@ -131,7 +130,6 @@ describe('RegisterComponent', () => {
       phone_number: '+26876123456',
       onboarding_intents: ['LOOKING_FOR_PROPERTY'],
     });
-    expect(auth.login).toHaveBeenCalledWith({ email: 'ava@example.com', password: 'password123' });
   });
 
   it('maps backend email and phone errors back to their steps', () => {
@@ -155,12 +153,11 @@ describe('RegisterComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Invalid phone.');
   });
 
-  it('auto-logs in and routes by onboarding intent without assigning roles', () => {
-    auth.register.mockReturnValue(of({ id: 'u1' }));
-    auth.login.mockReturnValue(of({ id: 'u1' }));
+  it('routes to verification pending without auto-login', () => {
+    auth.register.mockReturnValue(of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }));
     const fixture = create();
     const component = fixture.componentInstance;
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
     accountValid(component);
     detailsValid(component);
     component.toggle('HOSPITALITY_OPERATOR');
@@ -168,15 +165,13 @@ describe('RegisterComponent', () => {
     component.submit();
     fixture.detectChanges();
 
-    expect(auth.login).toHaveBeenCalledWith({ email: 'ava@example.com', password: 'password123' });
-    expect(navigate).toHaveBeenCalledWith('/account/manage/stays/new');
-    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Welcome to SurePlace!', kind: 'action' }));
+    expect(navigate).toHaveBeenCalledWith(['/verify-email/pending'], { queryParams: { email: 'ava@example.com' } });
+    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Check your email', kind: 'success' }));
     expect(component.selected()).toEqual(['HOSPITALITY_OPERATOR']);
   });
 
-  it('shows a safe fallback when registration succeeds but auto-login fails', () => {
-    auth.register.mockReturnValue(of({ id: 'u1' }));
-    auth.login.mockReturnValue(throwError(() => new Error('login failed')));
+  it('shows a check-email completion state when registration succeeds', () => {
+    auth.register.mockReturnValue(of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }));
     const fixture = create();
     const component = fixture.componentInstance;
     accountValid(component);
@@ -187,7 +182,7 @@ describe('RegisterComponent', () => {
     fixture.detectChanges();
 
     expect(component.created()).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain("Your account was created, but we couldn't sign you in automatically.");
-    expect(fixture.nativeElement.querySelector('a[href^="/login"]')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Check your email');
+    expect(fixture.nativeElement.querySelector('a[href^="/verify-email/pending"]')).toBeTruthy();
   });
 });

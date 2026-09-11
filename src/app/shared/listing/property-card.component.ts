@@ -20,17 +20,26 @@ import { formatMoney } from './price-format';
     AvailabilityStatusComponent,
     IconComponent,
   ],
-  template: `<article>
+  template: `<article
+    role="link"
+    tabindex="0"
+    [attr.aria-label]="'View ' + item().title"
+    (click)="open()"
+    (keydown.enter)="open()"
+    (keydown.space)="$event.preventDefault(); open()"
+  >
     <div class="visual">
       <a [routerLink]="['/properties', item().slug]" [attr.aria-label]="'View ' + item().title"
-        ><sp-image [src]="item().cover_image" [alt]="item().title" /></a
+        ><sp-image [src]="item().cover_image" [alt]="imageAlt()" /></a
       ><span class="type">{{ item().listing_type === 'RENT' ? 'For rent' : 'For sale' }}</span
       ><button
         type="button"
         class="fav"
         [class.active]="favourited()"
         [disabled]="saving()"
-        (click)="toggleFavourite()"
+        (click)="$event.stopPropagation(); toggleFavourite()"
+        (keydown.enter)="$event.stopPropagation()"
+        (keydown.space)="$event.stopPropagation()"
         [attr.aria-label]="favourited() ? 'Remove from saved listings' : 'Save listing'"
       >
         <sp-icon name="heart" />
@@ -85,6 +94,9 @@ export class PropertyCardComponent implements OnInit {
   location() {
     return [this.item().suburb, this.item().town].filter(Boolean).join(', ');
   }
+  imageAlt() {
+    return [this.item().title, this.location()].filter(Boolean).join(' in ');
+  }
   availabilityLabel() {
     if (this.item().availability_status !== 'AVAILABLE')
       return this.item().availability_status === 'UNDER_OFFER'
@@ -96,6 +108,9 @@ export class PropertyCardComponent implements OnInit {
     return days === 0
       ? 'Availability confirmed today'
       : `Availability confirmed ${days} day${days === 1 ? '' : 's'} ago`;
+  }
+  open() {
+    void this.router.navigate(['/properties', this.item().slug]);
   }
   toggleFavourite() {
     if (!this.auth.isAuthenticated()) {

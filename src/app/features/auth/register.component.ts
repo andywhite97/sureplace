@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { normalizeApiError } from '../../core/api/error-normalizer';
 import { ToastService } from '../../core/services/toast.service';
+import { SeoService } from '../../core/services/seo.service';
 
 type Step = 0 | 1 | 2 | 3;
 type Intent = {
@@ -63,7 +64,7 @@ const intentOptions: Intent[] = [
         }
       </form>
     }@else{
-      <section class="success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><h1>Welcome to SurePlace!</h1><p>Your account was created, but we couldn't sign you in automatically. Please log in.</p><a class="primary-link" routerLink="/login" [queryParams]="{email: form.controls.email.value}">Log in</a></section>
+      <section class="success"><i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i><h1>Check your email</h1><p>We sent a verification link to {{maskedEmail()}}. Confirm your email to finish setting up your account.</p><a class="primary-link" routerLink="/verify-email/pending" [queryParams]="{email: form.controls.email.value}">Continue</a></section>
     }
   </section></main>`,
   styleUrl: './auth-pages.scss',
@@ -76,6 +77,7 @@ export class RegisterComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private seo = inject(SeoService);
   steps = [{ short: 'Account' }, { short: 'Details' }, { short: 'Intent' }, { short: 'Review' }];
   intents = intentOptions;
   step = signal<Step>(0);
@@ -97,6 +99,10 @@ export class RegisterComponent {
   });
   selectedLabels = computed(() => this.intents.filter((intent) => this.selected().includes(intent.value)));
 
+  constructor() {
+    this.seo.privatePage('Create a SurePlace account', 'Create a SurePlace account to save listings and manage enquiries.');
+  }
+
   toggle(value: string) {
     this.selected.update((items) => items.includes(value) ? items.filter((item) => item !== value) : [...items, value]);
     this.fieldErrors.update(({ onboarding_intents, ...rest }) => rest);
@@ -116,19 +122,10 @@ export class RegisterComponent {
     this.error.set('');
     this.auth.register({ ...body, onboarding_intents: this.selected() }).subscribe({
       next: () => {
-        this.loadingText.set('Signing you in...');
-        this.auth.login({ email: body.email, password: body.password }).subscribe({
-          next: () => {
-            this.busy.set(false);
-            this.toast.show({ kind: 'action', title: 'Welcome to SurePlace!', message: 'Your account is ready.', action: { label: 'Go to account', run: () => void this.router.navigateByUrl('/account') } });
-            void this.router.navigateByUrl(this.successPrimary().path);
-          },
-          error: () => {
-            this.busy.set(false);
-            this.created.set(true);
-            this.error.set("Your account was created, but we couldn't sign you in automatically. Please log in.");
-          },
-        });
+        this.busy.set(false);
+        this.created.set(true);
+        this.toast.show({ kind: 'success', title: 'Check your email', message: 'We sent a verification link.' });
+        void this.router.navigate(['/verify-email/pending'], { queryParams: { email: body.email } });
       },
       error: (e) => {
         this.busy.set(false);
@@ -137,6 +134,7 @@ export class RegisterComponent {
     });
   }
   fieldError(field: string) { return this.fieldErrors()[field] || ''; }
+  maskedEmail() { return maskEmail(this.form.controls.email.value); }
   passwordHint() { return this.form.controls.password.dirty ? 'Use at least 8 characters.' : ''; }
   successPrimary() {
     const selected = this.selected();
@@ -191,4 +189,10 @@ export class RegisterComponent {
     else if (mapped['onboarding_intents']) this.step.set(2);
     this.error.set(Object.keys(mapped).length ? 'Please fix the highlighted fields.' : normalized.message);
   }
+}
+
+function maskEmail(value: string) {
+  const [local, domain] = value.split('@');
+  if (!local || !domain) return value;
+  return `${local[0]}${'*'.repeat(Math.min(5, Math.max(1, local.length - 1)))}@${domain}`;
 }

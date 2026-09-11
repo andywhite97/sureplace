@@ -11,8 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { ConfigApiService } from '../../core/api/config-api.service';
-
-type Leaflet = typeof import('leaflet');
+import { Leaflet, LeafletLoaderService } from '../../shared/map/leaflet-loader.service';
 
 @Component({
   selector: 'sp-location-picker',
@@ -22,11 +21,35 @@ type Leaflet = typeof import('leaflet');
     <p>Click the map or drag the pin to set the listing location.</p>
   </div>`,
   styles: [
-    `.picker{display:grid;gap:.45rem}.map{min-height:320px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#dce8e5}p{margin:0;color:var(--slate);font-size:.9rem}`,
+    `
+      .picker {
+        display: grid;
+        gap: 0.45rem;
+      }
+      .map {
+        height: clamp(240px, 32vw, 310px);
+        min-height: 240px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: #dce8e5;
+      }
+      p {
+        margin: 0;
+        color: var(--slate);
+        font-size: 0.9rem;
+      }
+      @media (max-width: 640px) {
+        .map {
+          height: 260px;
+          min-height: 220px;
+        }
+      }
+    `,
   ],
 })
 export class LocationPickerComponent implements AfterViewInit, OnChanges, OnDestroy {
   private config = inject(ConfigApiService);
+  private loader = inject(LeafletLoaderService);
   canvas = viewChild.required<ElementRef<HTMLElement>>('canvas');
   latitude = input<number | null | undefined>(null);
   longitude = input<number | null | undefined>(null);
@@ -36,13 +59,19 @@ export class LocationPickerComponent implements AfterViewInit, OnChanges, OnDest
   private marker?: import('leaflet').Marker;
 
   async ngAfterViewInit() {
-    this.leaflet = await import('leaflet');
+    const leaflet = await this.loader.load();
+    if (!leaflet) return;
+    this.leaflet = leaflet;
     const start = this.currentPoint();
-    this.map = this.leaflet.map(this.canvas().nativeElement, { zoomControl: true }).setView(start, this.config.config().map.default_zoom);
-    this.leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '(c) OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(this.map);
+    this.map = this.leaflet
+      .map(this.canvas().nativeElement, { zoomControl: true })
+      .setView(start, this.config.config().map.default_zoom);
+    this.leaflet
+      .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '(c) OpenStreetMap contributors',
+        maxZoom: 19,
+      })
+      .addTo(this.map);
     this.marker = this.leaflet.marker(start, { draggable: true }).addTo(this.map);
     this.map.on('click', (event) => this.setPoint(event.latlng.lat, event.latlng.lng, true));
     this.marker.on('dragend', () => {

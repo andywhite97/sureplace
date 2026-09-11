@@ -1,10 +1,10 @@
 <main>
   <section class="hero" aria-labelledby="hero-title">
     <img
-      src="/hero-eswatini-home.png"
+      src="/hero-eswatini-home.jpg"
       alt="A welcoming home overlooking Eswatini's green highveld"
-      width="1536"
-      height="1024"
+      width="1500"
+      height="844"
       fetchpriority="high"
     />
     <div class="shade"></div>
@@ -122,7 +122,7 @@
     </div>
   </section>
 
-  <section class="market section" aria-labelledby="featured-properties">
+  <section class="market section" aria-labelledby="featured-properties" spRevealOnScroll>
     <header>
       <div>
         <p class="eyebrow">Homes to discover</p>
@@ -139,9 +139,13 @@
       </div>
     } @else if (properties().length) {
       <swiper-container
-        class="listing-swiper"
+        #homepageSwiper
+        class="homepage-swiper listing-swiper"
         slides-per-view="1.08"
         space-between="16"
+        auto-height="true"
+        observer="true"
+        observe-parents="true"
         breakpoints='{"560":{"slidesPerView":2.1},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
         pagination="true"
       >
@@ -154,25 +158,102 @@
     }
   </section>
 
-  <section class="types section" aria-labelledby="property-types">
+  <section class="types section" aria-labelledby="property-types" spRevealOnScroll>
     <header>
       <div>
-        <p class="eyebrow">Explore your way</p>
+        <p class="eyebrow">Explore Your Way</p>
         <h2 id="property-types">Browse by Property Type</h2>
+        <p>
+          Find the right space for every chapter &mdash; from homes to businesses, all in one place.
+        </p>
       </div>
     </header>
+    <img
+      class="type-probe"
+      [src]="propertyTypeImage"
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      (error)="markPropertyTypeImageFailed()"
+    />
     <div class="type-grid">
       @for (type of references.data().property_types; track type.value) {
-        <button type="button" (click)="browseType(type.value)">
-          <sp-icon name="building" /><span>{{ type.label }}</span
-          ><small>View listings</small>
-        </button>
+        <a
+          class="type-card"
+          routerLink="/properties"
+          [queryParams]="propertyTypeQuery(type)"
+          [attr.aria-label]="'Browse ' + type.label + ' listings'"
+        >
+          <span
+            class="type-photo"
+            role="img"
+            [attr.aria-label]="propertyTypeAlt(type)"
+            [class.is-fallback]="propertyTypeImageFailed()"
+            [style.background-image]="propertyTypeBackground(type)"
+            [style.background-position]="propertyTypePosition(type)"
+          >
+            <i [class]="propertyTypeIcon(type)" aria-hidden="true"></i>
+          </span>
+          <span class="type-body">
+            <strong>{{ type.label }}</strong>
+            <span>{{ propertyTypeDescriptor(type) }}</span>
+            @if (hasPropertyTypeCount(type)) {
+              <small>{{ propertyTypeLabel(type) }}</small>
+            }
+          </span>
+          <span class="type-arrow" aria-hidden="true">
+            <i class="fa-solid fa-arrow-right"></i>
+          </span>
+        </a>
       }
     </div>
+    <swiper-container
+      #homepageSwiper
+      class="homepage-swiper type-swiper"
+      slides-per-view="1.12"
+      space-between="14"
+      auto-height="true"
+      observer="true"
+      observe-parents="true"
+      breakpoints='{"560":{"slidesPerView":2.2,"spaceBetween":18}}'
+      pagination="true"
+    >
+      @for (type of references.data().property_types; track type.value) {
+        <swiper-slide>
+          <a
+            class="type-card"
+            routerLink="/properties"
+            [queryParams]="propertyTypeQuery(type)"
+            [attr.aria-label]="'Browse ' + type.label + ' listings'"
+          >
+            <span
+              class="type-photo"
+              role="img"
+              [attr.aria-label]="propertyTypeAlt(type)"
+              [class.is-fallback]="propertyTypeImageFailed()"
+              [style.background-image]="propertyTypeBackground(type)"
+              [style.background-position]="propertyTypePosition(type)"
+            >
+              <i [class]="propertyTypeIcon(type)" aria-hidden="true"></i>
+            </span>
+            <span class="type-body">
+              <strong>{{ type.label }}</strong>
+              <span>{{ propertyTypeDescriptor(type) }}</span>
+              @if (hasPropertyTypeCount(type)) {
+                <small>{{ propertyTypeLabel(type) }}</small>
+              }
+            </span>
+            <span class="type-arrow" aria-hidden="true">
+              <i class="fa-solid fa-arrow-right"></i>
+            </span>
+          </a>
+        </swiper-slide>
+      }
+    </swiper-container>
   </section>
 
   @if (config.config().features.stays) {
-    <section class="market stays section" aria-labelledby="featured-stays">
+    <section class="market stays section" aria-labelledby="featured-stays" spRevealOnScroll>
       <header>
         <div>
           <p class="eyebrow">Stay somewhere special</p>
@@ -189,9 +270,13 @@
         </div>
       } @else if (stays().length) {
         <swiper-container
-          class="listing-swiper"
+          #homepageSwiper
+          class="homepage-swiper listing-swiper"
           slides-per-view="1.08"
           space-between="16"
+          auto-height="true"
+          observer="true"
+          observe-parents="true"
           breakpoints='{"560":{"slidesPerView":2.1},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
           pagination="true"
         >
@@ -205,28 +290,121 @@
     </section>
   }
 
-  <section class="destinations section" aria-labelledby="destinations">
+  <section class="destinations section" aria-labelledby="destinations" spRevealOnScroll>
     <header>
       <div>
-        <p class="eyebrow">Closer than you think</p>
         <h2 id="destinations">Explore Eswatini</h2>
-        <p>Start with places people love to call home—or escape to.</p>
+        <p>Find properties and stays in some of Eswatini's most popular places.</p>
       </div>
     </header>
+    <img
+      class="destination-probe"
+      [src]="destinationImage"
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      (error)="markDestinationImageFailed()"
+    />
     <div class="destination-grid">
-      @for (place of locations; track place; let index = $index) {
-        <article>
-          <span>0{{ index + 1 }}</span>
-          <h3>{{ place }}</h3>
-          <div>
-            <a routerLink="/properties" [queryParams]="{ town: place }">Properties</a>
-            @if (config.config().features.stays) {
-              <a routerLink="/stays" [queryParams]="{ town: place }">Stays</a>
-            }
+      @for (destination of destinations; track destination.name) {
+        <article class="destination-card">
+          <div
+            class="destination-photo"
+            role="img"
+            [attr.aria-label]="destination.alt"
+            [class.is-fallback]="destinationImageFailed()"
+            [style.background-image]="destinationBackground(destination)"
+            [style.background-position]="destinationPosition(destination)"
+          ></div>
+          <div class="destination-overlay"></div>
+          <div class="destination-content">
+            <h3>{{ destination.name }}</h3>
+            <div class="destination-actions">
+              <a
+                routerLink="/properties"
+                [queryParams]="{ town: destination.name }"
+                [attr.aria-label]="'View properties in ' + destination.name"
+              >
+                <i class="fa-solid fa-house" aria-hidden="true"></i><span>Properties</span>
+              </a>
+              @if (config.config().features.stays) {
+                <a
+                  routerLink="/stays"
+                  [queryParams]="{ town: destination.name }"
+                  [attr.aria-label]="'View stays in ' + destination.name"
+                >
+                  <i class="fa-solid fa-bed" aria-hidden="true"></i><span>Stays</span>
+                </a>
+              }
+              <a
+                class="destination-arrow"
+                routerLink="/properties"
+                [queryParams]="{ town: destination.name }"
+                [attr.aria-label]="'Explore ' + destination.name"
+              >
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </a>
+            </div>
           </div>
         </article>
       }
     </div>
+    <swiper-container
+      #homepageSwiper
+      class="homepage-swiper destination-swiper"
+      slides-per-view="1.12"
+      space-between="14"
+      auto-height="true"
+      observer="true"
+      observe-parents="true"
+      breakpoints='{"560":{"slidesPerView":2.1,"spaceBetween":18}}'
+      pagination="true"
+    >
+      @for (destination of destinations; track destination.name) {
+        <swiper-slide>
+          <article class="destination-card">
+            <div
+              class="destination-photo"
+              role="img"
+              [attr.aria-label]="destination.alt"
+              [class.is-fallback]="destinationImageFailed()"
+              [style.background-image]="destinationBackground(destination)"
+              [style.background-position]="destinationPosition(destination)"
+            ></div>
+            <div class="destination-overlay"></div>
+            <div class="destination-content">
+              <h3>{{ destination.name }}</h3>
+              <div class="destination-actions">
+                <a
+                  routerLink="/properties"
+                  [queryParams]="{ town: destination.name }"
+                  [attr.aria-label]="'View properties in ' + destination.name"
+                >
+                  <i class="fa-solid fa-house" aria-hidden="true"></i><span>Properties</span>
+                </a>
+                @if (config.config().features.stays) {
+                  <a
+                    routerLink="/stays"
+                    [queryParams]="{ town: destination.name }"
+                    [attr.aria-label]="'View stays in ' + destination.name"
+                  >
+                    <i class="fa-solid fa-bed" aria-hidden="true"></i><span>Stays</span>
+                  </a>
+                }
+                <a
+                  class="destination-arrow"
+                  routerLink="/properties"
+                  [queryParams]="{ town: destination.name }"
+                  [attr.aria-label]="'Explore ' + destination.name"
+                >
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+              </div>
+            </div>
+          </article>
+        </swiper-slide>
+      }
+    </swiper-container>
   </section>
 
   <section class="trust section" aria-labelledby="trust">

@@ -46,6 +46,6 @@ describe('RoomCardComponent', () => {
     });
     f.detectChanges();
     expect(f.nativeElement.querySelector('button').disabled).toBe(true);
-    expect(f.nativeElement.textContent).toContain('Unavailable');
+    expect(f.nativeElement.textContent).toContain('Sold out for selected dates');
   });
 });

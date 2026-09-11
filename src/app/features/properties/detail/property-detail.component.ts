@@ -1,5 +1,12 @@
-import { CUSTOM_ELEMENTS_SCHEMA, Component, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  Component,
+  PLATFORM_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, map, of, switchMap, tap } from 'rxjs';
 import { PropertiesApiService } from '../../../core/api/properties-api.service';
@@ -43,6 +50,7 @@ export class PropertyDetailComponent {
   auth = inject(AuthService);
   private toast = inject(ToastService);
   private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
   property = signal<PropertyDetail | null>(null);
   related = signal<PropertyCard[]>([]);
   loading = signal(true);
@@ -82,11 +90,15 @@ export class PropertyDetailComponent {
       .subscribe((p) => {
         this.property.set(p);
         if (p) {
-          this.seo.canonical(`/properties/${p.slug}`);
-          this.seo.set(
-            p.title,
-            `${p.listing_type === 'RENT' ? 'For rent' : 'For sale'} ${p.property_type.toLowerCase()} in ${p.town} from ${this.price()}.`,
-          );
+          const path = `/properties/${p.slug}`;
+          this.seo.apply({
+            title: p.title,
+            description: `${p.listing_type === 'RENT' ? 'For rent' : 'For sale'} ${p.property_type.toLowerCase()} in ${p.town} from ${this.price()}.`,
+            path,
+            type: 'article',
+            image: this.coverImage(p),
+            jsonLd: this.propertyJsonLd(p, path),
+          });
           this.relatedApi
             .for(p)
             .pipe(catchError(() => of([])))
@@ -135,9 +147,10 @@ export class PropertyDetailComponent {
       .subscribe();
   }
   share() {
+    if (!isPlatformBrowser(this.platformId)) return;
     const data = { title: this.property()?.title || 'SurePlace property', url: location.href };
     if (navigator.share) void navigator.share(data);
-    else
+    else if (navigator.clipboard)
       void navigator.clipboard
         .writeText(data.url)
         .then(() => this.toast.show('Link copied.', 'success'));
@@ -161,5 +174,62 @@ export class PropertyDetailComponent {
             }),
         });
     }
+  }
+  private coverImage(p: PropertyDetail) {
+    return p.images.find((image) => image.is_cover)?.image || p.images[0]?.image || null;
+  }
+  private propertyJsonLd(p: PropertyDetail, path: string) {
+    const url = this.seo.absoluteUrl(path);
+    const image = this.coverImage(p);
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': this.schemaType(p.property_type),
+        name: p.title,
+        description: p.description,
+        url,
+        image: image ? this.seo.absoluteUrl(image) : undefined,
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: p.address || p.suburb,
+          addressLocality: p.town,
+          addressRegion: p.region,
+          addressCountry: 'SZ',
+        },
+        numberOfRooms: p.bedrooms || undefined,
+        floorSize: p.floor_area
+          ? { '@type': 'QuantitativeValue', value: p.floor_area, unitText: 'm2' }
+          : undefined,
+        offers: {
+          '@type': 'Offer',
+          price: p.price,
+          priceCurrency: p.currency,
+          url,
+          businessFunction:
+            p.listing_type === 'RENT'
+              ? 'https://purl.org/goodrelations/v1#LeaseOut'
+              : 'https://purl.org/goodrelations/v1#Sell',
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: this.seo.absoluteUrl('/') },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Properties',
+            item: this.seo.absoluteUrl('/properties'),
+          },
+          { '@type': 'ListItem', position: 3, name: p.title, item: url },
+        ],
+      },
+    ];
+  }
+  private schemaType(type: string) {
+    if (type === 'APARTMENT' || type === 'FLAT') return 'Apartment';
+    if (type === 'HOUSE' || type === 'TOWNHOUSE') return 'House';
+    return 'Residence';
   }
 }

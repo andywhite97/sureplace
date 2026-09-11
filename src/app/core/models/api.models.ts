@@ -18,12 +18,18 @@ export interface User {
   last_name: string;
   avatar: string | null;
   is_email_verified: boolean;
+  email_verified_at?: string | null;
   is_phone_verified: boolean;
   onboarding_intents: string[];
 }
 export interface AuthTokens {
   access: string;
   refresh: string;
+}
+export interface RegistrationResponse {
+  user: User;
+  email_verification_required: boolean;
+  detail: string;
 }
 export interface ReferenceOption {
   value: string;

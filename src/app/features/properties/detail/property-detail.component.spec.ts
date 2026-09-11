@@ -82,7 +82,7 @@ describe('PropertyDetailComponent', () => {
         },
         { provide: AuthService, useValue: { isAuthenticated: authenticated } },
         { provide: ToastService, useValue: { show: vi.fn() } },
-        { provide: SeoService, useValue: { set: vi.fn(), canonical: vi.fn() } },
+        { provide: SeoService, useValue: { set: vi.fn(), apply: vi.fn(), canonical: vi.fn(), absoluteUrl: (path: string) => `http://localhost:4200${path}` } },
       ],
     });
   });
@@ -130,3 +130,4 @@ describe('PropertyDetailComponent', () => {
     expect(f.nativeElement.textContent).not.toContain('You may also like');
   });
 });
+

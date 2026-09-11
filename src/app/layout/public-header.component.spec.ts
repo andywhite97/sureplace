@@ -15,7 +15,13 @@ describe('PublicHeaderComponent mobile navigation', () => {
     default_country: 'SZ',
     default_currency: 'SZL',
     supported_currencies: ['SZL'],
-    features: { properties: true, stays: true, bookings: true, internal_messaging: true, registration: true },
+    features: {
+      properties: true,
+      stays: true,
+      bookings: true,
+      internal_messaging: true,
+      registration: true,
+    },
     map: { default_latitude: -26.5, default_longitude: 31.4, default_zoom: 8 },
   });
   const unreadMessages = signal(0);
@@ -39,7 +45,13 @@ describe('PublicHeaderComponent mobile navigation', () => {
       default_country: 'SZ',
       default_currency: 'SZL',
       supported_currencies: ['SZL'],
-      features: { properties: true, stays: true, bookings: true, internal_messaging: true, registration: true },
+      features: {
+        properties: true,
+        stays: true,
+        bookings: true,
+        internal_messaging: true,
+        registration: true,
+      },
       map: { default_latitude: -26.5, default_longitude: 31.4, default_zoom: 8 },
     });
     await TestBed.configureTestingModule({
@@ -60,6 +72,16 @@ describe('PublicHeaderComponent mobile navigation', () => {
     }).compileComponents();
   });
 
+  function finishDrawerClose(
+    fixture: ReturnType<typeof TestBed.createComponent<PublicHeaderComponent>>,
+  ) {
+    const drawer = fixture.nativeElement.querySelector('.drawer') as HTMLElement;
+    const event = new Event('transitionend') as TransitionEvent;
+    Object.defineProperty(event, 'propertyName', { value: 'transform' });
+    drawer.dispatchEvent(event);
+    fixture.detectChanges();
+  }
+
   it('opens an anonymous drawer with login and registration routes', () => {
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
@@ -71,10 +93,24 @@ describe('PublicHeaderComponent mobile navigation', () => {
     fixture.detectChanges();
 
     expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.componentInstance.menuState()).toBe('open');
     expect(fixture.nativeElement.textContent).toContain('Login');
     expect(fixture.nativeElement.textContent).toContain('Create Account');
     expect(fixture.nativeElement.textContent).toContain('List a Property');
     expect(fixture.nativeElement.textContent).not.toContain('Session');
+  });
+  it('renders compact mobile shortcut icons for saved listings, account and menu', () => {
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    const shortcuts = fixture.nativeElement.querySelectorAll('.mobile-shortcuts a');
+    const menu = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+
+    expect(shortcuts.length).toBe(2);
+    expect(shortcuts[0].getAttribute('aria-label')).toBe('Saved listings');
+    expect(shortcuts[0].querySelector('.fa-heart')).toBeTruthy();
+    expect(shortcuts[1].getAttribute('aria-label')).toBe('Account');
+    expect(shortcuts[1].querySelector('.fa-user')).toBeTruthy();
+    expect(menu.querySelector('.fa-bars')).toBeTruthy();
   });
 
   it('shows authenticated seeker links and unread badges', () => {
@@ -114,7 +150,16 @@ describe('PublicHeaderComponent mobile navigation', () => {
   });
 
   it('omits feature-flagged links when disabled', () => {
-    config.update((value) => ({ ...value, features: { ...value.features, stays: false, bookings: false, internal_messaging: false, registration: false } }));
+    config.update((value) => ({
+      ...value,
+      features: {
+        ...value.features,
+        stays: false,
+        bookings: false,
+        internal_messaging: false,
+        registration: false,
+      },
+    }));
     user.set({ first_name: 'Ava', onboarding_intents: ['PROPERTY_OWNER'] });
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
@@ -127,6 +172,48 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(text).not.toContain('Messages');
     expect(text).not.toContain('Bookings');
     expect(text).not.toContain('Create Account');
+  });
+
+  it('keeps the drawer mounted while closing, then unlocks scroll after transition', () => {
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+
+    button.click();
+    fixture.detectChanges();
+    expect(document.body.style.position).toBe('fixed');
+
+    fixture.nativeElement.querySelector('.backdrop').click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+    expect(fixture.nativeElement.querySelector('.drawer.is-closing')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.backdrop.is-closing')).toBeTruthy();
+
+    finishDrawerClose(fixture);
+
+    expect(fixture.componentInstance.menuState()).toBe('closed');
+    expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();
+    expect(document.body.style.position).toBe('');
+  });
+
+  it('ignores repeated open and close clicks while transitions are in progress', () => {
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+
+    button.click();
+    button.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.drawer').length).toBe(1);
+
+    fixture.componentInstance.closeMenu();
+    fixture.componentInstance.closeMenu();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+
+    finishDrawerClose(fixture);
+    expect(fixture.componentInstance.menuState()).toBe('closed');
   });
 
   it('closes on backdrop click, escape, route selection and logout', async () => {
@@ -142,22 +229,34 @@ describe('PublicHeaderComponent mobile navigation', () => {
     open();
     fixture.nativeElement.querySelector('.backdrop').click();
     fixture.detectChanges();
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+    finishDrawerClose(fixture);
     expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();
 
     open();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+    finishDrawerClose(fixture);
     expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();
 
     open();
-    (Array.from(fixture.nativeElement.querySelectorAll('.drawer a')) as HTMLAnchorElement[]).find((link) => link.textContent?.includes('Saved'))?.click();
+    (Array.from(fixture.nativeElement.querySelectorAll('.drawer a')) as HTMLAnchorElement[])
+      .find((link) => link.textContent?.includes('Saved'))
+      ?.click();
     fixture.detectChanges();
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+    finishDrawerClose(fixture);
     expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();
 
     open();
-    (Array.from(fixture.nativeElement.querySelectorAll('.drawer button')) as HTMLButtonElement[]).find((button) => button.textContent?.includes('Logout'))?.click();
+    (Array.from(fixture.nativeElement.querySelectorAll('.drawer button')) as HTMLButtonElement[])
+      .find((button) => button.textContent?.includes('Logout'))
+      ?.click();
     fixture.detectChanges();
     expect(auth.logout).toHaveBeenCalled();
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+    finishDrawerClose(fixture);
     expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();
   });
 
@@ -171,7 +270,9 @@ describe('PublicHeaderComponent mobile navigation', () => {
     fixture.nativeElement.querySelector('.menu-button').click();
     fixture.detectChanges();
 
-    const current = fixture.nativeElement.querySelector('[aria-current="page"]') as HTMLAnchorElement;
+    const current = fixture.nativeElement.querySelector(
+      '[aria-current="page"]',
+    ) as HTMLAnchorElement;
     expect(current.textContent).toContain('Messages');
   });
 });

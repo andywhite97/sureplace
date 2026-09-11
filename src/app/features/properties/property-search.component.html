@@ -9,6 +9,7 @@
         <span>{{ count() }} {{ count() === 1 ? 'property' : 'properties' }}</span>
       }
     </p>
+    <p class="mobile-count">{{ resultSummary() }}</p>
     <sp-save-search-button
       searchType="PROPERTY"
       [criteria]="saveCriteria()"
@@ -17,7 +18,70 @@
   </section>
   <section class="toolbar" aria-label="Property search filters">
     <div class="mobile-actions">
-      <button type="button" (click)="filtersOpen.set(true)">Filters</button>
+      <button type="button" class="location-control" (click)="filtersOpen.set(true)">
+        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+        <span>{{ locationLabel() }}</span>
+        <b>Change</b>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+      <div class="mobile-segment" role="group" aria-label="Listing type">
+        <button
+          type="button"
+          [class.active]="form.controls.listing_type.value === 'RENT'"
+          [attr.aria-pressed]="form.controls.listing_type.value === 'RENT'"
+          (click)="setMode('RENT')"
+        >
+          <i class="fa-solid fa-key" aria-hidden="true"></i> Rent</button
+        ><button
+          type="button"
+          [class.active]="form.controls.listing_type.value === 'SALE'"
+          [attr.aria-pressed]="form.controls.listing_type.value === 'SALE'"
+          (click)="setMode('SALE')"
+        >
+          <i class="fa-solid fa-building" aria-hidden="true"></i> Buy
+        </button>
+      </div>
+      <div class="mobile-filter-row" aria-label="Quick filters">
+        <button type="button" (click)="filtersOpen.set(true)">
+          <i class="fa-solid fa-map" aria-hidden="true"></i>
+          {{ state().region || 'Region' }}
+        </button>
+        <button type="button" (click)="filtersOpen.set(true)">
+          <i class="fa-solid fa-house" aria-hidden="true"></i>
+          {{ typeFilterLabel() }}
+        </button>
+        <button type="button" (click)="filtersOpen.set(true)">
+          <i class="fa-solid fa-tag" aria-hidden="true"></i>
+          {{ priceFilterLabel() }}
+        </button>
+        <button type="button" (click)="filtersOpen.set(true)">
+          <i class="fa-solid fa-bed" aria-hidden="true"></i>
+          {{ bedsFilterLabel() }}
+        </button>
+      </div>
+      <div class="mobile-secondary-row">
+        <button type="button" class="more-filter" (click)="filtersOpen.set(true)">
+          <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+          More filters
+        </button>
+        <div class="mobile-view-toggle" role="group" aria-label="View mode">
+          <button
+            type="button"
+            [class.active]="state().view !== 'map'"
+            [attr.aria-pressed]="state().view !== 'map'"
+            (click)="setView('list')"
+          >
+            <i class="fa-solid fa-grip" aria-hidden="true"></i> Grid</button
+          ><button
+            type="button"
+            [class.active]="state().view === 'map'"
+            [attr.aria-pressed]="state().view === 'map'"
+            (click)="setView('map')"
+          >
+            <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Map
+          </button>
+        </div>
+      </div>
       <label
         >Sort
         <select [value]="state().ordering" (change)="sort($any($event.target).value)">
@@ -27,9 +91,6 @@
           <option value="price_desc">Price: High to Low</option>
         </select></label
       >
-      <button type="button" (click)="setView(state().view === 'map' ? 'list' : 'map')">
-        {{ state().view === 'map' ? 'List' : 'Map' }}
-      </button>
     </div>
     <form class="desktop-filters" [formGroup]="form" (ngSubmit)="apply()">
       <div class="mode">

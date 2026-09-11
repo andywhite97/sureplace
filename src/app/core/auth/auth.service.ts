@@ -26,6 +26,11 @@ export class AuthService {
       tap(user => this.user.set(user)), finalize(() => this.loading.set(false)));
   }
   register(body: RegisterRequest) { return this.api.register(body); }
+  verifyEmail(token: string) { return this.api.verifyEmail(token); }
+  resendVerification(email: string) { return this.api.resendVerification(email); }
+  updateMe(body: Partial<User>) {
+    return this.api.updateMe(body).pipe(tap(user => this.user.set(user)));
+  }
   restore() {
     if (!this.storage.read()) { this.user.set(null); return of(null); }
     this.loading.set(true);

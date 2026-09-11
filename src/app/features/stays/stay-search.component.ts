@@ -88,11 +88,11 @@ export class StaySearchComponent {
   );
   markers = computed<MapMarker[]>(() =>
     this.results()
-      .filter((x) => Number.isFinite(x.latitude) && Number.isFinite(x.longitude))
+      .filter((x) => Number.isFinite(Number(x.latitude)) && Number.isFinite(Number(x.longitude)))
       .map((x) => ({
         id: x.id,
-        latitude: x.latitude!,
-        longitude: x.longitude!,
+        latitude: Number(x.latitude),
+        longitude: Number(x.longitude),
         label: formatMoney(x.minimum_nightly_price) || 'View',
         title: x.name,
       })),
@@ -196,7 +196,9 @@ export class StaySearchComponent {
   page(p: number) {
     if (p < 1 || p > this.pages()) return;
     void this.navigate({ ...this.state(), page: p });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
   toggleAmenity(id: string, on: boolean) {
     const a = this.form.controls.amenities.value;
@@ -293,11 +295,53 @@ export class StaySearchComponent {
   }
   readonly formatMoney = formatMoney;
   private setSeo() {
-    this.seo.set(
-      this.heading(),
-      `Find trusted accommodation in Eswatini with nightly prices and availability.`,
+    const state = this.state();
+    const title = this.heading();
+    this.seo.apply({
+      title,
+      description: `Find trusted ${title.toLowerCase()} with nightly prices and availability.`,
+      path: this.canonicalPath(state),
+      robots: this.shouldIndex(state) ? 'index, follow' : 'noindex, follow',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: title,
+        description: `Find trusted ${title.toLowerCase()} on SurePlace.`,
+        url: this.seo.absoluteUrl(this.canonicalPath(state)),
+        isPartOf: { '@type': 'WebSite', name: 'SurePlace', url: this.seo.absoluteUrl('/') },
+      },
+    });
+  }
+  private shouldIndex(s: StaySearchParams) {
+    return !(
+      s.suburb ||
+      s.search ||
+      s.check_in ||
+      s.check_out ||
+      s.adults !== undefined ||
+      s.children !== undefined ||
+      s.rooms !== undefined ||
+      s.min_price ||
+      s.max_price ||
+      s.amenities?.length ||
+      s.featured ||
+      s.verification_status ||
+      s.north ||
+      s.south ||
+      s.east ||
+      s.west ||
+      s.ordering !== 'newest' ||
+      s.view === 'map' ||
+      (s.page || 1) > 1
     );
-    this.seo.canonical('/stays');
+  }
+  private canonicalPath(s: StaySearchParams) {
+    const params = new URLSearchParams();
+    if (s.stay_type) params.set('stay_type', s.stay_type);
+    if (s.region) params.set('region', s.region);
+    if (s.town) params.set('town', s.town);
+    const query = params.toString();
+    return query ? `/stays?${query}` : '/stays';
   }
   private buildChips(s: StaySearchParams) {
     const c: { key: string; label: string }[] = [];
