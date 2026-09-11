@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, forkJoin, switchMap } from 'rxjs';
 import { AgencyManagementApiService } from '../../core/api/manage-api.services';
@@ -7,7 +8,7 @@ import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [DatePipe, ReactiveFormsModule],
   template: `<section class="page"><h1>Agency team</h1>@if(agency(); as a){<form class="invite" [formGroup]="form" (ngSubmit)="invite(a)"><input type="email" formControlName="email" placeholder="agent@example.com" /><select formControlName="role"><option value="AGENT">Agent</option><option value="ADMIN">Admin</option></select><button [disabled]="form.invalid||busy()">Invite</button></form><h2>Members</h2><div class="list">@for(m of members(); track m.id){<article><div><strong>{{m.name}}</strong><p>{{m.email}}</p></div><select [value]="m.role" (change)="role(a,m,$any($event.target).value)"><option value="OWNER">Owner</option><option value="ADMIN">Admin</option><option value="AGENT">Agent</option></select><button (click)="remove(a,m)">Remove</button></article>}</div><h2>Invitations</h2><div class="list">@for(i of invitations(); track i.id){<article><div><strong>{{i.email}}</strong><p>{{i.role}} · {{i.status}}</p></div><span>Expires {{i.expires_at | date:'mediumDate'}}</span></article>}</div>}@else{<p>No agency found.</p>}</section>`,
   styles: [` .page{display:grid;gap:1rem}.invite{display:grid;grid-template-columns:1fr 150px auto;gap:.6rem}.list{display:grid;gap:.6rem}article{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border:1px solid var(--line);border-radius:var(--radius-sm);padding:.8rem}p{margin:.15rem 0;color:var(--slate)}input,select{border:1px solid var(--line);border-radius:var(--radius-sm);padding:.65rem}button{border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;font-weight:850;padding:.65rem .8rem}@media(max-width:680px){.invite,article{display:grid;grid-template-columns:1fr}}`],
 })
