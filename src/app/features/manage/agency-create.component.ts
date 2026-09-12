@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { distinctUntilChanged, finalize } from 'rxjs';
 import { AgencyManagementApiService } from '../../core/api/manage-api.services';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -40,8 +40,13 @@ export class AgencyCreateComponent {
   error = signal('');
   createdName = signal('');
   logo = signal<File | null>(null);
+  selectedRegion = signal('');
   regions = computed(() => this.refs.data().regions);
-  towns = computed(() => this.regions().find((r) => r.label === this.form.controls.region.value)?.areas || []);
+  towns = computed(
+    () =>
+      this.regions().find((r) => r.label === this.selectedRegion() || r.value === this.selectedRegion())?.areas ||
+      [],
+  );
   form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     trading_name: [''],
@@ -55,6 +60,12 @@ export class AgencyCreateComponent {
     suburb: [''],
     address: [''],
   });
+  constructor() {
+    this.form.controls.region.valueChanges.pipe(distinctUntilChanged()).subscribe((region) => {
+      this.selectedRegion.set(region);
+      this.form.patchValue({ town: '', suburb: '' }, { emitEvent: false });
+    });
+  }
   setLogo(files: FileList | null) { this.logo.set(files?.[0] || null); }
   next() { if (!this.validate()) return; this.step.update((v) => Math.min(3, v + 1) as Step); }
   back() { this.error.set(''); this.step.update((v) => Math.max(0, v - 1) as Step); }

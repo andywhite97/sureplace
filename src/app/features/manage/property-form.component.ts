@@ -1,7 +1,8 @@
-import { Component, HostListener, OnDestroy, computed, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Component, HostListener, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { debounceTime, finalize, firstValueFrom } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, firstValueFrom } from 'rxjs';
 import { PropertyManagementApiService } from '../../core/api/manage-api.services';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ManagedProperty, PropertyImage, PropertyWriteRequest } from '../../core/models/manage.models';
@@ -147,7 +148,9 @@ type PhotoItem =
                 <div class="step-panel">
                   <div>
                     <h1>Location</h1>
-                    <p class="step-copy">Help people find your listing.</p>
+                    <p class="step-copy">
+                      Choose the property's area, then place the pin as accurately as possible.
+                    </p>
                   </div>
                   <div class="form-grid">
                     <div class="pair">
@@ -164,21 +167,21 @@ type PhotoItem =
                         }
                       </label>
                       <label class="field">
-                        <span>Town or area *</span>
-                        <input formControlName="town" list="property-towns" />
-                        <datalist id="property-towns">
+                        <span>Town *</span>
+                        <select formControlName="town">
+                          <option value="">Choose town</option>
                           @for (town of towns(); track town) {
-                            <option [value]="town"></option>
+                            <option [value]="town">{{ town }}</option>
                           }
-                        </datalist>
+                        </select>
                         @if (showError('town')) {
-                          <small class="field-error">Add a town or area.</small>
+                          <small class="field-error">Choose a town or area.</small>
                         }
                       </label>
                     </div>
                     <div class="pair">
                       <label class="field">
-                        <span>Suburb or locality</span>
+                        <span>Area / Suburb</span>
                         <input formControlName="suburb" />
                       </label>
                       <label class="field">
@@ -186,6 +189,30 @@ type PhotoItem =
                         <input formControlName="address" />
                       </label>
                     </div>
+                    <div class="location-tools">
+                      <button type="button" [disabled]="locating()" (click)="useCurrentLocation()">
+                        <i
+                          class="fa-solid"
+                          [class.fa-spinner]="locating()"
+                          [class.fa-spin]="locating()"
+                          [class.fa-location-arrow]="!locating()"
+                          aria-hidden="true"
+                        ></i>
+                        {{ locating() ? 'Locating you...' : 'Use my current location' }}
+                      </button>
+                      <small>Use your current location if you're at the property.</small>
+                    </div>
+                    @if (locationStatus()) {
+                      <p class="location-message success" aria-live="polite">
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        {{ locationStatus() }}
+                      </p>
+                    }
+                    @if (locationError()) {
+                      <p class="location-message error" aria-live="polite">
+                        {{ locationError() }}
+                      </p>
+                    }
                     <div class="map-wrap">
                       <sp-location-picker
                         [latitude]="coordinate('latitude')"
@@ -194,9 +221,15 @@ type PhotoItem =
                       />
                     </div>
                     <p class="hint">
-                      Place the pin as accurately as you're comfortable with. Public location
-                      precision is controlled by SurePlace publication rules.
+                      Click the map or drag the pin to the property's exact location. We use this
+                      to place the property on the map. Public display follows SurePlace's location
+                      privacy rules.
                     </p>
+                    @if (coordinate('latitude') !== null && coordinate('longitude') !== null) {
+                      <button class="clear-location" type="button" (click)="clearLocation()">
+                        Clear map location
+                      </button>
+                    }
                     <div class="pair">
                       <label class="field">
                         <span>Latitude *</span>
@@ -504,6 +537,7 @@ export class PropertyFormComponent implements OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private platformId = inject(PLATFORM_ID);
   ref = inject(ReferenceApiService);
   id = this.route.snapshot.paramMap.get('id');
   steps = [
@@ -526,6 +560,10 @@ export class PropertyFormComponent implements OnDestroy {
   pendingImages = signal<PendingImage[]>([]);
   photoOrder = signal<string[]>([]);
   uploadProgress = signal('');
+  locating = signal(false);
+  locationStatus = signal('');
+  locationError = signal('');
+  selectedRegionValue = signal('');
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(255)]],
     description: ['', [Validators.required, Validators.maxLength(1200)]],
@@ -551,7 +589,11 @@ export class PropertyFormComponent implements OnDestroy {
   });
   current = computed(() => this.steps[this.step()]);
   progress = computed(() => ((this.step() + 1) / this.steps.length) * 100);
-  towns = computed(() => this.ref.data().regions.flatMap((region) => region.areas || []));
+  selectedRegion = computed(() => {
+    const value = this.selectedRegionValue();
+    return this.ref.data().regions.find((region) => region.label === value || region.value === value) || null;
+  });
+  towns = computed(() => this.selectedRegion()?.areas || this.ref.data().regions.flatMap((region) => region.areas || []));
   failedImageCount = computed(
     () => this.pendingImages().filter((image) => image.status === 'failed').length,
   );
@@ -599,6 +641,13 @@ export class PropertyFormComponent implements OnDestroy {
   });
 
   constructor() {
+    this.form.controls.region.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
+      this.selectedRegionValue.set(this.form.controls.region.value);
+      this.form.patchValue({ town: '', suburb: '' }, { emitEvent: false });
+    });
+    this.form.controls.town.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
+      this.form.patchValue({ suburb: '' }, { emitEvent: false });
+    });
     this.form.valueChanges.pipe(debounceTime(900)).subscribe(() => {
       this.dirty.set(true);
       this.saveState.set(this.listing() ? 'unsaved' : 'idle');
@@ -659,7 +708,9 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   coordinate(control: 'latitude' | 'longitude') {
-    const value = Number(this.form.controls[control].value);
+    const raw = this.form.controls[control].value;
+    if (raw === '') return null;
+    const value = Number(raw);
     return Number.isFinite(value) ? value : null;
   }
 
@@ -668,6 +719,42 @@ export class PropertyFormComponent implements OnDestroy {
       latitude: point.latitude.toFixed(6),
       longitude: point.longitude.toFixed(6),
     });
+    this.locationError.set('');
+    this.locationStatus.set('Location set. Drag the pin if you need to adjust it.');
+  }
+
+  useCurrentLocation() {
+    if (this.locating()) return;
+    if (!isPlatformBrowser(this.platformId) || !('geolocation' in navigator)) {
+      this.locationStatus.set('');
+      this.locationError.set("We couldn't access your location. You can place the pin manually instead.");
+      return;
+    }
+    this.locating.set(true);
+    this.locationStatus.set('');
+    this.locationError.set('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.locating.set(false);
+        this.setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        this.locationStatus.set('Location detected. Drag the pin if you need to adjust it.');
+      },
+      () => {
+        this.locating.set(false);
+        this.locationStatus.set('');
+        this.locationError.set("We couldn't access your location. You can place the pin manually instead.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
+
+  clearLocation() {
+    this.form.patchValue({ latitude: '', longitude: '' });
+    this.locationStatus.set('');
+    this.locationError.set('');
   }
 
   private orderedPersistedImages() {
@@ -903,6 +990,7 @@ export class PropertyFormComponent implements OnDestroy {
         },
         { emitEvent: false },
       );
+      this.selectedRegionValue.set(property.region);
       this.step.set(this.firstIncompleteStep());
       this.dirty.set(false);
       this.saveState.set('saved');

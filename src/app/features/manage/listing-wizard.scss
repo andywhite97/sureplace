@@ -308,6 +308,57 @@ textarea {
   display: block;
 }
 
+.location-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.location-tools button,
+.clear-location {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 42px;
+  padding: 0.68rem 0.85rem;
+  border: 1px solid var(--teal);
+  border-radius: 0.55rem;
+  color: var(--teal);
+  background: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.location-tools button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.location-tools small {
+  color: var(--slate);
+  font-weight: 750;
+}
+
+.location-message {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0;
+  font-weight: 800;
+}
+
+.location-message.success {
+  color: var(--teal);
+}
+
+.clear-location {
+  justify-self: start;
+  border-color: var(--line);
+  color: var(--slate);
+}
+
 .upload-zone {
   display: grid;
   place-items: center;
@@ -541,6 +592,16 @@ a[aria-disabled='true'] {
   .wizard-actions .primary,
   .wizard-actions .secondary {
     flex: 1;
+  }
+
+  .location-tools,
+  .location-tools button,
+  .clear-location {
+    width: 100%;
+  }
+
+  .location-tools {
+    display: grid;
   }
 }
 
