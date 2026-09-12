@@ -14,10 +14,22 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
   imports: [ReactiveFormsModule, RouterLink, VerificationBadgeComponent],
   template: `<aside class="contact">
       <p class="label">Advertised by</p>
-      <h2>{{ property().agent?.name || property().agency?.name || 'Property owner' }}</h2>
-      @if (property().agency && property().agent) {
-        <p>{{ property().agency!.name }}</p>
-      }
+      <div class="advertiser">
+        <div class="avatar" aria-hidden="true">
+          @if (property().agency?.logo) {
+            <img [src]="property().agency!.logo!" [alt]="property().agency!.name" />
+          } @else {
+            <i class="fa-solid" [class.fa-building]="property().agency" [class.fa-user]="!property().agency"></i>
+          }
+        </div>
+        <div>
+          <h2>{{ property().agent?.name || property().agency?.name || 'Property owner' }}</h2>
+          <p>{{ advertiserRole() }}</p>
+          @if (property().agency && property().agent) {
+            <small>Listed by {{ property().agent!.name }} &middot; Agent</small>
+          }
+        </div>
+      </div>
       <div class="badges">
         @for (badge of property().verification_badges; track badge.type) {
           @if (badge.type !== 'PROPERTY') {
@@ -135,6 +147,11 @@ export class PropertyContactComponent {
     if (!number) return null;
     const text = `Hi, I'm interested in ${this.property().public_id} - ${this.property().title} on SurePlace.`;
     return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+  }
+  advertiserRole() {
+    if (this.property().agency && !this.property().agent) return 'Real estate agency';
+    if (this.property().agent) return 'Property agent';
+    return 'Property owner';
   }
   private requireAuth() {
     if (this.auth.isAuthenticated()) return true;

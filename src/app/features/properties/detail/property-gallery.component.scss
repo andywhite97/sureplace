@@ -1,1 +1,91 @@
-.gallery{position:relative}swiper-container{display:block;border-radius:var(--radius);overflow:hidden;background:#e7eeec}sp-image{display:block}.counter{position:absolute;right:1rem;top:1rem;z-index:3;background:#152b2acc;color:#fff;padding:.4rem .65rem;border-radius:2rem;font-size:.8rem}.thumbs{display:flex;gap:.55rem;margin-top:.7rem;overflow:auto;padding:.2rem}.thumbs button{flex:0 0 92px;padding:0;border:3px solid transparent;border-radius:.55rem;overflow:hidden;background:none}.thumbs button.active{border-color:var(--teal)}@media(min-width:900px){.thumbs button{flex-basis:110px}}
+.gallery {
+  position: relative;
+}
+
+swiper-container {
+  display: block;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  background: #e3ebe9;
+  box-shadow: 0 16px 40px #152b2a12;
+}
+
+swiper-slide,
+sp-image {
+  display: block;
+}
+
+swiper-container::part(button-prev),
+swiper-container::part(button-next) {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  color: var(--midnight);
+  background: #fffffff0;
+  box-shadow: 0 8px 24px #152b2a24;
+}
+
+swiper-container::part(button-prev)::after,
+swiper-container::part(button-next)::after {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.counter {
+  position: absolute;
+  z-index: 3;
+  top: 0.85rem;
+  right: 0.85rem;
+  padding: 0.42rem 0.68rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #152b2acc;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.thumbs {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+  padding: 0.15rem 0.05rem 0.35rem;
+  scrollbar-width: thin;
+}
+
+.thumbs button {
+  flex: 0 0 104px;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.thumbs button.active {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px #0f9d8324;
+}
+
+@media (min-width: 900px) {
+  .thumbs button {
+    flex-basis: 116px;
+  }
+}
+
+@media (max-width: 760px) {
+  swiper-container {
+    border-radius: 0.75rem;
+  }
+
+  .thumbs button {
+    flex-basis: 92px;
+  }
+
+  swiper-container::part(button-prev),
+  swiper-container::part(button-next) {
+    width: 36px;
+    height: 36px;
+  }
+}

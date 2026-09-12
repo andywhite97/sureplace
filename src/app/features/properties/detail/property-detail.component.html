@@ -22,15 +22,25 @@
     </section>
   } @else if (property(); as p) {
     <article class="detail">
-      <a class="back" routerLink="/properties">← Back to properties</a
-      ><sp-property-gallery [images]="p.images" [title]="p.title" />
-      <div class="columns">
-        <div class="content">
-          <header class="identity">
-            <div>
-              <span class="listing-type">{{
-                p.listing_type === 'RENT' ? 'For rent' : 'For sale'
-              }}</span>
+      <a class="back" routerLink="/properties"><span aria-hidden="true">&larr;</span> Back to properties</a>
+
+      <div class="top-grid">
+        <div class="main-column">
+          <sp-property-gallery [images]="p.images" [title]="p.title" />
+
+          <header class="summary">
+            <div class="summary-main">
+              <div class="badges-row">
+                <span class="listing-type">{{ p.listing_type === 'RENT' ? 'For rent' : 'For sale' }}</span>
+                @if (p.featured) {
+                  <span class="soft-badge">Featured</span>
+                }
+                @for (badge of p.verification_badges; track badge.type) {
+                  @if (badge.type === 'PROPERTY') {
+                    <sp-verification-badge [label]="badge.label" />
+                  }
+                }
+              </div>
               <p class="price">
                 {{ price() }}
                 @if (p.listing_type === 'RENT') {
@@ -39,143 +49,165 @@
               </p>
               <h1>{{ p.title }}</h1>
               <p class="location">
-                <sp-icon name="pin" />{{ p.suburb ? p.suburb + ', ' : '' }}{{ p.town }},
-                {{ p.region }}
+                <sp-icon name="pin" />
+                <span>{{ p.suburb ? p.suburb + ', ' : '' }}{{ p.town }}, {{ p.region }}</span>
               </p>
+              <sp-availability-status [status]="p.availability_status" [label]="availability()" />
             </div>
-            <div class="header-actions">
+
+            <div class="header-actions" aria-label="Property actions">
               <button
                 type="button"
                 [class.saved]="p.is_favourited"
                 [disabled]="saving()"
                 (click)="toggleFavourite()"
               >
-                <sp-icon name="heart" />{{ p.is_favourited ? 'Saved' : 'Save' }}</button
-              ><button type="button" (click)="share()">Share</button>
+                <sp-icon name="heart" />{{ p.is_favourited ? 'Saved' : 'Save' }}
+              </button>
+              <button type="button" (click)="share()">
+                <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                Share
+              </button>
             </div>
           </header>
-          <div class="signals">
-            @for (badge of p.verification_badges; track badge.type) {
-              <sp-verification-badge [label]="badge.label" />
-            }
-            <sp-availability-status [status]="p.availability_status" [label]="availability()" />
+        </div>
+
+        <div class="sidebar" id="contact">
+          <sp-property-contact [property]="p" />
+        </div>
+      </div>
+
+      <section class="facts" aria-label="Key property facts">
+        @if (p.bedrooms !== null) {
+          <div>
+            <sp-icon name="bed" />
+            <strong>{{ p.bedrooms }}</strong>
+            <span>Bedrooms</span>
           </div>
-          <section class="facts" aria-label="Key property facts">
-            @if (p.bedrooms !== null) {
-              <div>
-                <sp-icon name="bed" /><strong>{{ p.bedrooms }}</strong
-                ><span>Bedrooms</span>
-              </div>
-            }
-            @if (p.bathrooms !== null) {
-              <div>
-                <sp-icon name="bath" /><strong>{{ p.bathrooms }}</strong
-                ><span>Bathrooms</span>
-              </div>
-            }
-            @if (p.parking_spaces !== null) {
-              <div>
-                <sp-icon name="car" /><strong>{{ p.parking_spaces }}</strong
-                ><span>Parking</span>
-              </div>
-            }
-            @if (p.floor_area) {
-              <div>
-                <strong>{{ p.floor_area }} m²</strong><span>Floor area</span>
-              </div>
-            }
-            @if (p.land_area) {
-              <div>
-                <strong>{{ p.land_area }} m²</strong><span>Land area</span>
-              </div>
-            }
-            <div>
-              <sp-icon name="building" /><strong>{{ p.property_type }}</strong
-              ><span>Property type</span>
-            </div>
-          </section>
-          <section class="copy">
-            <h2>About this property</h2>
-            <p [class.collapsed]="!expanded()">{{ p.description }}</p>
-            @if (p.description.length > 450) {
-              <button type="button" (click)="expanded.set(!expanded())">
-                {{ expanded() ? 'Show less' : 'Read more' }}
-              </button>
-            }
-          </section>
-          @if (p.amenities.length) {
-            <section>
-              <h2>Amenities</h2>
-              <div class="amenities">
-                @for (amenity of p.amenities; track amenity.id) {
-                  <div>
-                    <sp-icon name="shield" /><span>{{ amenity.name }}</span>
-                  </div>
-                }
-              </div>
-            </section>
+        }
+        @if (p.bathrooms !== null) {
+          <div>
+            <sp-icon name="bath" />
+            <strong>{{ p.bathrooms }}</strong>
+            <span>Bathrooms</span>
+          </div>
+        }
+        @if (p.parking_spaces !== null) {
+          <div>
+            <sp-icon name="car" />
+            <strong>{{ p.parking_spaces }}</strong>
+            <span>Parking</span>
+          </div>
+        }
+        <div>
+          <sp-icon name="building" />
+          <strong>{{ p.property_type }}</strong>
+          <span>Property type</span>
+        </div>
+        @if (p.floor_area) {
+          <div>
+            <i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>
+            <strong>{{ p.floor_area }} m2</strong>
+            <span>Floor area</span>
+          </div>
+        }
+        @if (p.land_area) {
+          <div>
+            <i class="fa-solid fa-vector-square" aria-hidden="true"></i>
+            <strong>{{ p.land_area }} m2</strong>
+            <span>Land area</span>
+          </div>
+        }
+      </section>
+
+      <div class="content-flow">
+        <section class="copy">
+          <h2>About this property</h2>
+          <p [class.collapsed]="!expanded()">{{ p.description }}</p>
+          @if (p.description.length > 450) {
+            <button type="button" (click)="expanded.set(!expanded())">
+              {{ expanded() ? 'Show less' : 'Read more' }}
+            </button>
           }
+        </section>
+
+        @if (p.amenities.length) {
           <section>
-            <h2>Property details</h2>
-            <dl>
-              <div>
-                <dt>Listing ID</dt>
-                <dd>{{ p.public_id }}</dd>
-              </div>
-              <div>
-                <dt>Listing type</dt>
-                <dd>{{ p.listing_type === 'RENT' ? 'For rent' : 'For sale' }}</dd>
-              </div>
-              <div>
-                <dt>Property type</dt>
-                <dd>{{ p.property_type }}</dd>
-              </div>
-              <div>
-                <dt>Furnished</dt>
-                <dd>{{ p.furnished ? 'Yes' : 'No' }}</dd>
-              </div>
-              <div>
-                <dt>Pet friendly</dt>
-                <dd>{{ p.pet_friendly ? 'Yes' : 'No' }}</dd>
-              </div>
-              @if (p.published_at) {
+            <h2>Amenities</h2>
+            <div class="amenities">
+              @for (amenity of p.amenities; track amenity.id) {
                 <div>
-                  <dt>Published</dt>
-                  <dd>{{ p.published_at | date: 'mediumDate' }}</dd>
+                  <sp-icon name="shield" /><span>{{ amenity.name }}</span>
                 </div>
               }
-            </dl>
+            </div>
           </section>
-          @if (p.latitude !== null && p.longitude !== null) {
-            <section>
-              <h2>Location</h2>
-              <p>{{ p.suburb ? p.suburb + ', ' : '' }}{{ p.town }}, {{ p.region }}</p>
-              <div class="detail-map">
-                <sp-listing-map
-                  [markers]="[
-                    {
-                      id: p.id,
-                      latitude: p.latitude!,
-                      longitude: p.longitude!,
-                      label: price() || '',
-                      title: p.title,
-                    },
-                  ]"
-                  [center]="[p.latitude!, p.longitude!]"
-                  [zoom]="14"
-                />
+        }
+
+        <section>
+          <h2>Property details</h2>
+          <dl>
+            <div>
+              <dt>Listing ID</dt>
+              <dd>{{ p.public_id }}</dd>
+            </div>
+            <div>
+              <dt>Listing type</dt>
+              <dd>{{ p.listing_type === 'RENT' ? 'For rent' : 'For sale' }}</dd>
+            </div>
+            <div>
+              <dt>Property type</dt>
+              <dd>{{ p.property_type }}</dd>
+            </div>
+            <div>
+              <dt>Furnished</dt>
+              <dd>{{ p.furnished ? 'Yes' : 'No' }}</dd>
+            </div>
+            <div>
+              <dt>Pet friendly</dt>
+              <dd>{{ p.pet_friendly ? 'Yes' : 'No' }}</dd>
+            </div>
+            @if (p.published_at) {
+              <div>
+                <dt>Published</dt>
+                <dd>{{ p.published_at | date: 'mediumDate' }}</dd>
               </div>
-              <a
-                class="nearby"
-                routerLink="/properties"
-                [queryParams]="{ town: p.town, listing_type: p.listing_type }"
-                >View more properties near this area</a
-              >
-            </section>
-          }
-        </div>
-        <div class="sidebar"><sp-property-contact [property]="p" /></div>
+            }
+          </dl>
+        </section>
+
+        @if (p.latitude !== null && p.longitude !== null) {
+          <section class="location-section">
+            <h2>Location</h2>
+            <p>
+              <strong>{{ p.suburb || p.town }}</strong>
+              <span>{{ p.suburb ? p.town + ', ' : '' }}{{ p.region }}</span>
+            </p>
+            <div class="detail-map">
+              <sp-listing-map
+                [markers]="[
+                  {
+                    id: p.id,
+                    latitude: p.latitude!,
+                    longitude: p.longitude!,
+                    label: price() || '',
+                    title: p.title,
+                  },
+                ]"
+                [center]="[p.latitude!, p.longitude!]"
+                [zoom]="14"
+              />
+            </div>
+            <a
+              class="nearby"
+              routerLink="/properties"
+              [queryParams]="{ town: p.town, listing_type: p.listing_type }"
+              >View more properties near this area <span aria-hidden="true">&rarr;</span></a
+            >
+          </section>
+        }
       </div>
+
       @if (related().length) {
         <section class="related">
           <h2>You may also like</h2>
@@ -191,8 +223,12 @@
           </swiper-container>
         </section>
       }
-      <div class="mobile-contact">
-        <button type="button" (click)="share()">Share</button>
+
+      <div class="mobile-contact" aria-label="Contact advertiser">
+        <button type="button" (click)="share()">
+          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+          Share
+        </button>
         @if (p.agent?.whatsapp_number) {
           <a [href]="'https://wa.me/' + p.agent!.whatsapp_number">WhatsApp</a>
         }
