@@ -1,15 +1,44 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { debounceTime, finalize, forkJoin } from 'rxjs';
+import { debounceTime, finalize, firstValueFrom } from 'rxjs';
 import { PropertyManagementApiService } from '../../core/api/manage-api.services';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
-import { ManagedProperty, PropertyWriteRequest } from '../../core/models/manage.models';
+import { ManagedProperty, PropertyImage, PropertyWriteRequest } from '../../core/models/manage.models';
+import { ToastService } from '../../core/services/toast.service';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { LocationPickerComponent } from './location-picker.component';
 import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
+type PendingImageStatus = 'pending' | 'uploading' | 'failed';
+type PendingImage = {
+  localId: string;
+  file: File;
+  previewUrl: string;
+  status: PendingImageStatus;
+  error?: string;
+};
+type PhotoItem =
+  | {
+      token: string;
+      kind: 'persisted';
+      id: string;
+      src: string;
+      caption: string;
+      status: 'uploaded';
+      isCover: boolean;
+    }
+  | {
+      token: string;
+      kind: 'pending';
+      id: string;
+      src: string;
+      caption: string;
+      status: PendingImageStatus;
+      error?: string;
+      isCover: boolean;
+    };
 
 @Component({
   standalone: true,
@@ -268,44 +297,71 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                   </label>
                   @if (!listing()) {
                     <p class="hint">
-                      Add the required basics and price first so SurePlace can create a draft for
-                      photos.
+                      SurePlace will create the draft first, then upload these photos in order.
                     </p>
                   }
+                  @if (uploadProgress()) {
+                    <p class="hint" aria-live="polite">{{ uploadProgress() }}</p>
+                  }
+                  @if (failedImageCount()) {
+                    <button
+                      type="button"
+                      class="retry-upload"
+                      [disabled]="busy()"
+                      (click)="retryFailedUploads()"
+                    >
+                      Retry failed upload
+                    </button>
+                  }
                   <div class="photos">
-                    @for (img of orderedImages(); track img.id; let i = $index) {
+                    @for (img of photoItems(); track img.token; let i = $index) {
                       <figure>
-                        @if (img.is_cover) {
-                          <span class="cover-badge">Cover photo</span>
+                        @if (img.isCover) {
+                          <span class="cover-badge" aria-label="Current cover image">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                            {{ img.kind === 'pending' ? 'Default cover' : 'Cover photo' }}
+                          </span>
                         }
                         <sp-image
-                          [src]="img.image"
+                          [src]="img.src"
                           [alt]="img.caption || form.controls.title.value || 'Property photo'"
                           ratio="4 / 3"
                         />
+                        @if (img.status !== 'uploaded') {
+                          <figcaption [class.failed]="img.status === 'failed'">
+                            {{
+                              img.status === 'uploading'
+                                ? 'Uploading...'
+                                : img.status === 'failed'
+                                  ? img.error || 'Upload failed'
+                                  : 'Ready to upload'
+                            }}
+                          </figcaption>
+                        }
                         <div class="photo-actions">
                           <button
                             type="button"
                             [disabled]="i === 0 || busy()"
-                            (click)="moveImage(img.id, -1)"
+                            (click)="movePhoto(img.token, -1)"
                           >
                             <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
                           </button>
                           <button
                             type="button"
-                            [disabled]="i === orderedImages().length - 1 || busy()"
-                            (click)="moveImage(img.id, 1)"
+                            [disabled]="i === photoItems().length - 1 || busy()"
+                            (click)="movePhoto(img.token, 1)"
                           >
                             <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
                           </button>
                           <button
                             type="button"
-                            [disabled]="img.is_cover || busy()"
-                            (click)="setCover(img.id)"
+                            [disabled]="img.kind !== 'persisted' || img.isCover || busy()"
+                            [attr.aria-label]="'Set image ' + (i + 1) + ' as cover'"
+                            (click)="setCover(img.token)"
                           >
-                            Cover
+                            Set as cover
                           </button>
-                          <button type="button" [disabled]="busy()" (click)="deleteImage(img.id)">
+                          <button type="button" [disabled]="busy()" (click)="deletePhoto(img)">
                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           </button>
                         </div>
@@ -442,11 +498,12 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
   </main>`,
   styleUrl: './listing-wizard.scss',
 })
-export class PropertyFormComponent {
+export class PropertyFormComponent implements OnDestroy {
   private api = inject(PropertyManagementApiService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
   ref = inject(ReferenceApiService);
   id = this.route.snapshot.paramMap.get('id');
   steps = [
@@ -466,6 +523,9 @@ export class PropertyFormComponent {
   dirty = signal(false);
   saveState = signal<SaveState>('idle');
   listing = signal<ManagedProperty | null>(null);
+  pendingImages = signal<PendingImage[]>([]);
+  photoOrder = signal<string[]>([]);
+  uploadProgress = signal('');
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(255)]],
     description: ['', [Validators.required, Validators.maxLength(1200)]],
@@ -492,6 +552,51 @@ export class PropertyFormComponent {
   current = computed(() => this.steps[this.step()]);
   progress = computed(() => ((this.step() + 1) / this.steps.length) * 100);
   towns = computed(() => this.ref.data().regions.flatMap((region) => region.areas || []));
+  failedImageCount = computed(
+    () => this.pendingImages().filter((image) => image.status === 'failed').length,
+  );
+  photoItems = computed(() => {
+    const persisted = new Map<string, PhotoItem>(
+      this.orderedPersistedImages().map((image) => [
+        this.persistedToken(image.id),
+        {
+          token: this.persistedToken(image.id),
+          kind: 'persisted' as const,
+          id: image.id,
+          src: image.image,
+          caption: image.caption,
+          status: 'uploaded' as const,
+          isCover: image.is_cover,
+        },
+      ]),
+    );
+    const pending = new Map<string, PhotoItem>(
+      this.pendingImages().map((image) => [
+        this.pendingToken(image.localId),
+        {
+          token: this.pendingToken(image.localId),
+          kind: 'pending' as const,
+          id: image.localId,
+          src: image.previewUrl,
+          caption: image.file.name,
+          status: image.status,
+          error: image.error,
+          isCover: false,
+        },
+      ]),
+    );
+    const items = this.photoOrder()
+      .map((token) => persisted.get(token) || pending.get(token))
+      .filter((item) => item !== undefined);
+    const seen = new Set(items.map((item) => item.token));
+    for (const item of [...persisted.values(), ...pending.values()]) {
+      if (!seen.has(item.token)) items.push(item);
+    }
+    if (!items.some((item) => item.isCover) && items[0]?.kind === 'pending') {
+      return items.map((item, index) => ({ ...item, isCover: index === 0 }));
+    }
+    return items;
+  });
 
   constructor() {
     this.form.valueChanges.pipe(debounceTime(900)).subscribe(() => {
@@ -500,6 +605,10 @@ export class PropertyFormComponent {
       if (this.listing() && !this.busy() && !this.submitting()) this.saveDraft(true);
     });
     if (this.id) this.load();
+  }
+
+  ngOnDestroy() {
+    for (const image of this.pendingImages()) URL.revokeObjectURL(image.previewUrl);
   }
 
   showResidentialDetails() {
@@ -516,9 +625,13 @@ export class PropertyFormComponent {
     return 'Not saved yet';
   }
 
-  continue() {
+  async continue() {
     if (!this.validateStep(this.step())) return;
-    if (this.step() === 2 || this.listing()) this.saveDraft(true);
+    if (this.step() === 2 || this.listing()) {
+      const saved = await this.persistDraft(true);
+      if (!saved && this.canCreateDraft()) return;
+    }
+    if (this.current().key === 'photos' && !(await this.uploadQueuedImages())) return;
     this.step.set(Math.min(this.step() + 1, this.steps.length - 1));
   }
 
@@ -557,33 +670,27 @@ export class PropertyFormComponent {
     });
   }
 
-  orderedImages() {
+  private orderedPersistedImages() {
     return [...(this.listing()?.images || [])].sort((a, b) => a.sort_order - b.sort_order);
   }
 
   coverImage() {
-    const images = this.orderedImages();
-    return images.find((image) => image.is_cover)?.image || images[0]?.image || null;
+    const images = this.photoItems();
+    return images.find((image) => image.isCover)?.src || images[0]?.src || null;
   }
 
   upload(files: FileList | null) {
-    const id = this.listing()?.id;
-    if (!id || !files?.length) {
-      this.error.set('Save the draft before uploading photos.');
-      return;
-    }
-    this.busy.set(true);
-    Array.from(files).forEach((file) => {
-      const data = new FormData();
-      data.set('image', file);
-      this.api
-        .uploadImage(id, data)
-        .pipe(finalize(() => this.busy.set(false)))
-        .subscribe({
-          next: () => this.refresh(),
-          error: () => this.error.set('Photo upload failed.'),
-        });
-    });
+    if (!files?.length) return;
+    const images = Array.from(files).map((file) => ({
+      localId: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: 'pending' as const,
+    }));
+    this.pendingImages.update((current) => [...current, ...images]);
+    this.photoOrder.update((order) => [...order, ...images.map((image) => this.pendingToken(image.localId))]);
+    this.error.set('');
+    this.uploadProgress.set(`${images.length} photo${images.length === 1 ? '' : 's'} ready to upload.`);
   }
 
   allowDrop(event: DragEvent) {
@@ -595,55 +702,92 @@ export class PropertyFormComponent {
     this.upload(event.dataTransfer?.files || null);
   }
 
-  moveImage(imageId: string, direction: -1 | 1) {
+  async retryFailedUploads() {
+    this.pendingImages.update((images) =>
+      images.map((image) => (image.status === 'failed' ? { ...image, status: 'pending' } : image)),
+    );
+    await this.uploadQueuedImages();
+  }
+
+  movePhoto(token: string, direction: -1 | 1) {
+    const order = this.currentPhotoOrder();
+    const index = order.indexOf(token);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= order.length) return;
+    [order[index], order[target]] = [order[target], order[index]];
+    this.photoOrder.set(order);
+    if (!this.pendingImages().length) void this.persistPhotoOrder();
+  }
+
+  setCover(token: string) {
     const id = this.listing()?.id;
-    const images = this.orderedImages();
-    const index = images.findIndex((img) => img.id === imageId);
-    const target = images[index + direction];
-    if (!id || index < 0 || !target) return;
-    const current = images[index];
+    const image = this.photoItems().find((item) => item.token === token);
+    if (!id || !image || image.kind !== 'persisted' || image.isCover) return;
     this.busy.set(true);
-    forkJoin([
-      this.api.updateImage(id, current.id, { sort_order: target.sort_order }),
-      this.api.updateImage(id, target.id, { sort_order: current.sort_order }),
-    ])
+    this.api
+      .updateImage(id, image.id, { is_cover: true })
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
-        next: () => this.refresh(),
-        error: () => this.error.set('Photo order could not be saved.'),
+        next: () => {
+          this.listing.update((property) =>
+            property
+              ? {
+                  ...property,
+                  images: property.images.map((item) => ({ ...item, is_cover: item.id === image.id })),
+                }
+              : property,
+          );
+          this.toast.show('Cover image updated.', 'success');
+          this.refresh();
+        },
+        error: () => {
+          this.error.set('Cover photo could not be saved.');
+          this.toast.show('Cover photo could not be saved.', 'error');
+        },
       });
   }
 
-  setCover(imageId: string) {
+  deletePhoto(image: PhotoItem) {
+    if (image.kind === 'pending') {
+      const pending = this.pendingImages().find((item) => item.localId === image.id);
+      if (pending) URL.revokeObjectURL(pending.previewUrl);
+      this.pendingImages.update((items) => items.filter((item) => item.localId !== image.id));
+      this.photoOrder.update((order) => order.filter((token) => token !== image.token));
+      return;
+    }
     const id = this.listing()?.id;
-    if (!id) return;
-    this.api.updateImage(id, imageId, { is_cover: true }).subscribe(() => this.refresh());
+    if (id && confirm('Delete this photo?')) {
+      this.busy.set(true);
+      this.api
+        .deleteImage(id, image.id)
+        .pipe(finalize(() => this.busy.set(false)))
+        .subscribe({
+          next: () => this.refresh(),
+          error: () => this.error.set('Photo could not be deleted.'),
+        });
+    }
   }
 
-  deleteImage(imageId: string) {
-    const id = this.listing()?.id;
-    if (id && confirm('Delete this photo?'))
-      this.api.deleteImage(id, imageId).subscribe(() => this.refresh());
-  }
-
-  submit() {
+  async submit() {
     if (this.submitting()) return;
     if (!this.validateAll()) return;
-    this.saveDraft(false, () => {
-      const id = this.listing()?.id;
-      if (!id) return;
-      this.submitting.set(true);
-      this.api
-        .submit(id)
-        .pipe(finalize(() => this.submitting.set(false)))
-        .subscribe({
-          next: (property) => {
-            this.listing.set(property);
-            this.submitted.set(true);
-          },
-          error: (e) => this.error.set(e?.error?.message || 'Property could not be submitted.'),
-        });
-    });
+    const saved = await this.persistDraft(false);
+    if (!saved) return;
+    if (!(await this.uploadQueuedImages())) return;
+    const id = this.listing()?.id;
+    if (!id) return;
+    this.submitting.set(true);
+    this.api
+      .submit(id)
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (property) => {
+          this.listing.set(property);
+          this.syncPhotoOrder(property);
+          this.submitted.set(true);
+        },
+        error: (e) => this.error.set(e?.error?.message || 'Property could not be submitted.'),
+      });
   }
 
   reviewWarnings() {
@@ -658,7 +802,7 @@ export class PropertyFormComponent {
     )
       warnings.push({ message: 'Select a location', step: 1 });
     if (!this.form.controls.price.valid) warnings.push({ message: 'Enter a valid price', step: 2 });
-    if (!this.orderedImages().length) warnings.push({ message: 'Add at least one photo', step: 3 });
+    if (!this.photoItems().length) warnings.push({ message: 'Add at least one photo', step: 3 });
     return warnings;
   }
 
@@ -683,7 +827,7 @@ export class PropertyFormComponent {
       {
         title: 'Photos',
         step: 3,
-        text: `${this.orderedImages().length} photo${this.orderedImages().length === 1 ? '' : 's'}`,
+        text: `${this.photoItems().length} photo${this.photoItems().length === 1 ? '' : 's'}`,
       },
       { title: 'Amenities', step: 4, text: `${v.amenities.length} selected` },
     ];
@@ -733,6 +877,7 @@ export class PropertyFormComponent {
   private load() {
     this.api.detail(this.id!).subscribe((property) => {
       this.listing.set(property);
+      this.syncPhotoOrder(property);
       this.form.patchValue(
         {
           title: property.title,
@@ -765,10 +910,15 @@ export class PropertyFormComponent {
   }
 
   private saveDraft(silent = false, after?: () => void) {
-    if (this.busy()) return;
+    void this.persistDraft(silent).then((property) => {
+      if (property || !this.canCreateDraft()) after?.();
+    });
+  }
+
+  private async persistDraft(silent = false) {
+    if (this.busy()) return this.listing();
     if (!this.canCreateDraft()) {
-      after?.();
-      return;
+      return this.listing();
     }
     this.busy.set(true);
     this.saveState.set('saving');
@@ -776,25 +926,27 @@ export class PropertyFormComponent {
       this.id || this.listing()
         ? this.api.update(this.id || this.listing()!.id, this.payload())
         : this.api.create(this.payload());
-    request.pipe(finalize(() => this.busy.set(false))).subscribe({
-      next: (property) => {
-        const created = !this.id;
-        this.listing.set(property);
-        this.dirty.set(false);
-        this.saveState.set('saved');
-        if (created) {
-          this.id = property.id;
-          void this.router.navigate(['/account/manage/properties', property.id, 'edit'], {
-            replaceUrl: true,
-          });
-        }
-        after?.();
-      },
-      error: (e) => {
-        this.saveState.set('error');
-        if (!silent) this.error.set(e?.error?.message || 'Property could not be saved.');
-      },
-    });
+    try {
+      const property = await firstValueFrom(request);
+      const created = !this.id;
+      this.listing.set(property);
+      this.syncPhotoOrder(property);
+      this.dirty.set(false);
+      this.saveState.set('saved');
+      if (created) {
+        this.id = property.id;
+        void this.router.navigate(['/account/manage/properties', property.id, 'edit'], {
+          replaceUrl: true,
+        });
+      }
+      return property;
+    } catch (e: any) {
+      this.saveState.set('error');
+      if (!silent) this.error.set(e?.error?.message || 'Property could not be saved.');
+      return null;
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   private canCreateDraft() {
@@ -808,15 +960,130 @@ export class PropertyFormComponent {
 
   private refresh() {
     const id = this.listing()?.id || this.id;
-    if (id) this.api.detail(id).subscribe((property) => this.listing.set(property));
+    if (id)
+      this.api.detail(id).subscribe((property) => {
+        this.listing.set(property);
+        this.syncPhotoOrder(property);
+      });
   }
 
   private firstIncompleteStep() {
     if (!this.validateGroup(['title', 'description'])) return 0;
     if (!this.validateGroup(['region', 'town', 'latitude', 'longitude'])) return 1;
     if (!this.validateGroup(['price'])) return 2;
-    if (!this.orderedImages().length) return 3;
+    if (!this.photoItems().length) return 3;
     return 5;
+  }
+
+  private async uploadQueuedImages() {
+    if (!this.pendingImages().length) {
+      await this.persistPhotoOrder();
+      return true;
+    }
+    const property = await this.persistDraft(false);
+    const id = property?.id || this.listing()?.id;
+    if (!id) return false;
+    const pendingByToken = new Map(
+      this.pendingImages().map((image) => [this.pendingToken(image.localId), image]),
+    );
+    const order = this.currentPhotoOrder();
+    const pendingTokens = order.filter((token) => pendingByToken.has(token));
+    let uploaded = 0;
+    let failed = 0;
+    this.busy.set(true);
+    try {
+      for (const token of pendingTokens) {
+        const pending = pendingByToken.get(token);
+        if (!pending) continue;
+        const index = order.indexOf(token);
+        this.markPending(pending.localId, { status: 'uploading', error: undefined });
+        this.uploadProgress.set(`Uploading ${uploaded + failed + 1} of ${pendingTokens.length}...`);
+        const data = new FormData();
+        data.set('image', pending.file);
+        data.set('sort_order', String(index));
+        try {
+          const image = await firstValueFrom(this.api.uploadImage(id, data));
+          uploaded += 1;
+          URL.revokeObjectURL(pending.previewUrl);
+          this.pendingImages.update((items) => items.filter((item) => item.localId !== pending.localId));
+          this.listing.update((current) => (current ? this.withImage(current, image) : current));
+          this.photoOrder.update((items) =>
+            items.map((item) => (item === token ? this.persistedToken(image.id) : item)),
+          );
+        } catch {
+          failed += 1;
+          this.markPending(pending.localId, {
+            status: 'failed',
+            error: `${pending.file.name} failed to upload.`,
+          });
+        }
+      }
+      await this.persistPhotoOrder();
+      this.refresh();
+      if (failed) {
+        this.error.set(`${uploaded} of ${pendingTokens.length} images uploaded. ${failed} failed.`);
+        this.uploadProgress.set('Retry failed uploads when ready.');
+        return false;
+      }
+      this.error.set('');
+      this.uploadProgress.set(`${uploaded} image${uploaded === 1 ? '' : 's'} uploaded successfully.`);
+      return true;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private async persistPhotoOrder() {
+    const id = this.listing()?.id;
+    if (!id) return;
+    const persistedItems = this.photoItems().filter((item) => item.kind === 'persisted');
+    this.busy.set(true);
+    try {
+      for (const [index, image] of persistedItems.entries()) {
+        await firstValueFrom(this.api.updateImage(id, image.id, { sort_order: index }));
+      }
+      if (persistedItems.length) this.refresh();
+    } catch {
+      this.error.set('Photo order could not be saved.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private currentPhotoOrder() {
+    return this.photoItems().map((item) => item.token);
+  }
+
+  private syncPhotoOrder(property = this.listing()) {
+    const existing = new Set(this.orderedPersistedImages().map((image) => this.persistedToken(image.id)));
+    const pending = new Set(this.pendingImages().map((image) => this.pendingToken(image.localId)));
+    const order = this.photoOrder().filter((token) => existing.has(token) || pending.has(token));
+    for (const token of existing) if (!order.includes(token)) order.push(token);
+    for (const token of pending) if (!order.includes(token)) order.push(token);
+    if (property || order.length) this.photoOrder.set(order);
+  }
+
+  private markPending(localId: string, patch: Partial<Pick<PendingImage, 'status' | 'error'>>) {
+    this.pendingImages.update((images) =>
+      images.map((image) => (image.localId === localId ? { ...image, ...patch } : image)),
+    );
+  }
+
+  private withImage(property: ManagedProperty, image: PropertyImage): ManagedProperty {
+    return {
+      ...property,
+      images: [...property.images.filter((item) => item.id !== image.id), image].sort(
+        (a, b) => a.sort_order - b.sort_order,
+      ),
+    };
+  }
+
+  private persistedToken(id: string) {
+    return `persisted:${id}`;
+  }
+
+  private pendingToken(id: string) {
+    return `pending:${id}`;
   }
 
   private validateGroup(names: string[]) {

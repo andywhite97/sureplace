@@ -367,6 +367,28 @@ figure {
   gap: 0.35rem;
 }
 
+.retry-upload {
+  justify-self: start;
+  min-height: 40px;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #f0b7b7;
+  border-radius: 0.55rem;
+  color: #9b2525;
+  background: #fff5f5;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+figcaption {
+  color: var(--slate);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+figcaption.failed {
+  color: #9b2525;
+}
+
 .photo-actions button,
 .wizard-actions button,
 .secondary,

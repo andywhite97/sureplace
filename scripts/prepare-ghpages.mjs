@@ -5,7 +5,7 @@ const args = new Set(process.argv.slice(2));
 const mode = valueAfter('--mode') ?? 'custom';
 const printOutput = args.has('--print-output');
 const repoName = sanitizeRepoName(process.env.GH_PAGES_REPO_NAME ?? 'sureplace');
-const customDomain = process.env.GH_PAGES_CUSTOM_DOMAIN?.trim();
+const customDomain = process.env.GH_PAGES_CUSTOM_DOMAIN?.trim() || 'sureplace.twinpeaksinvestment.com';
 
 const root = process.cwd();
 const angularJsonPath = path.join(root, 'angular.json');

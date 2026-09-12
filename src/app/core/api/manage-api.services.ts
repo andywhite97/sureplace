@@ -22,6 +22,7 @@ import {
   AgencyInvitation,
   AgencyMember,
   AgencyRole,
+  PropertyImage,
 } from '../models/manage.models';
 import { RoomTypeSummary } from '../models/listing.models';
 
@@ -50,10 +51,10 @@ export class PropertyManagementApiService {
     return this.api.post<ManagedProperty>(`/properties/${encodeURIComponent(id)}/confirm-availability/`, {});
   }
   uploadImage(id: string, data: FormData) {
-    return this.api.post<unknown>(`/properties/${encodeURIComponent(id)}/images/`, data);
+    return this.api.post<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, data);
   }
   updateImage(id: string, imageId: string, body: { sort_order?: number; is_cover?: boolean; caption?: string }) {
-    return this.api.patch<unknown>(`/properties/${encodeURIComponent(id)}/images/`, { id: imageId, ...body });
+    return this.api.patch<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, { id: imageId, ...body });
   }
   deleteImage(id: string, imageId: string) {
     return this.api.delete<void>(`/properties/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`);

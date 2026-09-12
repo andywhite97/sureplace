@@ -44,11 +44,13 @@ The custom-domain build must use base href `/`:
 npm run build:ghpages
 ```
 
-Set `GH_PAGES_CUSTOM_DOMAIN` when you want the build output to include `CNAME`:
+The custom-domain build always writes the production domain to `CNAME`:
 
-```bash
-GH_PAGES_CUSTOM_DOMAIN=sureplace.twinpeaksinvestment.com npm run build:ghpages
+```text
+sureplace.twinpeaksinvestment.com
 ```
+
+`GH_PAGES_CUSTOM_DOMAIN` may still override the domain for another custom build.
 
 The domain value must be only the hostname. Do not include `https://` or a trailing slash.
 
