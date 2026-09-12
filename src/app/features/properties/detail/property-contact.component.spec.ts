@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PropertyContactComponent } from './property-contact.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PropertyActionsApiService } from '../../../core/api/property-actions-api.service';
@@ -36,6 +37,10 @@ describe('PropertyContactComponent', () => {
         { provide: ToastService, useValue: { show: vi.fn() } },
       ],
     });
+  });
+  afterEach(() => {
+    document.getElementById('sureplace-overlay-root')?.remove();
+    document.body.style.overflow = '';
   });
   function create() {
     const f = TestBed.createComponent(PropertyContactComponent);
@@ -80,6 +85,37 @@ describe('PropertyContactComponent', () => {
     f.componentInstance.submitViewing();
     expect(api.viewing).toHaveBeenCalled();
     expect(f.componentInstance.success()).toBe(true);
+  });
+  it('ports the viewing overlay to the top-level overlay root and removes it on close', () => {
+    const f = create();
+    const trigger = f.nativeElement.querySelector('.secondary:last-of-type') as HTMLButtonElement;
+    trigger.focus();
+    f.componentInstance.openViewing();
+    f.detectChanges();
+
+    const overlay = document.body.querySelector<HTMLElement>(
+      '#sureplace-overlay-root .property-contact-overlay',
+    );
+    expect(overlay).toBeTruthy();
+    expect(f.nativeElement.querySelector('.property-contact-overlay')).toBeNull();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    f.componentInstance.close();
+    f.detectChanges();
+    expect(document.body.querySelector('.property-contact-overlay')).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+    expect(document.activeElement).toBe(trigger);
+  });
+  it('uses the same top-level overlay root for report listing', () => {
+    const f = create();
+    f.componentInstance.openReport();
+    f.detectChanges();
+
+    const overlay = document.body.querySelector<HTMLElement>(
+      '#sureplace-overlay-root [data-sureplace-overlay="property-contact"]',
+    );
+    expect(overlay).toBeTruthy();
+    expect(overlay?.textContent).toContain('Report this listing');
   });
   it('shows viewing domain errors', () => {
     api.viewing.mockReturnValueOnce(

@@ -48,6 +48,24 @@ export class AccountActivityStore {
     );
   }
 
+  markNotificationRead(id: string) {
+    this.notifications.update((items) =>
+      items.map((item) =>
+        item.id === id
+          ? { ...item, is_read: true, read_at: item.read_at || new Date().toISOString() }
+          : item,
+      ),
+    );
+    this.summary.update((summary) =>
+      summary
+        ? {
+            ...summary,
+            unread_notifications: Math.max((summary.unread_notifications || 0) - 1, 0),
+          }
+        : summary,
+    );
+  }
+
   stopPolling() {
     this.poll.unsubscribe();
     this.poll = new Subscription();

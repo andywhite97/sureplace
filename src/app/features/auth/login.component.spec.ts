@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { User } from '../../core/models/api.models';
 import { ToastService } from '../../core/services/toast.service';
 import { LoginComponent } from './login.component';
 
@@ -11,9 +12,21 @@ import { LoginComponent } from './login.component';
 class EmptyComponent {}
 
 describe('LoginComponent', () => {
+  const staffUser = {
+    id: 'staff-1',
+    email: 'staff@example.com',
+    phone_number: '',
+    first_name: 'Staff',
+    last_name: 'Member',
+    avatar: null,
+    is_email_verified: true,
+    is_phone_verified: false,
+    is_staff: true,
+    onboarding_intents: [],
+  };
   const auth = {
     login: vi.fn(),
-    user: signal(null),
+    user: signal<User | null>(null),
     isAuthenticated: computed(() => false),
   };
   const toast = { show: vi.fn() };
@@ -21,6 +34,7 @@ describe('LoginComponent', () => {
 
   beforeEach(async () => {
     auth.login.mockReset();
+    auth.user.set(null);
     toast.show.mockReset();
     queryParamMap.set(convertToParamMap({}));
     await TestBed.configureTestingModule({
@@ -29,12 +43,23 @@ describe('LoginComponent', () => {
         provideRouter([
           { path: 'account', component: EmptyComponent },
           { path: 'account/messages', component: EmptyComponent },
+          { path: 'staff', component: EmptyComponent },
+          { path: 'staff/listings', component: EmptyComponent },
           { path: 'forgot-password', component: EmptyComponent },
           { path: 'register', component: EmptyComponent },
         ]),
         { provide: AuthService, useValue: auth },
         { provide: ToastService, useValue: toast },
-        { provide: ActivatedRoute, useValue: { snapshot: { get queryParamMap() { return queryParamMap(); } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              get queryParamMap() {
+                return queryParamMap();
+              },
+            },
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -81,7 +106,9 @@ describe('LoginComponent', () => {
     expect(button.getAttribute('aria-label')).toBe('Show password');
     button.click();
     fixture.detectChanges();
-    expect((fixture.nativeElement.querySelector('#password') as HTMLInputElement).type).toBe('text');
+    expect((fixture.nativeElement.querySelector('#password') as HTMLInputElement).type).toBe(
+      'text',
+    );
     expect(button.getAttribute('aria-label')).toBe('Hide password');
   });
 
@@ -96,22 +123,33 @@ describe('LoginComponent', () => {
 
     component.busy.set(false);
     component.submit();
-    expect(auth.login).toHaveBeenCalledWith({ email: 'ava@example.com', password: 'secret123' }, true);
+    expect(auth.login).toHaveBeenCalledWith(
+      { email: 'ava@example.com', password: 'secret123' },
+      true,
+    );
   });
 
   it('shows safe invalid credentials and network errors', () => {
-    auth.login.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 401, error: { code: 'invalid_credentials' } })));
+    auth.login.mockReturnValueOnce(
+      throwError(
+        () => new HttpErrorResponse({ status: 401, error: { code: 'invalid_credentials' } }),
+      ),
+    );
     const fixture = create();
     const component = fixture.componentInstance;
     fillValid(component);
     component.submit();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('The email or password you entered is incorrect.');
+    expect(fixture.nativeElement.textContent).toContain(
+      'The email or password you entered is incorrect.',
+    );
 
     auth.login.mockReturnValueOnce(throwError(() => new Error('offline')));
     component.submit();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain("We couldn't sign you in right now. Please try again.");
+    expect(fixture.nativeElement.textContent).toContain(
+      "We couldn't sign you in right now. Please try again.",
+    );
   });
 
   it('restores a safe return URL on successful login', () => {
@@ -127,6 +165,29 @@ describe('LoginComponent', () => {
     expect(toast.show).toHaveBeenCalledWith('Welcome back.', 'success');
   });
 
+  it('sends staff users to the staff console after a normal login', () => {
+    auth.user.set(staffUser);
+    auth.login.mockReturnValue(of(staffUser));
+    const fixture = create();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    fillValid(fixture.componentInstance);
+    fixture.componentInstance.submit();
+
+    expect(navigate).toHaveBeenCalledWith('/staff');
+  });
+
+  it('preserves a specific safe staff return URL', () => {
+    queryParamMap.set(convertToParamMap({ returnUrl: '/staff/listings' }));
+    auth.user.set(staffUser);
+    auth.login.mockReturnValue(of(staffUser));
+    const fixture = create();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    fillValid(fixture.componentInstance);
+    fixture.componentInstance.submit();
+
+    expect(navigate).toHaveBeenCalledWith('/staff/listings');
+  });
+
   it('falls back to account for unsafe return URLs', () => {
     queryParamMap.set(convertToParamMap({ returnUrl: '//evil.example' }));
     auth.login.mockReturnValue(of({ id: 'u1' }));
@@ -136,5 +197,17 @@ describe('LoginComponent', () => {
     fixture.componentInstance.submit();
 
     expect(navigate).toHaveBeenCalledWith('/account');
+  });
+
+  it('falls back to staff for unsafe return URLs when the user is staff', () => {
+    queryParamMap.set(convertToParamMap({ returnUrl: '//evil.example' }));
+    auth.user.set(staffUser);
+    auth.login.mockReturnValue(of(staffUser));
+    const fixture = create();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    fillValid(fixture.componentInstance);
+    fixture.componentInstance.submit();
+
+    expect(navigate).toHaveBeenCalledWith('/staff');
   });
 });

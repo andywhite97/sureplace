@@ -124,30 +124,43 @@ h2 {
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-modal-backdrop, 900);
   display: grid;
   place-items: center;
   padding: 1rem;
   background: #152b2a99;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .backdrop section {
   position: relative;
-  width: min(520px, 100%);
-  max-height: 90vh;
+  z-index: var(--z-modal-dialog, 910);
+  width: min(600px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
   overflow: auto;
   padding: 1.5rem;
   border-radius: 0.9rem;
   background: #fff;
+  box-shadow: 0 24px 70px #071f1d40;
+  outline: 0;
+  overscroll-behavior: contain;
 }
 
 .close {
   position: absolute;
   top: 0.7rem;
   right: 1rem;
-  border: 0;
-  background: none;
-  font-size: 1.8rem;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--slate);
+  background: #fff;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -179,5 +192,17 @@ h2 {
   .contact {
     padding: 1rem;
     border-radius: 0.75rem;
+  }
+
+  .backdrop {
+    align-items: end;
+    padding: 0.75rem;
+  }
+
+  .backdrop section {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    padding: 1.2rem;
+    border-radius: 0.9rem 0.9rem 0.75rem 0.75rem;
   }
 }

@@ -59,9 +59,14 @@ describe('PublicHeaderComponent mobile navigation', () => {
       providers: [
         provideRouter([
           { path: '', component: EmptyComponent },
+          { path: 'agents', component: EmptyComponent },
           { path: 'login', component: EmptyComponent },
+          { path: 'register', component: EmptyComponent },
           { path: 'properties', component: EmptyComponent },
+          { path: 'properties/:slug', component: EmptyComponent },
           { path: 'stays', component: EmptyComponent },
+          { path: 'account', component: EmptyComponent },
+          { path: 'account/saved', component: EmptyComponent },
           { path: 'account/messages', component: EmptyComponent },
           { path: 'account/manage', component: EmptyComponent },
         ]),
@@ -94,22 +99,48 @@ describe('PublicHeaderComponent mobile navigation', () => {
 
     expect(button.getAttribute('aria-expanded')).toBe('true');
     expect(fixture.componentInstance.menuState()).toBe('open');
-    expect(fixture.nativeElement.textContent).toContain('Login');
-    expect(fixture.nativeElement.textContent).toContain('Create Account');
+    expect(fixture.nativeElement.textContent).toContain('Log in');
+    expect(fixture.nativeElement.textContent).toContain('Create account');
     expect(fixture.nativeElement.textContent).toContain('List a Property');
+    expect(fixture.nativeElement.textContent).toContain('Properties');
+    expect(fixture.nativeElement.textContent).toContain('Stays');
+    expect(fixture.nativeElement.textContent).toContain('Agents');
+    expect(fixture.nativeElement.textContent).not.toContain('Rent');
+    expect(fixture.nativeElement.textContent).not.toContain('Buy');
+    expect(fixture.nativeElement.textContent).not.toContain('Saved');
+    expect(fixture.nativeElement.textContent).not.toContain('Messages');
     expect(fixture.nativeElement.textContent).not.toContain('Session');
   });
-  it('renders compact mobile shortcut icons for saved listings, account and menu', () => {
+  it('renders guest desktop navigation without account-only links', () => {
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+
+    const headerText = (fixture.nativeElement.querySelector('header') as HTMLElement).textContent;
+    const properties = fixture.nativeElement.querySelector(
+      '.desktop-nav a[href="/properties"]',
+    ) as HTMLAnchorElement;
+    expect(headerText).toContain('Properties');
+    expect(headerText).toContain('Stays');
+    expect(headerText).toContain('Agents');
+    expect(headerText).toContain('Log in');
+    expect(headerText).toContain('Create account');
+    expect(headerText).toContain('List a Property');
+    expect(headerText).not.toContain('Rent');
+    expect(headerText).not.toContain('Buy');
+    expect(headerText).not.toContain('Saved');
+    expect(headerText).not.toContain('Messages');
+    expect(properties).toBeTruthy();
+  });
+
+  it('renders compact mobile shortcut icons without saved listings for guests', () => {
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
     const shortcuts = fixture.nativeElement.querySelectorAll('.mobile-shortcuts a');
     const menu = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
 
-    expect(shortcuts.length).toBe(2);
-    expect(shortcuts[0].getAttribute('aria-label')).toBe('Saved listings');
-    expect(shortcuts[0].querySelector('.fa-heart')).toBeTruthy();
-    expect(shortcuts[1].getAttribute('aria-label')).toBe('Account');
-    expect(shortcuts[1].querySelector('.fa-user')).toBeTruthy();
+    expect(shortcuts.length).toBe(1);
+    expect(shortcuts[0].getAttribute('aria-label')).toBe('Account');
+    expect(shortcuts[0].querySelector('.fa-user')).toBeTruthy();
     expect(menu.querySelector('.fa-bars')).toBeTruthy();
   });
 
@@ -120,18 +151,51 @@ describe('PublicHeaderComponent mobile navigation', () => {
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
 
+    const headerText = (fixture.nativeElement.querySelector('header') as HTMLElement).textContent;
+    expect(headerText).toContain('Properties');
+    expect(headerText).toContain('Saved');
+    expect(headerText).toContain('Messages');
+    expect(headerText).toContain('Ava');
+    expect(headerText).toContain('Log out');
+    expect(headerText).toContain('List a Property');
+    expect(headerText).not.toContain('Log in');
+    expect(headerText).not.toContain('Create account');
+    expect(headerText).not.toContain('Rent');
+    expect(headerText).not.toContain('Buy');
+
     fixture.nativeElement.querySelector('.menu-button').click();
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Saved');
     expect(text).toContain('Messages');
+    expect(text).toContain('Agents');
     expect(text).toContain('Saved Searches / Alerts');
     expect(text).toContain('Notifications');
-    expect(text).toContain('Logout');
+    expect(text).toContain('Log out');
     expect(text).not.toContain('Session');
     expect(text).toContain('7');
     expect(text).toContain('3');
+  });
+
+  it('keeps properties active on property detail routes', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/properties/another-bedroom');
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+
+    const properties = fixture.nativeElement.querySelector(
+      '.desktop-nav a[href="/properties"]',
+    ) as HTMLAnchorElement;
+    expect(properties?.textContent).toContain('Properties');
+    expect(properties?.getAttribute('aria-current')).toBe('page');
+
+    fixture.nativeElement.querySelector('.menu-button').click();
+    fixture.detectChanges();
+    const current = fixture.nativeElement.querySelector(
+      '.drawer [aria-current="page"]',
+    ) as HTMLAnchorElement;
+    expect(current?.textContent).toContain('Properties');
   });
 
   it('shows supply-side management links for supply users', () => {
@@ -171,7 +235,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(text).not.toContain('Stays');
     expect(text).not.toContain('Messages');
     expect(text).not.toContain('Bookings');
-    expect(text).not.toContain('Create Account');
+    expect(text).not.toContain('Create account');
   });
 
   it('keeps the drawer mounted while closing, then unlocks scroll after transition', () => {
@@ -251,7 +315,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
 
     open();
     (Array.from(fixture.nativeElement.querySelectorAll('.drawer button')) as HTMLButtonElement[])
-      .find((button) => button.textContent?.includes('Logout'))
+      .find((button) => button.textContent?.includes('Log out'))
       ?.click();
     fixture.detectChanges();
     expect(auth.logout).toHaveBeenCalled();

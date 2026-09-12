@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { authGuard, guestGuard, staffGuard } from './core/guards/auth.guard';
 const placeholder = () =>
   import('./features/placeholder.component').then((m) => m.PlaceholderComponent);
 export const routes: Routes = [
@@ -294,6 +294,81 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/manage/verification.component').then((m) => m.VerificationComponent),
         title: 'Verification | SurePlace',
+      },
+    ],
+  },
+  {
+    path: 'staff',
+    canActivate: [staffGuard],
+    loadComponent: () =>
+      import('./features/staff/staff-shell.component').then((m) => m.StaffShellComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/staff/staff-dashboard.component').then(
+            (m) => m.StaffDashboardComponent,
+          ),
+        title: 'Staff dashboard | SurePlace',
+      },
+      {
+        path: 'listings',
+        loadComponent: () =>
+          import('./features/staff/staff-listings.component').then((m) => m.StaffListingsComponent),
+        title: 'Listing moderation | SurePlace',
+      },
+      {
+        path: 'listings/:id',
+        loadComponent: () =>
+          import('./features/staff/staff-listing-detail.component').then(
+            (m) => m.StaffListingDetailComponent,
+          ),
+        title: 'Review listing | SurePlace',
+      },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./features/staff/staff-placeholder.component').then(
+            (m) => m.StaffPlaceholderComponent,
+          ),
+        data: {
+          title: 'Reports',
+          message:
+            'Report review will live here. Property report context is already visible from listing detail.',
+        },
+      },
+      {
+        path: 'agencies',
+        loadComponent: () =>
+          import('./features/staff/staff-placeholder.component').then(
+            (m) => m.StaffPlaceholderComponent,
+          ),
+        data: {
+          title: 'Agencies',
+          message: 'Agency moderation is prepared for a focused follow-up build.',
+        },
+      },
+      {
+        path: 'verification',
+        loadComponent: () =>
+          import('./features/staff/staff-placeholder.component').then(
+            (m) => m.StaffPlaceholderComponent,
+          ),
+        data: {
+          title: 'Verification',
+          message: 'Verification reviews remain in the existing verification workflow.',
+        },
+      },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./features/staff/staff-placeholder.component').then(
+            (m) => m.StaffPlaceholderComponent,
+          ),
+        data: {
+          title: 'Users',
+          message: 'User moderation tools can be added here without changing the listing console.',
+        },
       },
     ],
   },

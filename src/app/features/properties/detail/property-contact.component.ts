@@ -1,4 +1,17 @@
-import { Component, HostListener, inject, input, signal } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  PLATFORM_ID,
+  Renderer2,
+  ViewChild,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
@@ -19,7 +32,11 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
           @if (property().agency?.logo) {
             <img [src]="property().agency!.logo!" [alt]="property().agency!.name" />
           } @else {
-            <i class="fa-solid" [class.fa-building]="property().agency" [class.fa-user]="!property().agency"></i>
+            <i
+              class="fa-solid"
+              [class.fa-building]="property().agency"
+              [class.fa-user]="!property().agency"
+            ></i>
           }
         </div>
         <div>
@@ -49,14 +66,24 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
       <button class="report" type="button" (click)="openReport()">Report listing</button>
     </aside>
     @if (modal()) {
-      <div class="backdrop" (click)="close()">
+      <div
+        #overlay
+        class="backdrop property-contact-overlay"
+        data-sureplace-overlay="property-contact"
+        (click)="close()"
+      >
         <section
+          #dialog
+          class="dialog"
+          tabindex="-1"
           role="dialog"
           aria-modal="true"
           [attr.aria-labelledby]="modal() + '-title'"
           (click)="$event.stopPropagation()"
         >
-          <button class="close" type="button" aria-label="Close" (click)="close()">&times;</button>
+          <button class="close" type="button" aria-label="Close" (click)="close()">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
           @if (modal() === 'viewing') {
             <h2 id="viewing-title">Request a viewing</h2>
             @if (success()) {
@@ -119,14 +146,25 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
     }`,
   styleUrl: './property-contact.component.scss',
 })
-export class PropertyContactComponent {
+export class PropertyContactComponent implements AfterViewChecked {
   property = input.required<PropertyDetail>();
+  @ViewChild('overlay') private overlay?: ElementRef<HTMLElement>;
+  @ViewChild('dialog') private dialog?: ElementRef<HTMLElement>;
   private auth = inject(AuthService);
   private api = inject(PropertyActionsApiService);
   private messaging = inject(MessagingApiService);
   private router = inject(Router);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
+  private document = inject(DOCUMENT);
+  private platformId = inject(PLATFORM_ID);
+  private renderer = inject(Renderer2);
+  private destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private overlayRoot?: HTMLElement;
+  private previousBodyOverflow = '';
+  private previousFocus: HTMLElement | null = null;
+  private overlayAttached = false;
   modal = signal<'viewing' | 'report' | null>(null);
   busy = signal(false);
   success = signal(false);
@@ -142,6 +180,14 @@ export class PropertyContactComponent {
     reason: ['SCAM', Validators.required],
     details: ['', [Validators.maxLength(1000)]],
   });
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.teardownOverlay());
+  }
+
+  ngAfterViewChecked() {
+    this.attachOverlay();
+  }
   whatsapp() {
     const number = this.property().agent?.whatsapp_number?.replace(/\D/g, '');
     if (!number) return null;
@@ -174,13 +220,13 @@ export class PropertyContactComponent {
   openViewing() {
     if (this.requireAuth()) {
       this.reset();
-      this.modal.set('viewing');
+      this.openModal('viewing');
     }
   }
   openReport() {
     if (this.requireAuth()) {
       this.reset();
-      this.modal.set('report');
+      this.openModal('report');
     }
   }
   submitViewing() {
@@ -220,6 +266,7 @@ export class PropertyContactComponent {
       });
   }
   close() {
+    this.teardownOverlay();
     this.modal.set(null);
   }
   private reset() {
@@ -227,6 +274,87 @@ export class PropertyContactComponent {
     this.error.set('');
   }
   @HostListener('document:keydown.escape') escape() {
-    this.close();
+    if (this.modal()) this.close();
+  }
+  @HostListener('document:keydown.tab', ['$event']) trapFocus(event: Event) {
+    if (!this.modal() || !this.isBrowser || !this.overlay?.nativeElement) return;
+    const keyboardEvent = event as KeyboardEvent;
+    const focusable = this.focusableElements();
+    if (!focusable.length) {
+      event.preventDefault();
+      this.dialog?.nativeElement.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = this.document.activeElement;
+    if (keyboardEvent.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!keyboardEvent.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  private openModal(kind: 'viewing' | 'report') {
+    if (this.isBrowser) this.previousFocus = this.document.activeElement as HTMLElement | null;
+    this.modal.set(kind);
+  }
+
+  private attachOverlay() {
+    if (!this.isBrowser || !this.modal() || this.overlayAttached || !this.overlay?.nativeElement)
+      return;
+    const root = this.ensureOverlayRoot();
+    root.appendChild(this.overlay.nativeElement);
+    this.overlayAttached = true;
+    this.lockScroll();
+    queueMicrotask(() => this.focusDialog());
+  }
+
+  private ensureOverlayRoot() {
+    const existing = this.document.getElementById('sureplace-overlay-root');
+    if (existing) {
+      this.overlayRoot = existing;
+      return existing;
+    }
+    const root = this.renderer.createElement('div') as HTMLElement;
+    this.renderer.setAttribute(root, 'id', 'sureplace-overlay-root');
+    this.renderer.appendChild(this.document.body, root);
+    this.overlayRoot = root;
+    return root;
+  }
+
+  private lockScroll() {
+    this.previousBodyOverflow = this.document.body.style.overflow;
+    this.document.body.style.overflow = 'hidden';
+  }
+
+  private teardownOverlay() {
+    if (!this.isBrowser) return;
+    if (this.overlayAttached) {
+      this.document.body.style.overflow = this.previousBodyOverflow;
+      this.overlayAttached = false;
+    }
+    if (this.previousFocus?.isConnected) {
+      this.previousFocus.focus();
+    }
+    this.previousFocus = null;
+  }
+
+  private focusDialog() {
+    if (!this.modal()) return;
+    const first = this.focusableElements()[0];
+    (first || this.dialog?.nativeElement)?.focus();
+  }
+
+  private focusableElements() {
+    const overlay = this.overlay?.nativeElement;
+    if (!overlay) return [];
+    return Array.from(
+      overlay.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.offsetParent !== null || element === this.document.activeElement);
   }
 }

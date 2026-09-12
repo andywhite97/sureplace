@@ -1,11 +1,23 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Component, HostListener, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  HostListener,
+  OnDestroy,
+  PLATFORM_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, finalize, firstValueFrom } from 'rxjs';
 import { PropertyManagementApiService } from '../../core/api/manage-api.services';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
-import { ManagedProperty, PropertyImage, PropertyWriteRequest } from '../../core/models/manage.models';
+import {
+  ManagedProperty,
+  PropertyImage,
+  PropertyWriteRequest,
+} from '../../core/models/manage.models';
 import { ToastService } from '../../core/services/toast.service';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { LocationPickerComponent } from './location-picker.component';
@@ -13,6 +25,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 type PendingImageStatus = 'pending' | 'uploading' | 'failed';
+type StepDirection = 'forward' | 'back';
 type PendingImage = {
   localId: string;
   file: File;
@@ -56,9 +69,9 @@ type PhotoItem =
       @if (!submitted()) {
         <div class="wizard-top">
           <div class="wizard-nav">
-            <button type="button" (click)="back()">
+            <button type="button" (click)="exitWizard()">
               <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-              Back
+              Exit listing
             </button>
             <strong>Step {{ step() + 1 }} of {{ steps.length }}</strong>
           </div>
@@ -67,12 +80,22 @@ type PhotoItem =
           </div>
           <div class="step-tabs" aria-label="Property listing steps">
             @for (item of steps; track item.key; let i = $index) {
-              <button type="button" [class.active]="step() === i" (click)="go(i)">
+              <button
+                type="button"
+                [class.active]="step() === i"
+                [disabled]="submitStepDisabled(i)"
+                (click)="go(i)"
+              >
                 {{ item.label }}
               </button>
             }
           </div>
-          <p class="save-status" aria-live="polite">{{ saveLabel() }}</p>
+          <div class="save-status" [class.error]="saveState() === 'error'" aria-live="polite">
+            <span>{{ saveLabel() }}</span>
+            @if (saveState() === 'error') {
+              <button type="button" (click)="retrySave()">Retry</button>
+            }
+          </div>
         </div>
       }
 
@@ -83,25 +106,32 @@ type PhotoItem =
       @if (submitted()) {
         <section class="success-panel">
           <span class="success-icon"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
-          <h1>Listing Submitted!</h1>
-          <p>Your listing is now under review. We'll notify you once there's an update.</p>
+          <h1>Listing submitted!</h1>
+          <p>
+            Your listing is now pending SurePlace review. We'll notify you when it is approved or if
+            changes are needed.
+          </p>
           <div class="success-actions">
-            <a class="primary-cta" routerLink="/account/manage/properties">Go to My Listings</a>
-            <a class="secondary" routerLink="/account/manage/listings/new">Add Another Listing</a>
+            <a class="primary-cta" routerLink="/account/manage/properties">Go to My Properties</a>
+            <a class="secondary" routerLink="/account/manage/properties/new"
+              >Add Another Property</a
+            >
             @if (listing()?.slug) {
-              <a class="ghost-link" [routerLink]="['/properties', listing()!.slug]">View Listing</a>
+              <a class="ghost-link" [routerLink]="['/properties', listing()!.slug]"
+                >Preview Listing</a
+              >
             }
           </div>
         </section>
       } @else {
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <section class="wizard-body">
+          <section class="wizard-body" [class.back]="stepDirection() === 'back'">
             @switch (current().key) {
               @case ('basic') {
                 <div class="step-panel">
                   <div>
                     <p class="eyebrow">Property</p>
-                    <h1>Basic Information</h1>
+                    <h1>List a Property</h1>
                     <p class="step-copy">Let's start with the essentials.</p>
                   </div>
                   <div class="form-grid">
@@ -221,8 +251,8 @@ type PhotoItem =
                       />
                     </div>
                     <p class="hint">
-                      Click the map or drag the pin to the property's exact location. We use this
-                      to place the property on the map. Public display follows SurePlace's location
+                      Click the map or drag the pin to the property's exact location. We use this to
+                      place the property on the map. Public display follows SurePlace's location
                       privacy rules.
                     </p>
                     @if (coordinate('latitude') !== null && coordinate('longitude') !== null) {
@@ -230,16 +260,19 @@ type PhotoItem =
                         Clear map location
                       </button>
                     }
-                    <div class="pair">
-                      <label class="field">
-                        <span>Latitude *</span>
-                        <input type="number" step="0.000001" formControlName="latitude" />
-                      </label>
-                      <label class="field">
-                        <span>Longitude *</span>
-                        <input type="number" step="0.000001" formControlName="longitude" />
-                      </label>
-                    </div>
+                    <details class="advanced-location">
+                      <summary>Advanced location details</summary>
+                      <div class="pair">
+                        <label class="field">
+                          <span>Latitude *</span>
+                          <input type="number" step="0.000001" formControlName="latitude" />
+                        </label>
+                        <label class="field">
+                          <span>Longitude *</span>
+                          <input type="number" step="0.000001" formControlName="longitude" />
+                        </label>
+                      </div>
+                    </details>
                   </div>
                 </div>
               }
@@ -300,11 +333,31 @@ type PhotoItem =
                     <div class="amenity-grid">
                       <label class="check-card">
                         <input type="checkbox" formControlName="furnished" />
-                        <span><i class="fa-solid fa-couch" aria-hidden="true"></i> Furnished</span>
+                        <span class="card-icon">
+                          <i
+                            [class]="
+                              form.controls.furnished.value
+                                ? 'fa-solid fa-check'
+                                : 'fa-solid fa-couch'
+                            "
+                            aria-hidden="true"
+                          ></i>
+                        </span>
+                        <span>Furnished</span>
                       </label>
                       <label class="check-card">
                         <input type="checkbox" formControlName="pet_friendly" />
-                        <span><i class="fa-solid fa-paw" aria-hidden="true"></i> Pet friendly</span>
+                        <span class="card-icon">
+                          <i
+                            [class]="
+                              form.controls.pet_friendly.value
+                                ? 'fa-solid fa-check'
+                                : 'fa-solid fa-paw'
+                            "
+                            aria-hidden="true"
+                          ></i>
+                        </span>
+                        <span>Pet friendly</span>
                       </label>
                     </div>
                   </div>
@@ -370,30 +423,49 @@ type PhotoItem =
                                   : 'Ready to upload'
                             }}
                           </figcaption>
+                        } @else {
+                          <figcaption class="uploaded">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                            Uploaded
+                          </figcaption>
                         }
                         <div class="photo-actions">
-                          <button
-                            type="button"
-                            [disabled]="i === 0 || busy()"
-                            (click)="movePhoto(img.token, -1)"
-                          >
-                            <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
-                          </button>
-                          <button
-                            type="button"
-                            [disabled]="i === photoItems().length - 1 || busy()"
-                            (click)="movePhoto(img.token, 1)"
-                          >
-                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                          </button>
-                          <button
-                            type="button"
-                            [disabled]="img.kind !== 'persisted' || img.isCover || busy()"
-                            [attr.aria-label]="'Set image ' + (i + 1) + ' as cover'"
-                            (click)="setCover(img.token)"
-                          >
-                            Set as cover
-                          </button>
+                          <span class="drag-handle" aria-hidden="true">
+                            <i class="fa-solid fa-grip-lines" aria-hidden="true"></i>
+                          </span>
+                          <div class="reorder-fallback" aria-label="Photo reorder controls">
+                            <button
+                              type="button"
+                              [disabled]="i === 0 || busy()"
+                              [attr.aria-label]="'Move image ' + (i + 1) + ' left'"
+                              (click)="movePhoto(img.token, -1)"
+                            >
+                              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                            </button>
+                            <button
+                              type="button"
+                              [disabled]="i === photoItems().length - 1 || busy()"
+                              [attr.aria-label]="'Move image ' + (i + 1) + ' right'"
+                              (click)="movePhoto(img.token, 1)"
+                            >
+                              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                          </div>
+                          @if (img.kind === 'persisted' && !img.isCover) {
+                            <button
+                              type="button"
+                              class="cover-action"
+                              [disabled]="busy()"
+                              [attr.aria-label]="'Set image ' + (i + 1) + ' as cover'"
+                              (click)="setCover(img.token)"
+                            >
+                              Set as cover
+                            </button>
+                          } @else {
+                            <span class="cover-action current">
+                              {{ img.isCover ? 'Cover' : 'Queued' }}
+                            </span>
+                          }
                           <button type="button" [disabled]="busy()" (click)="deletePhoto(img)">
                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           </button>
@@ -417,10 +489,17 @@ type PhotoItem =
                           [checked]="hasAmenity(amenity.id)"
                           (change)="toggleAmenity(amenity.id, $any($event.target).checked)"
                         />
-                        <span
-                          ><i [class]="amenityIcon(amenity.name)" aria-hidden="true"></i>
-                          {{ amenity.name }}</span
-                        >
+                        <span class="card-icon">
+                          <i
+                            [class]="
+                              hasAmenity(amenity.id)
+                                ? 'fa-solid fa-check'
+                                : amenityIcon(amenity.name)
+                            "
+                            aria-hidden="true"
+                          ></i>
+                        </span>
+                        <span>{{ amenity.name }}</span>
                       </label>
                     }
                   </div>
@@ -429,9 +508,25 @@ type PhotoItem =
               @case ('review') {
                 <div class="step-panel">
                   <div>
-                    <h1>Review Your Listing</h1>
-                    <p class="step-copy">Make sure everything looks good.</p>
+                    <h1>
+                      {{
+                        isPublishedListing() ? 'Editing published property' : 'Review Your Listing'
+                      }}
+                    </h1>
+                    <p class="step-copy">
+                      {{
+                        isPublishedListing()
+                          ? 'Your property is live. Save only the updates you intend to publish.'
+                          : 'Make sure everything looks good.'
+                      }}
+                    </p>
                   </div>
+                  @if (reviewLoading()) {
+                    <div class="review-loading" aria-live="polite">
+                      <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                      Loading your listing...
+                    </div>
+                  }
                   @if (reviewWarnings().length) {
                     <div class="error-summary" tabindex="-1">
                       <strong>{{ reviewWarnings().length }} items still need attention</strong>
@@ -460,6 +555,14 @@ type PhotoItem =
                           form.controls.listing_type.value === 'RENT' ? ' / month' : ''
                         }}</strong
                       >
+                      <div class="preview-facts" aria-label="Listing facts">
+                        @for (fact of reviewFacts(); track fact.label) {
+                          <span>
+                            <i [class]="fact.icon" aria-hidden="true"></i>
+                            {{ fact.label }}
+                          </span>
+                        }
+                      </div>
                       @if (listing()) {
                         <sp-manage-status [status]="listing()!.status" />
                       }
@@ -490,9 +593,22 @@ type PhotoItem =
                   ></span>
                   <h1>Almost there!</h1>
                   <p class="step-copy">
-                    Submit your listing for review. We'll check it to make sure it meets SurePlace's
-                    quality and safety standards.
+                    Your property will be submitted to SurePlace for review before it becomes
+                    publicly visible.
                   </p>
+                  <ul class="submit-checks">
+                    <li>
+                      <i class="fa-solid fa-check" aria-hidden="true"></i> Complete information
+                    </li>
+                    <li><i class="fa-solid fa-check" aria-hidden="true"></i> Appropriate images</li>
+                    <li>
+                      <i class="fa-solid fa-check" aria-hidden="true"></i> Valid location details
+                    </li>
+                    <li>
+                      <i class="fa-solid fa-check" aria-hidden="true"></i> Marketplace quality and
+                      safety
+                    </li>
+                  </ul>
                   <label class="confirm">
                     <input type="checkbox" formControlName="confirmed" />
                     <span>I confirm that the information provided is accurate.</span>
@@ -516,11 +632,27 @@ type PhotoItem =
             </button>
             @if (current().key === 'submit') {
               <button type="submit" class="primary" [disabled]="busy() || submitting()">
-                {{ submitting() ? 'Submitting...' : 'Submit Listing' }}
+                @if (submitting()) {
+                  <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                  Submitting listing...
+                } @else {
+                  Submit Listing
+                }
               </button>
             } @else {
               <button type="button" class="primary" [disabled]="busy()" (click)="continue()">
-                {{ current().key === 'review' ? 'Review Submission' : 'Continue' }}
+                @if (busy()) {
+                  <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                  {{ current().key === 'photos' ? 'Uploading...' : 'Saving...' }}
+                } @else {
+                  {{
+                    current().key === 'review'
+                      ? isPublishedListing()
+                        ? 'Finish editing'
+                        : 'Continue to submission'
+                      : 'Continue'
+                  }}
+                }
                 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
               </button>
             }
@@ -556,6 +688,8 @@ export class PropertyFormComponent implements OnDestroy {
   error = signal('');
   dirty = signal(false);
   saveState = signal<SaveState>('idle');
+  reviewLoading = signal(false);
+  stepDirection = signal<StepDirection>('forward');
   listing = signal<ManagedProperty | null>(null);
   pendingImages = signal<PendingImage[]>([]);
   photoOrder = signal<string[]>([]);
@@ -591,9 +725,16 @@ export class PropertyFormComponent implements OnDestroy {
   progress = computed(() => ((this.step() + 1) / this.steps.length) * 100);
   selectedRegion = computed(() => {
     const value = this.selectedRegionValue();
-    return this.ref.data().regions.find((region) => region.label === value || region.value === value) || null;
+    return (
+      this.ref.data().regions.find((region) => region.label === value || region.value === value) ||
+      null
+    );
   });
-  towns = computed(() => this.selectedRegion()?.areas || this.ref.data().regions.flatMap((region) => region.areas || []));
+  towns = computed(
+    () =>
+      this.selectedRegion()?.areas ||
+      this.ref.data().regions.flatMap((region) => region.areas || []),
+  );
   failedImageCount = computed(
     () => this.pendingImages().filter((image) => image.status === 'failed').length,
   );
@@ -639,6 +780,9 @@ export class PropertyFormComponent implements OnDestroy {
     }
     return items;
   });
+  persistedPhotoItems = computed(() =>
+    this.photoItems().filter((item) => item.kind === 'persisted'),
+  );
 
   constructor() {
     this.form.controls.region.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
@@ -667,11 +811,16 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   saveLabel() {
-    if (this.saveState() === 'saving') return 'Draft - Saving...';
-    if (this.saveState() === 'saved') return 'Draft - Saved';
-    if (this.saveState() === 'error') return 'Draft - Save failed';
-    if (this.listing()) return 'Draft - Unsaved changes';
+    if (this.saveState() === 'saving') return 'Saving...';
+    if (this.saveState() === 'saved')
+      return this.isPublishedListing() ? 'Published changes saved' : 'Draft saved';
+    if (this.saveState() === 'error') return "Couldn't save";
+    if (this.listing()) return 'Unsaved changes';
     return 'Not saved yet';
+  }
+
+  retrySave() {
+    void this.persistDraft(false);
   }
 
   async continue() {
@@ -681,19 +830,44 @@ export class PropertyFormComponent implements OnDestroy {
       if (!saved && this.canCreateDraft()) return;
     }
     if (this.current().key === 'photos' && !(await this.uploadQueuedImages())) return;
-    this.step.set(Math.min(this.step() + 1, this.steps.length - 1));
+    if (this.current().key === 'review' && this.isPublishedListing()) {
+      void this.router.navigate(['/account/manage/properties']);
+      return;
+    }
+    const next = Math.min(this.step() + 1, this.steps.length - 1);
+    await this.moveToStep(next, 'forward');
   }
 
   back() {
     if (this.step() > 0) {
-      this.step.set(this.step() - 1);
+      void this.moveToStep(this.step() - 1, 'back');
       return;
     }
-    void this.router.navigate(['/account/manage/listings/new']);
+    this.exitWizard();
   }
 
   go(index: number) {
-    this.step.set(index);
+    if (this.submitStepDisabled(index)) return;
+    void this.moveToStep(index, index >= this.step() ? 'forward' : 'back');
+  }
+
+  submitStepDisabled(index: number) {
+    return this.isPublishedListing() && this.steps[index]?.key === 'submit';
+  }
+
+  isPublishedListing() {
+    return this.listing()?.status === 'PUBLISHED';
+  }
+
+  exitWizard() {
+    const hasUnsavedChanges =
+      this.dirty() || this.saveState() === 'unsaved' || this.saveState() === 'error';
+    const hasQueuedPhotos = this.pendingImages().length > 0;
+    if (isPlatformBrowser(this.platformId) && (hasUnsavedChanges || hasQueuedPhotos)) {
+      const leave = confirm('Leave this listing? Unsaved changes or queued photos may be lost.');
+      if (!leave) return;
+    }
+    void this.router.navigate(['/account/manage/listings/new']);
   }
 
   hasAmenity(id: string) {
@@ -727,7 +901,9 @@ export class PropertyFormComponent implements OnDestroy {
     if (this.locating()) return;
     if (!isPlatformBrowser(this.platformId) || !('geolocation' in navigator)) {
       this.locationStatus.set('');
-      this.locationError.set("We couldn't access your location. You can place the pin manually instead.");
+      this.locationError.set(
+        "We couldn't access your location. You can place the pin manually instead.",
+      );
       return;
     }
     this.locating.set(true);
@@ -745,7 +921,9 @@ export class PropertyFormComponent implements OnDestroy {
       () => {
         this.locating.set(false);
         this.locationStatus.set('');
-        this.locationError.set("We couldn't access your location. You can place the pin manually instead.");
+        this.locationError.set(
+          "We couldn't access your location. You can place the pin manually instead.",
+        );
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
@@ -762,7 +940,7 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   coverImage() {
-    const images = this.photoItems();
+    const images = this.persistedPhotoItems();
     return images.find((image) => image.isCover)?.src || images[0]?.src || null;
   }
 
@@ -775,9 +953,14 @@ export class PropertyFormComponent implements OnDestroy {
       status: 'pending' as const,
     }));
     this.pendingImages.update((current) => [...current, ...images]);
-    this.photoOrder.update((order) => [...order, ...images.map((image) => this.pendingToken(image.localId))]);
+    this.photoOrder.update((order) => [
+      ...order,
+      ...images.map((image) => this.pendingToken(image.localId)),
+    ]);
     this.error.set('');
-    this.uploadProgress.set(`${images.length} photo${images.length === 1 ? '' : 's'} ready to upload.`);
+    this.uploadProgress.set(
+      `${images.length} photo${images.length === 1 ? '' : 's'} ready to upload.`,
+    );
   }
 
   allowDrop(event: DragEvent) {
@@ -790,8 +973,12 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   async retryFailedUploads() {
+    this.error.set('');
+    this.uploadProgress.set('Retrying failed uploads...');
     this.pendingImages.update((images) =>
-      images.map((image) => (image.status === 'failed' ? { ...image, status: 'pending' } : image)),
+      images.map((image) =>
+        image.status === 'failed' ? { ...image, status: 'pending', error: undefined } : image,
+      ),
     );
     await this.uploadQueuedImages();
   }
@@ -820,7 +1007,10 @@ export class PropertyFormComponent implements OnDestroy {
             property
               ? {
                   ...property,
-                  images: property.images.map((item) => ({ ...item, is_cover: item.id === image.id })),
+                  images: property.images.map((item) => ({
+                    ...item,
+                    is_cover: item.id === image.id,
+                  })),
                 }
               : property,
           );
@@ -873,7 +1063,10 @@ export class PropertyFormComponent implements OnDestroy {
           this.syncPhotoOrder(property);
           this.submitted.set(true);
         },
-        error: (e) => this.error.set(e?.error?.message || 'Property could not be submitted.'),
+        error: (e) =>
+          this.error.set(
+            e?.error?.detail || e?.error?.message || 'Property could not be submitted.',
+          ),
       });
   }
 
@@ -889,7 +1082,8 @@ export class PropertyFormComponent implements OnDestroy {
     )
       warnings.push({ message: 'Select a location', step: 1 });
     if (!this.form.controls.price.valid) warnings.push({ message: 'Enter a valid price', step: 2 });
-    if (!this.photoItems().length) warnings.push({ message: 'Add at least one photo', step: 3 });
+    if (!this.persistedPhotoItems().length)
+      warnings.push({ message: 'No photos have been uploaded.', step: 3 });
     return warnings;
   }
 
@@ -914,10 +1108,21 @@ export class PropertyFormComponent implements OnDestroy {
       {
         title: 'Photos',
         step: 3,
-        text: `${this.photoItems().length} photo${this.photoItems().length === 1 ? '' : 's'}`,
+        text: `${this.persistedPhotoItems().length} uploaded photo${this.persistedPhotoItems().length === 1 ? '' : 's'}`,
       },
       { title: 'Amenities', step: 4, text: `${v.amenities.length} selected` },
     ];
+  }
+
+  reviewFacts() {
+    const v = this.form.getRawValue();
+    const facts = [
+      { value: v.property_type, icon: 'fa-solid fa-house' },
+      { value: this.roomLabel(Number(v.bedrooms), 'bed'), icon: 'fa-solid fa-bed' },
+      { value: this.roomLabel(Number(v.bathrooms), 'bath'), icon: 'fa-solid fa-bath' },
+      { value: this.roomLabel(Number(v.parking_spaces), 'parking'), icon: 'fa-solid fa-car' },
+    ];
+    return facts.filter((fact) => fact.value).map((fact) => ({ ...fact, label: fact.value! }));
   }
 
   showError(name: keyof typeof this.form.controls) {
@@ -1055,11 +1260,44 @@ export class PropertyFormComponent implements OnDestroy {
       });
   }
 
+  private async refreshListing() {
+    const id = this.listing()?.id || this.id;
+    if (!id) return this.listing();
+    this.reviewLoading.set(true);
+    try {
+      const property = await firstValueFrom(this.api.detail(id));
+      this.listing.set(property);
+      this.syncPhotoOrder(property);
+      return property;
+    } catch {
+      this.error.set("Couldn't refresh your listing. Please try again.");
+      return null;
+    } finally {
+      this.reviewLoading.set(false);
+    }
+  }
+
+  private async moveToStep(index: number, direction: StepDirection) {
+    if (index === this.step()) return;
+    this.stepDirection.set(direction);
+    if (this.steps[index]?.key === 'review' && !(await this.refreshListing())) return;
+    this.step.set(index);
+    if (isPlatformBrowser(this.platformId)) {
+      requestAnimationFrame(() => {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.querySelector('.wizard-card')?.scrollIntoView({
+          behavior: reduced ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      });
+    }
+  }
+
   private firstIncompleteStep() {
     if (!this.validateGroup(['title', 'description'])) return 0;
     if (!this.validateGroup(['region', 'town', 'latitude', 'longitude'])) return 1;
     if (!this.validateGroup(['price'])) return 2;
-    if (!this.photoItems().length) return 3;
+    if (!this.persistedPhotoItems().length && !this.pendingImages().length) return 3;
     return 5;
   }
 
@@ -1078,6 +1316,13 @@ export class PropertyFormComponent implements OnDestroy {
     const pendingTokens = order.filter((token) => pendingByToken.has(token));
     let uploaded = 0;
     let failed = 0;
+    const total = pendingTokens.length;
+    if (!total) {
+      await this.persistPhotoOrder();
+      this.error.set('');
+      this.uploadProgress.set('');
+      return true;
+    }
     this.busy.set(true);
     try {
       for (const token of pendingTokens) {
@@ -1085,7 +1330,7 @@ export class PropertyFormComponent implements OnDestroy {
         if (!pending) continue;
         const index = order.indexOf(token);
         this.markPending(pending.localId, { status: 'uploading', error: undefined });
-        this.uploadProgress.set(`Uploading ${uploaded + failed + 1} of ${pendingTokens.length}...`);
+        this.uploadProgress.set(`Uploading ${uploaded + failed + 1} of ${total}...`);
         const data = new FormData();
         data.set('image', pending.file);
         data.set('sort_order', String(index));
@@ -1093,7 +1338,9 @@ export class PropertyFormComponent implements OnDestroy {
           const image = await firstValueFrom(this.api.uploadImage(id, data));
           uploaded += 1;
           URL.revokeObjectURL(pending.previewUrl);
-          this.pendingImages.update((items) => items.filter((item) => item.localId !== pending.localId));
+          this.pendingImages.update((items) =>
+            items.filter((item) => item.localId !== pending.localId),
+          );
           this.listing.update((current) => (current ? this.withImage(current, image) : current));
           this.photoOrder.update((items) =>
             items.map((item) => (item === token ? this.persistedToken(image.id) : item)),
@@ -1107,18 +1354,30 @@ export class PropertyFormComponent implements OnDestroy {
         }
       }
       await this.persistPhotoOrder();
-      this.refresh();
       if (failed) {
-        this.error.set(`${uploaded} of ${pendingTokens.length} images uploaded. ${failed} failed.`);
+        this.error.set(this.uploadFailureMessage(uploaded, failed, total));
         this.uploadProgress.set('Retry failed uploads when ready.');
         return false;
       }
       this.error.set('');
-      this.uploadProgress.set(`${uploaded} image${uploaded === 1 ? '' : 's'} uploaded successfully.`);
+      this.uploadProgress.set(
+        `${uploaded} photo${uploaded === 1 ? '' : 's'} uploaded successfully.`,
+      );
+      await this.refreshListing();
       return true;
     } finally {
       this.busy.set(false);
     }
+  }
+
+  private roomLabel(count: number, singular: string) {
+    if (!Number.isFinite(count) || count <= 0) return '';
+    return `${count} ${singular}${count === 1 ? '' : 's'}`;
+  }
+
+  private uploadFailureMessage(uploaded: number, failed: number, total: number) {
+    if (failed === total) return `${failed} photo${failed === 1 ? '' : 's'} failed to upload.`;
+    return `${uploaded} of ${total} photos uploaded. ${failed} failed.`;
   }
 
   private async persistPhotoOrder() {
@@ -1143,7 +1402,9 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   private syncPhotoOrder(property = this.listing()) {
-    const existing = new Set(this.orderedPersistedImages().map((image) => this.persistedToken(image.id)));
+    const existing = new Set(
+      this.orderedPersistedImages().map((image) => this.persistedToken(image.id)),
+    );
     const pending = new Set(this.pendingImages().map((image) => this.pendingToken(image.localId)));
     const order = this.photoOrder().filter((token) => existing.has(token) || pending.has(token));
     for (const token of existing) if (!order.includes(token)) order.push(token);

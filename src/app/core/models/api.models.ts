@@ -20,6 +20,7 @@ export interface User {
   is_email_verified: boolean;
   email_verified_at?: string | null;
   is_phone_verified: boolean;
+  is_staff: boolean;
   onboarding_intents: string[];
 }
 export interface AuthTokens {

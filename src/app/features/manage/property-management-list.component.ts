@@ -58,6 +58,12 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
               <h2>{{ p.title }}</h2>
               <p>{{ p.public_id }} &middot; {{ p.suburb ? p.suburb + ', ' : '' }}{{ p.town }}</p>
               <p>{{ p.listing_type }} &middot; {{ formatMoney(p.price, p.currency) }}</p>
+              <p class="status-copy">{{ statusCopy(p) }}</p>
+              @if (p.status === 'CHANGES_REQUESTED') {
+                <p class="feedback">
+                  SurePlace feedback: update the requested details, then resubmit.
+                </p>
+              }
               <sp-quality-score
                 [score]="p.quality?.score || 0"
                 [suggestions]="p.quality?.suggestions || []"
@@ -72,10 +78,16 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
                 <a [routerLink]="['/properties', p.slug]">View Public Listing</a
                 ><button (click)="pause(p)">Pause</button>
               }
-              @if (p.status === 'DRAFT' || p.status === 'REJECTED') {
-                <button (click)="submit(p)">Submit for Review</button>
+              @if (
+                p.status === 'DRAFT' || p.status === 'REJECTED' || p.status === 'CHANGES_REQUESTED'
+              ) {
+                <button (click)="submit(p)">
+                  {{ p.status === 'CHANGES_REQUESTED' ? 'Resubmit' : 'Submit for Review' }}
+                </button>
               }
-              <button (click)="confirm(p)">Confirm Availability</button>
+              @if (p.status === 'PUBLISHED' || p.status === 'PAUSED') {
+                <button (click)="confirm(p)">Confirm Availability</button>
+              }
             </aside>
           </article>
         }
@@ -140,6 +152,14 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
       small {
         color: var(--slate);
       }
+      .status-copy {
+        font-weight: 750;
+      }
+      .feedback {
+        padding: 0.45rem 0.6rem;
+        border-left: 3px solid var(--amber);
+        background: #fff8e8;
+      }
       aside {
         display: grid;
         gap: 0.45rem;
@@ -190,10 +210,11 @@ export class PropertyManagementListComponent {
   filters = [
     { value: 'all', label: 'All' },
     { value: 'DRAFT', label: 'Draft' },
-    { value: 'review', label: 'Review' },
+    { value: 'pending', label: 'Pending review' },
     { value: 'PUBLISHED', label: 'Published' },
+    { value: 'CHANGES_REQUESTED', label: 'Changes requested' },
+    { value: 'REJECTED', label: 'Rejected' },
     { value: 'PAUSED', label: 'Paused' },
-    { value: 'attention', label: 'Needs attention' },
   ];
   filtered = computed(() => {
     const q = this.query().trim().toLowerCase(),
@@ -202,13 +223,23 @@ export class PropertyManagementListComponent {
       const status =
         f === 'all' ||
         p.status === f ||
-        (f === 'review' && ['SUBMITTED', 'UNDER_REVIEW'].includes(p.status)) ||
-        (f === 'attention' && Boolean(p.quality?.suggestions?.length));
+        (f === 'pending' && ['SUBMITTED', 'UNDER_REVIEW'].includes(p.status));
       const match = !q || `${p.title} ${p.public_id} ${p.town}`.toLowerCase().includes(q);
       return status && match;
     });
   });
   readonly formatMoney = formatMoney;
+  statusCopy(p: ManagedProperty) {
+    if (['SUBMITTED', 'UNDER_REVIEW'].includes(p.status))
+      return 'SurePlace is reviewing this listing.';
+    if (p.status === 'CHANGES_REQUESTED') return 'Update the listing and resubmit it for review.';
+    if (p.status === 'PUBLISHED') return 'This listing is visible publicly.';
+    if (p.status === 'DRAFT') return 'Finish the draft and submit it for review.';
+    if (p.status === 'REJECTED') return 'This listing was not approved.';
+    if (p.status === 'PAUSED') return 'This listing is paused and not public.';
+    if (p.status === 'SUSPENDED') return 'This listing is suspended by SurePlace.';
+    return 'Status unavailable.';
+  }
   constructor() {
     this.load();
   }

@@ -19,10 +19,9 @@ swiper-container::part(button-prev),
 swiper-container::part(button-next) {
   width: 42px;
   height: 42px;
-  border-radius: 999px;
-  color: var(--midnight);
-  background: #fffffff0;
-  box-shadow: 0 8px 24px #152b2a24;
+  color: #fff;
+  background: transparent;
+  filter: drop-shadow(0 2px 5px #152b2a99);
 }
 
 swiper-container::part(button-prev)::after,

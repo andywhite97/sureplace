@@ -1,7 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AccountNotification, BookingStatus, ViewingStatus } from '../../core/models/account.models';
+import {
+  AccountNotification,
+  BookingStatus,
+  ViewingStatus,
+} from '../../core/models/account.models';
+import { NotificationNavigationService } from '../../core/services/notification-navigation.service';
 
 @Component({
   selector: 'sp-stat-card',
@@ -12,7 +17,25 @@ import { AccountNotification, BookingStatus, ViewingStatus } from '../../core/mo
     <strong>{{ value() }}</strong>
   </a>`,
   styles: [
-    `.stat{display:grid;gap:.35rem;padding:1rem;border:1px solid var(--line);border-radius:var(--radius-sm);text-decoration:none;color:var(--midnight);background:#fff}.stat span{color:var(--slate);font-weight:750}.stat strong{font-size:1.7rem}`,
+    `
+      .stat {
+        display: grid;
+        gap: 0.35rem;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        color: var(--midnight);
+        background: #fff;
+      }
+      .stat span {
+        color: var(--slate);
+        font-weight: 750;
+      }
+      .stat strong {
+        font-size: 1.7rem;
+      }
+    `,
   ],
 })
 export class StatCardComponent {
@@ -26,7 +49,31 @@ export class StatCardComponent {
   standalone: true,
   template: `<span [class]="tone()">{{ label() }}</span>`,
   styles: [
-    `span{display:inline-flex;width:max-content;align-items:center;border-radius:999px;padding:.2rem .55rem;font-size:.76rem;font-weight:850;background:var(--mist);color:var(--slate)}.good{background:#e6f7ef;color:#17633b}.warn{background:#fff4dd;color:#8a5a00}.bad{background:#fde8e8;color:#9b2525}`,
+    `
+      span {
+        display: inline-flex;
+        width: max-content;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.76rem;
+        font-weight: 850;
+        background: var(--mist);
+        color: var(--slate);
+      }
+      .good {
+        background: #e6f7ef;
+        color: #17633b;
+      }
+      .warn {
+        background: #fff4dd;
+        color: #8a5a00;
+      }
+      .bad {
+        background: #fde8e8;
+        color: #9b2525;
+      }
+    `,
   ],
 })
 export class StatusBadgeComponent {
@@ -48,7 +95,7 @@ export class StatusBadgeComponent {
 @Component({
   selector: 'sp-notification-item',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe],
   template: `<article [class.unread]="!item().is_read">
     <span class="icon" aria-hidden="true">{{ icon() }}</span>
     <div>
@@ -56,16 +103,52 @@ export class StatusBadgeComponent {
       <p>{{ item().message }}</p>
       <time>{{ item().created_at | date: 'medium' }}</time>
     </div>
-    @if (route()) {
-      <a [routerLink]="route()">Open</a>
-    }
+    <button type="button" (click)="open()">{{ actionLabel() }}</button>
   </article>`,
   styles: [
-    `article{display:grid;grid-template-columns:auto 1fr auto;gap:.8rem;align-items:start;padding:1rem;border-bottom:1px solid var(--line)}.unread{background:#f1faf8}.icon{display:grid;place-items:center;width:2rem;height:2rem;border-radius:999px;background:var(--mist);font-weight:900}p{margin:.2rem 0;color:var(--slate)}time{font-size:.76rem;color:var(--slate)}a{color:var(--teal);font-weight:800}`,
+    `
+      article {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.8rem;
+        align-items: start;
+        padding: 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .unread {
+        background: #f1faf8;
+      }
+      .icon {
+        display: grid;
+        place-items: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        background: var(--mist);
+        font-weight: 900;
+      }
+      p {
+        margin: 0.2rem 0;
+        color: var(--slate);
+      }
+      time {
+        font-size: 0.76rem;
+        color: var(--slate);
+      }
+      button {
+        border: 0;
+        background: transparent;
+        color: var(--teal);
+        font-weight: 800;
+        cursor: pointer;
+      }
+    `,
   ],
 })
 export class NotificationItemComponent {
+  private navigation = inject(NotificationNavigationService);
   item = input.required<AccountNotification>();
+  opened = output<AccountNotification>();
   icon() {
     const type = this.item().notification_type;
     if (type.includes('BOOKING')) return 'B';
@@ -74,15 +157,10 @@ export class NotificationItemComponent {
     if (type.includes('SEARCH')) return 'S';
     return '!';
   }
-  route() {
-    const data = this.item().data || {};
-    if (data.conversation_id) return ['/account/messages', data.conversation_id];
-    if (data.booking_id) return ['/account/bookings'];
-    if (data.viewing_id) return ['/account/viewings'];
-    if (data.saved_search_id) return ['/account/alerts'];
-    const route = typeof data.route === 'string' ? data.route : '';
-    return route.startsWith('/account/') || route === '/properties' || route === '/stays'
-      ? [route]
-      : null;
+  actionLabel() {
+    return this.navigation.label(this.item());
+  }
+  open() {
+    this.navigation.open(this.item(), (updated) => this.opened.emit(updated));
   }
 }

@@ -29,7 +29,18 @@ describe('SaveSearchButtonComponent', () => {
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).createComponent(SaveSearchButtonComponent);
     const http = TestBed.inject(HttpTestingController);
-    TestBed.inject(AuthService).user.set({ id:'u1', email:'a@example.com', phone_number:'', first_name:'A', last_name:'', avatar:null, is_email_verified:true, is_phone_verified:false, onboarding_intents:[] });
+    TestBed.inject(AuthService).user.set({
+      id: 'u1',
+      email: 'a@example.com',
+      phone_number: '',
+      first_name: 'A',
+      last_name: '',
+      avatar: null,
+      is_email_verified: true,
+      is_phone_verified: false,
+      is_staff: false,
+      onboarding_intents: [],
+    });
     f.componentRef.setInput('searchType', 'STAY');
     f.componentRef.setInput('criteria', { town: 'Mbabane' });
     f.componentRef.setInput('defaultName', 'Stays in Mbabane');

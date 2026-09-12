@@ -20,6 +20,13 @@
   --radius-sm: 0.55rem;
   --radius: 1rem;
   --shadow: 0 12px 35px rgba(21, 43, 42, 0.09);
+  --app-header-height: 72px;
+  --z-sticky: 20;
+  --z-header: 80;
+  --z-popover: 100;
+  --z-modal-backdrop: 900;
+  --z-modal-dialog: 910;
+  --z-toast: 1000;
   --ease-sureplace: cubic-bezier(0.2, 0.8, 0.2, 1);
   --motion-fast: 180ms;
   --motion-base: 240ms;
@@ -27,6 +34,11 @@
   --motion-reveal: 360ms;
   --transition: var(--motion-fast) var(--ease-sureplace);
   color-scheme: light;
+}
+
+#sureplace-overlay-root {
+  position: relative;
+  z-index: var(--z-modal-backdrop);
 }
 * {
   box-sizing: border-box;

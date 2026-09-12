@@ -38,20 +38,21 @@ type MenuState = 'closed' | 'open' | 'closing';
         <img src="/logo_dark.png" alt="SurePlace" width="420" height="140" />
       </a>
       <nav class="desktop-nav" aria-label="Main navigation">
-        <a routerLink="/properties" routerLinkActive="active">Buy</a>
         <a
           routerLink="/properties"
-          [queryParams]="{ listing_type: 'RENT' }"
           routerLinkActive="active"
-          >Rent</a
+          [attr.aria-current]="isPropertiesActive() ? 'page' : null"
+          >Properties</a
         >
         @if (config.config().features.stays) {
           <a routerLink="/stays" routerLinkActive="active">Stays</a>
         }
         <a routerLink="/agents" routerLinkActive="active">Agents</a>
-        <a routerLink="/account/saved" routerLinkActive="active">Saved</a>
-        @if (config.config().features.internal_messaging) {
-          <a routerLink="/account/messages" routerLinkActive="active">Messages</a>
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/account/saved" routerLinkActive="active">Saved</a>
+          @if (config.config().features.internal_messaging) {
+            <a routerLink="/account/messages" routerLinkActive="active">Messages</a>
+          }
         }
       </nav>
       <div class="actions">
@@ -61,15 +62,17 @@ type MenuState = 'closed' | 'open' | 'closing';
         } @else {
           <a routerLink="/login">Log in</a>
           @if (config.config().features.registration) {
-            <a routerLink="/register">Register</a>
+            <a routerLink="/register">Create account</a>
           }
         }
         <a class="cta" [routerLink]="primaryCta().commands">{{ primaryCta().label }}</a>
       </div>
       <div class="mobile-shortcuts" aria-label="Quick account actions">
-        <a routerLink="/account/saved" aria-label="Saved listings">
-          <i class="fa-regular fa-heart" aria-hidden="true"></i>
-        </a>
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/account/saved" aria-label="Saved listings">
+            <i class="fa-regular fa-heart" aria-hidden="true"></i>
+          </a>
+        }
         <a [routerLink]="auth.isAuthenticated() ? '/account' : '/login'" aria-label="Account">
           <i class="fa-solid fa-user" aria-hidden="true"></i>
         </a>
@@ -551,15 +554,8 @@ export class PublicHeaderComponent {
         items: [
           { label: 'Home', commands: '/', icon: 'fa-solid fa-house' },
           {
-            label: 'Rent',
+            label: 'Properties',
             commands: '/properties',
-            queryParams: { listing_type: 'RENT' },
-            icon: 'fa-solid fa-key',
-          },
-          {
-            label: 'Buy',
-            commands: '/properties',
-            queryParams: { listing_type: 'SALE' },
             icon: 'fa-solid fa-building',
           },
           { label: 'Stays', commands: '/stays', feature: 'stays', icon: 'fa-solid fa-bed' },
@@ -569,9 +565,9 @@ export class PublicHeaderComponent {
       {
         title: 'Account',
         items: [
-          { label: 'Login', commands: '/login', icon: 'fa-solid fa-right-to-bracket' },
+          { label: 'Log in', commands: '/login', icon: 'fa-solid fa-right-to-bracket' },
           {
-            label: 'Create Account',
+            label: 'Create account',
             commands: '/register',
             feature: 'registration',
             icon: 'fa-solid fa-user-plus',
@@ -595,18 +591,12 @@ export class PublicHeaderComponent {
         items: [
           { label: 'Home', commands: '/', icon: 'fa-solid fa-house' },
           {
-            label: 'Rent',
+            label: 'Properties',
             commands: '/properties',
-            queryParams: { listing_type: 'RENT' },
-            icon: 'fa-solid fa-key',
-          },
-          {
-            label: 'Buy',
-            commands: '/properties',
-            queryParams: { listing_type: 'SALE' },
             icon: 'fa-solid fa-building',
           },
           { label: 'Stays', commands: '/stays', feature: 'stays', icon: 'fa-solid fa-bed' },
+          { label: 'Agents', commands: '/agents', icon: 'fa-solid fa-user-tie' },
           { label: 'Saved', commands: '/account/saved', icon: 'fa-solid fa-heart' },
           {
             label: 'Messages',
@@ -620,7 +610,7 @@ export class PublicHeaderComponent {
       {
         title: 'Account',
         items: [
-          { label: 'My Account', commands: '/account', icon: 'fa-solid fa-circle-user' },
+          { label: 'Account', commands: '/account', icon: 'fa-solid fa-circle-user' },
           {
             label: 'Saved Searches / Alerts',
             commands: '/account/alerts',
@@ -646,7 +636,7 @@ export class PublicHeaderComponent {
           { label: 'Profile', commands: '/account/profile', icon: 'fa-solid fa-id-card' },
           { label: 'Settings', commands: '/account/settings', icon: 'fa-solid fa-gear' },
           {
-            label: 'Logout',
+            label: 'Log out',
             commands: '#',
             action: 'logout',
             icon: 'fa-solid fa-right-from-bracket',
@@ -705,6 +695,23 @@ export class PublicHeaderComponent {
         ],
       });
     }
+    if (this.auth.user()?.is_staff) {
+      sections.push({
+        title: 'Staff',
+        items: [
+          {
+            label: 'Moderation Console',
+            commands: '/staff',
+            icon: 'fa-solid fa-shield-halved',
+          },
+          {
+            label: 'Listing Queue',
+            commands: '/staff/listings',
+            icon: 'fa-solid fa-building-user',
+          },
+        ],
+      });
+    }
     return sections;
   }
 
@@ -724,6 +731,10 @@ export class PublicHeaderComponent {
 
   drawerRowDelay(index: number) {
     return Math.min(index * 26, 180);
+  }
+
+  isPropertiesActive() {
+    return this.currentUrl().startsWith('/properties');
   }
 
   openMenu() {

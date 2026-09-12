@@ -82,13 +82,7 @@ export interface ViewingRequest {
 }
 
 export type BookingStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'DECLINED'
-  | 'CANCELLED'
-  | 'COMPLETED'
-  | 'EXPIRED'
-  | string;
+  'PENDING' | 'CONFIRMED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED' | 'EXPIRED' | string;
 
 export interface Booking {
   id: string;
@@ -139,6 +133,7 @@ export interface AccountNotification {
   title: string;
   message: string;
   data: NotificationData;
+  action?: { label: string; url: string } | null;
   is_read: boolean;
   read_at: string | null;
   created_at: string;
