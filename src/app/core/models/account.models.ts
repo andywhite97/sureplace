@@ -20,6 +20,46 @@ export interface SeekerSummary {
   pending_bookings: number;
   confirmed_bookings: number;
   unread_messages?: number;
+  next_viewing?: OverviewViewing | null;
+  next_stay?: OverviewStay | null;
+  verification_attention?: OverviewVerification[];
+  advertiser_summary?: AdvertiserSummary | null;
+}
+
+export interface OverviewViewing {
+  id: string;
+  property_title: string;
+  property_slug: string;
+  requested_date: string;
+  requested_time: string;
+  status: string;
+}
+
+export interface OverviewStay {
+  id: string;
+  stay_name: string;
+  stay_slug: string;
+  check_in: string;
+  check_out: string;
+  status: string;
+}
+
+export interface OverviewVerification {
+  id: string;
+  verification_type: string;
+  status: string;
+  reviewer_notes: string;
+  updated_at: string;
+}
+
+export interface AdvertiserSummary {
+  published_property_count: number;
+  pending_property_count: number;
+  published_stay_count: number;
+  pending_stay_count: number;
+  has_properties: boolean;
+  has_stays: boolean;
+  agency: { id: string; name: string } | null;
 }
 
 export type SavedSearchType = 'PROPERTY' | 'STAY';

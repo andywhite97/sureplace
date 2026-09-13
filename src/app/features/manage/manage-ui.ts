@@ -24,6 +24,14 @@ import { Component, input } from '@angular/core';
         background: #fff4dd;
         color: #8a5a00;
       }
+      .info {
+        background: #e9f1fb;
+        color: #235f9f;
+      }
+      .muted {
+        background: #edf0f0;
+        color: #60706f;
+      }
       .bad {
         background: #fde8e8;
         color: #9b2525;
@@ -47,12 +55,19 @@ export class ManageStatusComponent {
       UNDER_OFFER: 'Under offer',
       UNAVAILABLE: 'Unavailable',
       UNKNOWN: 'Availability not confirmed',
+      APPROVED: 'Verified',
+      PENDING: 'Pending review',
+      CANCELLED: 'Cancelled',
+      EXPIRED: 'Expired',
+      NOT_STARTED: 'Not started',
     };
     return labels[this.status()] || 'Status unavailable';
   }
   tone() {
     if (['PUBLISHED', 'CONFIRMED', 'APPROVED', 'COMPLETED', 'AVAILABLE'].includes(this.status()))
       return 'good';
+    if (['CHANGES_REQUESTED', 'UNDER_REVIEW'].includes(this.status())) return 'info';
+    if (['PAUSED', 'INACTIVE', 'NOT_STARTED'].includes(this.status())) return 'muted';
     if (
       ['REJECTED', 'SUSPENDED', 'DECLINED', 'CANCELLED', 'EXPIRED', 'UNAVAILABLE'].includes(
         this.status(),
@@ -94,7 +109,7 @@ export class ManageStatusComponent {
       .quality-card {
         display: grid;
         gap: 0.65rem;
-        padding: 0.9rem;
+        padding: 0.7rem;
         border: 1px solid var(--line);
         border-radius: 0.8rem;
         background: #fbfdfc;
@@ -122,8 +137,8 @@ export class ManageStatusComponent {
       b {
         display: inline-grid;
         place-items: center;
-        min-width: 54px;
-        min-height: 42px;
+        min-width: 46px;
+        min-height: 34px;
         border-radius: 0.55rem;
         color: var(--teal);
         background: #e6f5f1;
@@ -137,6 +152,9 @@ export class ManageStatusComponent {
         padding-left: 1.1rem;
         color: var(--slate);
         font-size: 0.86rem;
+      }
+      li:nth-child(n + 4) {
+        display: none;
       }
     `,
   ],

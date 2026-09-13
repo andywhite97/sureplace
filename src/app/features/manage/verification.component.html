@@ -1,0 +1,392 @@
+<section class="verification-page">
+  @if (!active()) {
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">Trust centre</p>
+        <h1>Verification</h1>
+        <p>Build trust on SurePlace by completing your verifications.</p>
+      </div>
+    </header>
+    @if (error()) {
+      <section class="load-error" role="alert">
+        <strong>Couldn't load verification details.</strong
+        ><button type="button" (click)="load()">Retry</button>
+      </section>
+    }
+    @if (loading()) {
+      <div class="category-grid">
+        @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+          <div class="skeleton category-skeleton"></div>
+        }
+      </div>
+    } @else {
+      <div class="category-grid">
+        @for (definition of definitions(); track definition.type) {
+          <button class="category-card" type="button" (click)="open(definition)">
+            <span class="category-icon">
+              <img
+                [src]="verificationIcon(definition.type)"
+                alt=""
+                width="64"
+                height="64"
+                loading="lazy"
+                aria-hidden="true"
+              />
+            </span>
+            <span class="category-copy"
+              ><strong>{{ definition.title }}</strong
+              ><small>{{ definition.description }}</small></span
+            >
+            <sp-manage-status [status]="status(definition.type)" />
+            <b>{{ cta(definition.type) }} <i class="fa-solid fa-arrow-right"></i></b>
+          </button>
+        }
+      </div>
+      <aside class="trust-note">
+        <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+        <div>
+          <strong>Verified users and listings build more trust on SurePlace.</strong>
+          <p>Verification does not guarantee a transaction.</p>
+        </div>
+      </aside>
+    }
+  } @else if (active(); as definition) {
+    <button class="back-link" type="button" (click)="close()">
+      <i class="fa-solid fa-arrow-left"></i> Back to all verifications
+    </button>
+    <header class="wizard-heading">
+      <p class="eyebrow">{{ definition.type }} verification</p>
+      <h1>{{ definition.title }}</h1>
+      <p>{{ definition.description }}</p>
+    </header>
+    @if (error()) {
+      <p class="inline-error" role="alert">{{ error() }}</p>
+    }
+    @if (step() < 3) {
+      <ol class="stepper" aria-label="Verification progress">
+        @for (
+          label of ['Overview', 'Upload documents', 'Review', 'Submit'];
+          track label;
+          let index = $index
+        ) {
+          <li
+            [class.current]="step() === index"
+            [class.done]="step() > index"
+            [attr.aria-current]="step() === index ? 'step' : null"
+          >
+            <span>
+              @if (step() > index) {
+                <i class="fa-solid fa-check"></i>
+              } @else {
+                {{ index + 1 }}
+              }</span
+            ><small>{{ label }}</small>
+          </li>
+        }
+      </ol>
+    }
+    @if (step() === 0) {
+      <div class="overview-grid">
+        <section class="content-card">
+          <h2>What SurePlace will verify</h2>
+          <ul class="check-list">
+            @for (item of definition.scope; track item) {
+              <li><i class="fa-solid fa-check"></i>{{ item }}</li>
+            }
+          </ul>
+          <hr />
+          <h2>What you'll need</h2>
+          <ul class="check-list">
+            @for (requirement of definition.requirements; track requirement.key) {
+              <li>
+                <i [class]="requirement.required ? 'fa-solid fa-check' : 'fa-regular fa-circle'"></i
+                >{{ requirement.label }}
+                @if (!requirement.required) {
+                  <small>Optional</small>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+        <aside class="overview-side">
+          <section class="meaning-card">
+            <img
+              class="meaning-icon"
+              [src]="verificationIcon(definition.type)"
+              alt=""
+              width="88"
+              height="88"
+              aria-hidden="true"
+            />
+            <h2>What this badge means</h2>
+            <strong class="earned-badge"
+              ><i class="fa-solid fa-shield-check"></i> Verified {{ definition.label }}</strong
+            >
+            <p>{{ definition.badge_meaning }}</p>
+            <small>{{ definition.badge_disclaimer }}</small>
+          </section>
+          <section class="privacy-card">
+            <i class="fa-solid fa-lock"></i>
+            <div>
+              <strong>Your documents are private</strong>
+              <p>They are only visible to you and authorised SurePlace reviewers.</p>
+            </div>
+          </section>
+        </aside>
+      </div>
+      @if (blockedDependencies().length) {
+        <section class="dependency" role="status">
+          <i class="fa-solid fa-lock"></i>
+          <div>
+            <strong>{{ blockedDependencies()[0].type | titlecase }} verification required</strong>
+            <p>Complete this verification first. Once approved, it will be reused here.</p>
+          </div>
+          <button type="button" (click)="close()">Verify identity first →</button>
+        </section>
+      }
+      @if (entityCollection(definition.type)) {
+        <section class="entity-card">
+          <label
+            >Select {{ definition.label
+            }}<select [ngModel]="selectedEntity()" (ngModelChange)="selectedEntity.set($event)">
+              <option value="">Choose an eligible item</option>
+              @for (item of entityOptions(); track item.id) {
+                <option [value]="item.id">
+                  {{ item.name }}
+                  @if (item.public_id) {
+                    · {{ item.public_id }}
+                  }
+                </option>
+              }
+            </select></label
+          >
+          @if (!entityOptions().length) {
+            <p>No eligible {{ definition.label.toLowerCase() }} records were found.</p>
+          }
+        </section>
+      }
+      <footer class="wizard-actions">
+        <span></span
+        ><button
+          class="primary"
+          type="button"
+          [disabled]="
+            blockedDependencies().length > 0 ||
+            (!!entityCollection(definition.type) && !selectedEntity())
+          "
+          (click)="next()"
+        >
+          Continue <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </footer>
+    } @else if (step() === 1) {
+      <div class="evidence-layout">
+        <main class="content-card">
+          @if (draft()?.status === 'CHANGES_REQUESTED') {
+            <section class="changes-alert" role="alert">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <div>
+                <strong>Changes requested</strong>
+                <p>{{ draft()?.reviewer_notes || 'Replace the highlighted evidence.' }}</p>
+              </div>
+            </section>
+          }
+          <header>
+            <h2>Upload supporting documents</h2>
+            <p>
+              Accepted formats: PDF, JPG and PNG. Maximum file size:
+              {{ definition.max_file_size_mb }} MB.
+            </p>
+          </header>
+          @for (requirement of definition.requirements; track requirement.key) {
+            <article class="requirement-card">
+              <div class="requirement-head">
+                <div>
+                  <h3>{{ requirement.label }}</h3>
+                  <p>{{ requirement.description }}</p>
+                </div>
+                <span [class.optional]="!requirement.required">{{
+                  requirement.required ? 'Required' : 'Optional'
+                }}</span>
+              </div>
+              @if (requirement.alternatives?.length) {
+                <label class="evidence-type"
+                  >Document type<select
+                    [ngModel]="selectedDocumentType(requirement)"
+                    (ngModelChange)="setPreferredType(requirement.key, $event)"
+                  >
+                    @for (option of requirement.alternatives!; track option) {
+                      <option [value]="option">
+                        {{ option.replaceAll('_', ' ') | titlecase }}
+                      </option>
+                    }
+                  </select></label
+                >
+              }
+              <label class="dropzone" (dragover)="drag($event)" (drop)="drop(requirement, $event)"
+                ><input
+                  type="file"
+                  [accept]="requirement.accepted_file_types.join(',')"
+                  (change)="
+                    choose(requirement, $any($event.target).files); $any($event.target).value = ''
+                  "
+                /><i class="fa-solid fa-cloud-arrow-up"></i
+                ><strong>Drag & drop your document here</strong
+                ><small>or click to browse</small></label
+              >
+              @for (
+                item of requirementFiles(requirement);
+                track item.evidence?.id || item.file.name
+              ) {
+                <div class="file-card" aria-live="polite">
+                  <i
+                    [class]="
+                      item.file.type === 'application/pdf'
+                        ? 'fa-solid fa-file-pdf'
+                        : 'fa-solid fa-file-image'
+                    "
+                  ></i>
+                  <div>
+                    <strong>{{ item.evidence?.file_name || item.file.name }}</strong
+                    ><small
+                      >{{ fileSize(item.evidence?.file_size || item.file.size) }} ·
+                      {{
+                        item.state === 'uploading'
+                          ? 'Uploading...'
+                          : item.state === 'failed'
+                            ? 'Upload failed'
+                            : 'Uploaded'
+                      }}</small
+                    >
+                    @if (item.error) {
+                      <em>{{ item.error }}</em>
+                    }
+                    @if (item.evidence?.rejection_reason) {
+                      <em>{{ item.evidence?.rejection_reason }}</em>
+                    }
+                  </div>
+                  @if (item.state === 'failed') {
+                    <button type="button" (click)="retry(item)">Retry</button>
+                  } @else if (item.state !== 'uploading') {
+                    <button type="button" (click)="remove(item)">Remove</button>
+                  }
+                </div>
+              }
+            </article>
+          }
+        </main>
+        <aside class="tips-card">
+          <h2>Tips for a successful upload</h2>
+          <ul class="check-list">
+            <li><i class="fa-solid fa-check"></i>Ensure the document is clear and readable</li>
+            <li><i class="fa-solid fa-check"></i>Keep all corners visible</li>
+            <li><i class="fa-solid fa-check"></i>Avoid glare or blur</li>
+            <li><i class="fa-solid fa-check"></i>Use the original document</li>
+            <li>
+              <i class="fa-solid fa-check"></i>Keep each file within
+              {{ definition.max_file_size_mb }} MB
+            </li>
+          </ul>
+        </aside>
+      </div>
+      <footer class="wizard-actions">
+        <button type="button" (click)="back()"><i class="fa-solid fa-arrow-left"></i> Back</button
+        ><button class="primary" type="button" [disabled]="!ready()" (click)="next()">
+          Continue <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </footer>
+    } @else if (step() === 2) {
+      <div class="review-grid">
+        <section class="content-card review-card">
+          <header>
+            <h2>Verification details</h2>
+            <button type="button" (click)="step.set(0)">Edit</button>
+          </header>
+          <dl>
+            <dt>Verification type</dt>
+            <dd>{{ definition.label }}</dd>
+            <dt>Submitted for</dt>
+            <dd>{{ entityName() }}</dd>
+            <dt>Account</dt>
+            <dd>{{ auth.user()?.first_name }} {{ auth.user()?.last_name }}</dd>
+            <dt>Documents</dt>
+            <dd>{{ files().length }} file{{ files().length === 1 ? '' : 's' }}</dd>
+          </dl>
+          <p class="review-helper">
+            Please make sure the information on your documents matches your account and selected
+            entity.
+          </p>
+        </section>
+        <section class="content-card review-card">
+          <header>
+            <h2>Uploaded documents</h2>
+            <button type="button" (click)="step.set(1)">Edit</button>
+          </header>
+          @for (item of files(); track item.evidence?.id || item.file.name) {
+            <div class="review-file">
+              <i class="fa-solid fa-file-circle-check"></i>
+              <div>
+                <strong>{{ item.evidence?.file_name || item.file.name }}</strong
+                ><small>{{ item.documentType.replaceAll('_', ' ') | titlecase }}</small>
+              </div>
+            </div>
+          }
+          <label class="consent"
+            ><input type="checkbox" [(ngModel)]="confirmed" />
+            <span
+              >I confirm that the information and documents submitted are accurate and that I am
+              authorised to submit them.</span
+            ></label
+          >
+        </section>
+      </div>
+      <footer class="wizard-actions">
+        <button type="button" (click)="back()"><i class="fa-solid fa-arrow-left"></i> Back</button
+        ><button
+          class="primary"
+          type="button"
+          [disabled]="!confirmed || !ready() || busy()"
+          (click)="submit()"
+        >
+          {{ busy() ? 'Submitting...' : 'Submit for review' }}
+          @if (!busy()) {
+            <i class="fa-solid fa-arrow-right"></i>
+          }
+        </button>
+      </footer>
+    } @else {
+      <section class="status-card">
+        <span class="status-icon"
+          ><i
+            [class]="
+              draft()?.status === 'APPROVED'
+                ? 'fa-solid fa-shield-check'
+                : draft()?.status === 'REJECTED'
+                  ? 'fa-solid fa-circle-xmark'
+                  : 'fa-solid fa-clock'
+            "
+          ></i></span
+        ><sp-manage-status [status]="draft()!.status" />
+        <h2>{{ definition.title }}</h2>
+        @if (draft()?.status === 'APPROVED') {
+          <strong>Verified {{ definition.label }}</strong>
+          <p>{{ definition.badge_meaning }}</p>
+          <small>Verified {{ draft()?.reviewed_at | date: 'mediumDate' }}</small>
+        } @else if (draft()?.status === 'REJECTED') {
+          <p>This verification was not approved.</p>
+          <strong>{{ draft()?.rejection_reason || draft()?.reviewer_notes }}</strong>
+          <small>Reviewed {{ draft()?.reviewed_at | date: 'medium' }}</small>
+        } @else {
+          <p>Your verification is now pending review.</p>
+          <small>Submitted {{ draft()?.submitted_at | date: 'medium' }}</small>
+          <ol>
+            <li>SurePlace reviews your documents.</li>
+            <li>We may request changes.</li>
+            <li>You'll receive a notification when a decision is made.</li>
+          </ol>
+        }
+        <button class="primary" type="button" (click)="close()">Back to Verification</button>
+      </section>
+    }
+  }
+</section>

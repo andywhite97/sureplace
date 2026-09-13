@@ -1,0 +1,261 @@
+<section class="overview-page">
+  <header class="welcome">
+    <div>
+      <p class="eyebrow">Account overview</p>
+      <h1>Welcome back{{ auth.user()?.first_name ? ', ' + auth.user()?.first_name : '' }}</h1>
+      <p>Here's what's happening across your SurePlace account.</p>
+    </div>
+    <span class="welcome-mark" aria-hidden="true"
+      ><i class="fa-solid fa-house-chimney-window"></i
+    ></span>
+  </header>
+
+  @if (store.loading() && !store.summary()) {
+    <section class="summary-grid" aria-label="Loading account summary">
+      @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+        <div class="skeleton summary-skeleton"></div>
+      }
+    </section>
+  } @else if (store.summary(); as summary) {
+    <section class="summary-grid" aria-label="Account summary">
+      <a class="summary-card" routerLink="/account/saved"
+        ><span class="soft-icon"><i class="fa-solid fa-heart" aria-hidden="true"></i></span
+        ><span
+          ><small>Saved listings</small><strong>{{ store.savedTotal() }}</strong></span
+        ><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i
+      ></a>
+      <a class="summary-card" routerLink="/account/messages"
+        ><span class="soft-icon"><i class="fa-solid fa-message" aria-hidden="true"></i></span
+        ><span
+          ><small>Unread messages</small><strong>{{ summary.unread_messages ?? '—' }}</strong></span
+        ><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i
+      ></a>
+      <a class="summary-card" routerLink="/account/alerts"
+        ><span class="soft-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span
+        ><span
+          ><small>Active alerts</small><strong>{{ summary.active_saved_searches }}</strong></span
+        ><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i
+      ></a>
+      <a class="summary-card" routerLink="/account/notifications"
+        ><span class="soft-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span
+        ><span
+          ><small>Unread notifications</small
+          ><strong>{{ summary.unread_notifications }}</strong></span
+        ><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i
+      ></a>
+      <a class="summary-card" routerLink="/account/bookings"
+        ><span class="soft-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span
+        ><span
+          ><small>Pending bookings</small><strong>{{ summary.pending_bookings }}</strong></span
+        ><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i
+      ></a>
+      <a class="summary-card" routerLink="/account/bookings"
+        ><span class="soft-icon"><i class="fa-solid fa-bed" aria-hidden="true"></i></span
+        ><span
+          ><small>Upcoming stays</small><strong>{{ summary.upcoming_stays }}</strong></span
+        ><i class="fa-solid fa-chevron-right chevron" aria-hidden="true"></i
+      ></a>
+    </section>
+  } @else if (store.summaryError()) {
+    <section class="section-error" role="alert">
+      <span>Couldn't load your account summary.</span
+      ><button type="button" (click)="retry()">Retry</button>
+    </section>
+  }
+
+  <section class="overview-section attention-section">
+    <header class="section-heading">
+      <div>
+        <h2>What needs your attention</h2>
+        <p>Your nearest updates and required actions.</p>
+      </div>
+    </header>
+    @if (store.loading() && !store.summary()) {
+      <div class="attention-grid"><div class="skeleton attention-skeleton"></div></div>
+    } @else if (attention().length) {
+      <div class="attention-grid">
+        @for (item of attention(); track item.kind + item.title + $index) {
+          <article class="attention-card" [class.urgent]="item.priority === 0">
+            @switch (item.kind) {
+              @case ('viewing') {
+                <span class="soft-icon"><i class="fa-solid fa-house-circle-check"></i></span>
+                <div>
+                  <small>{{ item.title }}</small>
+                  <h3>{{ item.name }}</h3>
+                  <p>{{ item.date | date: 'EEE, d MMM' }} &middot; {{ time(item.time) }}</p>
+                </div>
+                <a [routerLink]="item.route"
+                  >View details <i class="fa-solid fa-arrow-right"></i
+                ></a>
+              }
+              @case ('stay') {
+                <span class="soft-icon"><i class="fa-solid fa-suitcase-rolling"></i></span>
+                <div>
+                  <small>{{ item.title }}</small>
+                  <h3>{{ item.name }}</h3>
+                  <p>{{ item.checkIn | date: 'd MMM' }}–{{ item.checkOut | date: 'd MMM' }}</p>
+                </div>
+                <a [routerLink]="item.route"
+                  >View booking <i class="fa-solid fa-arrow-right"></i
+                ></a>
+              }
+              @case ('verification') {
+                <img
+                  class="verification-icon"
+                  [src]="verificationIcon(item.request.verification_type)"
+                  alt=""
+                  width="46"
+                  height="46"
+                  aria-hidden="true"
+                />
+                <div>
+                  <small>{{ item.title }}</small>
+                  <h3>{{ item.request.verification_type | titlecase }}</h3>
+                  <sp-manage-status [status]="item.request.status" />
+                  @if (item.request.reviewer_notes) {
+                    <p>{{ item.request.reviewer_notes }}</p>
+                  }
+                </div>
+                <a [routerLink]="item.route"
+                  >{{
+                    item.request.status === 'CHANGES_REQUESTED'
+                      ? 'Fix changes'
+                      : item.request.status === 'DRAFT'
+                        ? 'Continue verification'
+                        : 'View details'
+                  }}
+                  <i class="fa-solid fa-arrow-right"></i
+                ></a>
+              }
+            }
+          </article>
+        }
+      </div>
+    } @else if (store.summary()) {
+      <div class="success-state">
+        <i class="fa-solid fa-circle-check"></i
+        ><span
+          ><strong>Nothing needs your attention right now.</strong
+          ><small>You're all caught up.</small></span
+        >
+      </div>
+    }
+  </section>
+
+  @if (store.loading() && !store.summary()) {
+    <section class="overview-section advertiser-section" aria-label="Loading account activity">
+      <div class="skeleton activity-skeleton"></div>
+    </section>
+  } @else if (store.summary()?.advertiser_summary; as activity) {
+    <section class="overview-section advertiser-section">
+      <header class="section-heading">
+        <div>
+          <h2>Your activity</h2>
+          <p>Manage your listings and track your publishing activity.</p>
+        </div>
+      </header>
+      <div class="advertiser-card">
+        <dl>
+          <div>
+            <dt>Published properties</dt>
+            <dd>{{ activity.published_property_count }}</dd>
+          </div>
+          <div>
+            <dt>Pending review</dt>
+            <dd>{{ activity.pending_property_count + activity.pending_stay_count }}</dd>
+          </div>
+          <div>
+            <dt>Published stays</dt>
+            <dd>{{ activity.published_stay_count }}</dd>
+          </div>
+          @if (activity.agency) {
+            <div>
+              <dt>Agency</dt>
+              <dd class="agency-name">{{ activity.agency.name }}</dd>
+            </div>
+          }
+        </dl>
+        <nav aria-label="Management actions">
+          @if (activity.has_properties) {
+            <a routerLink="/account/manage/properties"
+              >Manage properties <i class="fa-solid fa-arrow-right"></i
+            ></a>
+          }
+          @if (activity.has_stays) {
+            <a routerLink="/account/manage/stays"
+              >Manage stays <i class="fa-solid fa-arrow-right"></i
+            ></a>
+          }
+          @if (activity.agency) {
+            <a routerLink="/account/manage/agency/profile"
+              >Agency profile <i class="fa-solid fa-arrow-right"></i
+            ></a>
+          }
+        </nav>
+      </div>
+    </section>
+  }
+
+  <section class="overview-section">
+    <header class="section-heading">
+      <div>
+        <h2>Quick actions</h2>
+        <p>Common places you may want to visit.</p>
+      </div>
+    </header>
+    <nav class="quick-grid" aria-label="Quick actions">
+      <a routerLink="/properties"
+        ><span class="soft-icon"><i class="fa-solid fa-house"></i></span
+        ><span><strong>Browse properties</strong><small>Find your next home</small></span
+        ><i class="fa-solid fa-chevron-right chevron"></i
+      ></a>
+      <a routerLink="/stays"
+        ><span class="soft-icon"><i class="fa-solid fa-bed"></i></span
+        ><span><strong>Browse stays</strong><small>Plan your next stay</small></span
+        ><i class="fa-solid fa-chevron-right chevron"></i
+      ></a>
+      <a routerLink="/account/saved"
+        ><span class="soft-icon"><i class="fa-solid fa-heart"></i></span
+        ><span><strong>Saved listings</strong><small>Return to your favourites</small></span
+        ><i class="fa-solid fa-chevron-right chevron"></i
+      ></a>
+      <a routerLink="/account/alerts"
+        ><span class="soft-icon"><i class="fa-solid fa-bell"></i></span
+        ><span><strong>Manage alerts</strong><small>Review your saved searches</small></span
+        ><i class="fa-solid fa-chevron-right chevron"></i
+      ></a>
+    </nav>
+  </section>
+
+  <section class="overview-section recent-section">
+    <header class="section-heading">
+      <div>
+        <h2>Recent activity</h2>
+        <p>Your latest account updates.</p>
+      </div>
+      <a routerLink="/account/notifications">View all activity</a>
+    </header>
+    @if (store.loading() && !store.notifications().length) {
+      <div class="skeleton recent-skeleton"></div>
+    } @else if (store.notificationsError() && !store.notifications().length) {
+      <div class="section-error" role="alert">
+        <span>Couldn't load recent activity.</span
+        ><button type="button" (click)="retry()">Retry</button>
+      </div>
+    } @else {
+      <div class="recent-list">
+        @for (item of store.notifications(); track item.id) {
+          <sp-notification-item [item]="item" />
+        } @empty {
+          <p class="empty">
+            <strong>No recent activity yet.</strong
+            ><span
+              >As you save listings, message advertisers, book stays or manage listings, updates
+              will appear here.</span
+            >
+          </p>
+        }
+      </div>
+    }
+  </section>
+</section>

@@ -16,7 +16,9 @@ import {
   StayWriteRequest,
   VerificationRequestCreate,
   VerificationRequestSummary,
-  VerificationTypeInfo,
+  VerificationDefinition,
+  VerificationEligibility,
+  VerificationEvidence,
   Agency,
   AgencyDashboard,
   AgencyInvitation,
@@ -196,7 +198,10 @@ export class VerificationApiService {
     return this.api.post<VerificationRequestSummary>('/verification/requests/', body);
   }
   types() {
-    return this.api.get<VerificationTypeInfo[]>('/verification/types/');
+    return this.api.get<VerificationDefinition[]>('/verification/types/');
+  }
+  eligible() {
+    return this.api.get<VerificationEligibility>('/verification/requests/eligible/');
   }
   submit(id: string) {
     return this.api.post<VerificationRequestSummary>(
@@ -205,10 +210,13 @@ export class VerificationApiService {
     );
   }
   uploadDocument(id: string, data: FormData) {
-    return this.api.post<unknown>(
+    return this.api.post<VerificationEvidence>(
       `/verification/requests/${encodeURIComponent(id)}/documents/`,
       data,
     );
+  }
+  deleteDocument(id: string) {
+    return this.api.delete<void>(`/verification/documents/${encodeURIComponent(id)}/`);
   }
 }
 

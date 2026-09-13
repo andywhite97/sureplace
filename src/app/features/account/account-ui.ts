@@ -97,7 +97,7 @@ export class StatusBadgeComponent {
   standalone: true,
   imports: [DatePipe],
   template: `<article [class.unread]="!item().is_read">
-    <span class="icon" aria-hidden="true">{{ icon() }}</span>
+    <span class="icon" aria-hidden="true"><i [class]="icon()"></i></span>
     <div>
       <strong>{{ item().title }}</strong>
       <p>{{ item().message }}</p>
@@ -151,11 +151,13 @@ export class NotificationItemComponent {
   opened = output<AccountNotification>();
   icon() {
     const type = this.item().notification_type;
-    if (type.includes('BOOKING')) return 'B';
-    if (type.includes('VIEWING')) return 'V';
-    if (type.includes('MESSAGE')) return 'M';
-    if (type.includes('SEARCH')) return 'S';
-    return '!';
+    if (type.includes('BOOKING')) return 'fa-solid fa-calendar-check';
+    if (type.includes('VIEWING')) return 'fa-solid fa-house-circle-check';
+    if (type.includes('MESSAGE') || type.includes('ENQUIRY')) return 'fa-solid fa-message';
+    if (type.includes('SEARCH')) return 'fa-solid fa-bell';
+    if (type.includes('VERIFICATION')) return 'fa-solid fa-shield-check';
+    if (type.includes('LISTING')) return 'fa-solid fa-house';
+    return 'fa-solid fa-circle-info';
   }
   actionLabel() {
     return this.navigation.label(this.item());

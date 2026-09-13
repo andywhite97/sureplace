@@ -111,8 +111,26 @@ export interface VerificationRequestSummary {
   submitted_at: string | null;
   reviewed_at: string | null;
   reviewer_notes: string;
+  rejection_reason?: string;
+  expires_at?: string | null;
   created_at: string;
   updated_at: string;
+  requirements?: VerificationRequestRequirement[];
+  documents?: VerificationEvidence[];
+}
+
+export interface VerificationEvidence {
+  id: string;
+  document_type: string;
+  status: string;
+  file_name: string;
+  file_size: number;
+  uploaded_at: string;
+  rejection_reason: string;
+}
+export interface VerificationRequestRequirement extends VerificationRequirement {
+  uploaded: boolean;
+  document_types: string[];
 }
 
 export interface VerificationRequestCreate {
@@ -128,6 +146,42 @@ export interface VerificationTypeInfo {
   label: string;
   description: string;
   disclaimer: string;
+}
+
+/** Backend-defined trust scope and evidence rules; never duplicate these rules in the UI. */
+export interface VerificationDependency {
+  type: string;
+  required: boolean;
+}
+export interface VerificationRequirement {
+  key: string;
+  label: string;
+  description: string;
+  required: boolean;
+  mode?: 'ONE_OF';
+  alternatives?: string[];
+  accepted_file_types: string[];
+  max_files?: number;
+}
+export interface VerificationDefinition extends VerificationTypeInfo {
+  title: string;
+  max_file_size_mb: number;
+  scope: string[];
+  badge_meaning: string;
+  badge_disclaimer: string;
+  prerequisites: VerificationDependency[];
+  requirements: VerificationRequirement[];
+}
+export interface VerificationEligibleItem {
+  id: string;
+  name: string;
+  public_id?: string;
+}
+export interface VerificationEligibility {
+  agencies: VerificationEligibleItem[];
+  agents: VerificationEligibleItem[];
+  properties: VerificationEligibleItem[];
+  stays: VerificationEligibleItem[];
 }
 
 export type AgencyRole = 'OWNER' | 'ADMIN' | 'AGENT';
