@@ -1,0 +1,245 @@
+<section class="dashboard" [attr.aria-busy]="loading()">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Marketplace operations
+      </p>
+      <h1>Staff Console</h1>
+      <p class="intro">
+        Review and manage marketplace activity to keep SurePlace safe, trusted and reliable.
+      </p>
+    </div>
+    <div class="greeting">
+      @if (auth.user()?.first_name; as name) {
+        <span>Good to see you, {{ name }}.</span>
+      }
+      <time>{{ today | date: 'EEEE, d MMMM y' : '+0200' }}</time
+      ><button class="refresh" type="button" (click)="load()" [disabled]="loading()">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Refresh
+      </button>
+    </div>
+  </header>
+  @if (loading()) {
+    <div class="loading-content" role="status" aria-label="Loading staff dashboard">
+      <div class="metrics primary">
+        @for (n of [1, 2, 3, 4]; track n) {
+          <div class="skeleton metric-skeleton"></div>
+        }
+      </div>
+      <div class="metrics secondary">
+        @for (n of [1, 2, 3, 4]; track n) {
+          <div class="skeleton secondary-skeleton"></div>
+        }
+      </div>
+      <div class="operational-grid">
+        <div class="skeleton queue-skeleton"></div>
+        <div class="skeleton activity-skeleton"></div>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="error-state" role="alert">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <div>
+        <h2>{{ error() }}</h2>
+        <p>Your moderation workspace is still available. Please try again.</p>
+      </div>
+      <button type="button" class="primary-button" (click)="load()">Retry</button>
+    </div>
+  } @else if (data(); as dashboard) {
+    <ng-template #metricContent let-card>
+      <div class="metric-top">
+        <span class="metric-icon"><i [class]="card.icon" aria-hidden="true"></i></span>
+        @if (card.status) {
+          <i class="fa-solid fa-arrow-up-right-from-square metric-arrow" aria-hidden="true"></i>
+        }
+      </div>
+      <span class="metric-label">{{ card.label }}</span
+      ><strong class="metric-number">{{ card.value ?? '-' }}</strong
+      ><small>{{ card.value == null ? 'Count unavailable' : card.hint }}</small>
+    </ng-template>
+    <section class="metrics primary" aria-label="Priority moderation workload">
+      @for (card of primary(); track card.label) {
+        @if (card.status) {
+          <a
+            class="metric"
+            [class]="'metric ' + card.tone"
+            routerLink="/staff/listings"
+            [queryParams]="{ status: card.status }"
+            ><ng-container
+              [ngTemplateOutlet]="metricContent"
+              [ngTemplateOutletContext]="{ $implicit: card }"
+          /></a>
+        } @else {
+          <article [class]="'metric ' + card.tone">
+            <ng-container
+              [ngTemplateOutlet]="metricContent"
+              [ngTemplateOutletContext]="{ $implicit: card }"
+            />
+          </article>
+        }
+      }
+    </section>
+    <section class="metrics secondary" aria-label="Other moderation workload">
+      @for (card of secondary(); track card.label) {
+        @if (card.status) {
+          <a
+            [class]="'metric ' + card.tone"
+            routerLink="/staff/listings"
+            [queryParams]="{ status: card.status }"
+            ><ng-container
+              [ngTemplateOutlet]="metricContent"
+              [ngTemplateOutletContext]="{ $implicit: card }"
+          /></a>
+        } @else {
+          <article [class]="'metric ' + card.tone">
+            <ng-container
+              [ngTemplateOutlet]="metricContent"
+              [ngTemplateOutletContext]="{ $implicit: card }"
+            />
+          </article>
+        }
+      }
+    </section>
+    <div class="operational-grid">
+      <section class="panel review-panel" aria-labelledby="queue-heading">
+        <header class="panel-head">
+          <div>
+            <p class="eyebrow">Review queue</p>
+            <h2 id="queue-heading">
+              Latest listings needing attention
+              <span class="count" aria-label="Listings awaiting review">{{
+                dashboard.awaiting_review
+              }}</span>
+            </h2>
+          </div>
+          <a routerLink="/staff/listings" [queryParams]="{ status: 'SUBMITTED,UNDER_REVIEW' }"
+            >View full queue <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+          ></a>
+        </header>
+        @if (!dashboard.latest_listings.length) {
+          <div class="empty-state">
+            <span><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+            <h3>All caught up.</h3>
+            <p>No property listings are waiting for review.</p>
+          </div>
+        } @else {
+          <div class="review-rows">
+            @for (item of dashboard.latest_listings; track item.id) {
+              <article class="review-row">
+                <div class="thumbnail" aria-hidden="true">
+                  <i class="fa-regular fa-image"></i>
+                  @if (item.cover_image) {
+                    <img
+                      [src]="item.cover_image"
+                      alt=""
+                      loading="lazy"
+                      (error)="imageFailed($event)"
+                    />
+                  }
+                  <span>{{ listingType(item.listing_type) }}</span>
+                </div>
+                <div class="listing-info">
+                  <p class="listing-id">{{ item.public_id }}</p>
+                  <h3>{{ item.title }}</h3>
+                  <p class="location">
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                    {{ item.town || 'Town not provided' }}
+                    @if (item.region) {
+                      , {{ item.region }}
+                    }
+                  </p>
+                  <strong class="price">{{ formatMoney(item.price, item.currency) }}</strong>
+                  <p class="advertiser">{{ item.advertiser }}</p>
+                  <p class="updated">
+                    Updated
+                    <time [attr.datetime]="item.updated_at">{{
+                      item.updated_at | date: 'd MMM y - HH:mm' : '+0200'
+                    }}</time>
+                  </p>
+                  @if (signals(item).length) {
+                    <ul class="signals" aria-label="Listing review signals">
+                      @for (signal of signals(item); track signal) {
+                        <li>
+                          <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i
+                          >{{ signal }}
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                <div class="row-action">
+                  <span class="status"
+                    ><i class="fa-regular fa-clock" aria-hidden="true"></i
+                    >{{ statusLabel(item.status) }}</span
+                  ><a
+                    class="primary-button"
+                    [routerLink]="['/staff/listings', item.id]"
+                    [attr.aria-label]="'Review ' + item.public_id + ': ' + item.title"
+                    >Review <i class="fa-solid fa-arrow-right" aria-hidden="true"></i
+                  ></a>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+      <section class="panel activity-panel" aria-labelledby="activity-heading">
+        <header class="panel-head">
+          <div>
+            <p class="eyebrow">Audit trail</p>
+            <h2 id="activity-heading">Recent moderation activity</h2>
+          </div>
+        </header>
+        @if (dashboard.activity_unavailable) {
+          <div class="activity-empty">
+            <p>Recent activity could not be loaded.</p>
+            <button class="text-button" type="button" (click)="load()">Retry</button>
+          </div>
+        } @else if (!dashboard.recent_activity.length) {
+          <div class="activity-empty">
+            <i class="fa-regular fa-clock" aria-hidden="true"></i>
+            <p>No moderation activity yet.</p>
+          </div>
+        } @else {
+          <ol class="activity-list">
+            @for (event of dashboard.recent_activity; track $index) {
+              <li>
+                <span class="activity-dot"
+                  ><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i
+                ></span>
+                <div>
+                  <h3>{{ activityLabel(event.action) }}</h3>
+                  @if (event.listing_id) {
+                    <a [routerLink]="['/staff/listings', event.listing_id]">{{
+                      event.public_id
+                    }}</a>
+                  }
+                  @if (event.actor_name) {
+                    <p>by {{ event.actor_name }}</p>
+                  }
+                  <time [attr.datetime]="event.created_at">{{
+                    event.created_at | date: 'd MMM - HH:mm' : '+0200'
+                  }}</time>
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    </div>
+  }
+  <section class="quick-section" aria-labelledby="quick-heading">
+    <h2 id="quick-heading">Quick actions</h2>
+    <div class="quick-actions">
+      @for (action of quickActions; track action.title) {
+        <a routerLink="/staff/listings" [queryParams]="{ status: action.status }"
+          ><span class="quick-icon"><i [class]="action.icon" aria-hidden="true"></i></span
+          ><span
+            ><strong>{{ action.title }}</strong
+            ><small>{{ action.hint }}</small></span
+          ><i class="fa-solid fa-chevron-right" aria-hidden="true"></i
+        ></a>
+      }
+    </div>
+  </section>
+</section>

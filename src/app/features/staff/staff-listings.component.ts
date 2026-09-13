@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { StaffApiService } from '../../core/api/staff-api.service';
 import { StaffProperty } from '../../core/models/staff.models';
@@ -275,9 +276,11 @@ export class StaffListingsComponent {
   ];
 
   constructor() {
-    const status = this.route.snapshot.queryParamMap.get('status');
-    if (status) this.status.set(status);
-    this.load();
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      this.status.set(params.get('status') ?? 'SUBMITTED,UNDER_REVIEW');
+      this.search.set(params.get('search') || '');
+      this.load();
+    });
   }
 
   load() {

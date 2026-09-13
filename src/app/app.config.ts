@@ -33,7 +33,9 @@ export const appConfig: ApplicationConfig = {
       const config = inject(ConfigApiService);
       const reference = inject(ReferenceApiService);
       const auth = inject(AuthService);
-      forkJoin([config.load(), reference.load(), auth.restore()]).subscribe();
+      // Public pages may render while auth restores. Guards await this same shared operation.
+      auth.initialize().subscribe();
+      forkJoin([config.load(), reference.load()]).subscribe();
     }),
   ],
 };

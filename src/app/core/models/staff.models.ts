@@ -75,6 +75,10 @@ export interface StaffProperty {
 }
 
 export interface StaffSummary {
+  agency_reviews?: number | null;
+  verification_requests?: number | null;
+  latest_listings?: StaffDashboardListing[];
+  recent_activity?: StaffDashboardActivity[];
   awaiting_review: number;
   approved_today: number;
   changes_requested: number;
@@ -84,3 +88,36 @@ export interface StaffSummary {
 }
 
 export type StaffPropertyPage = PaginatedResponse<StaffProperty>;
+export interface StaffDashboardListing {
+  id: string;
+  public_id: string;
+  title: string;
+  listing_type: string;
+  price: string;
+  currency: string;
+  town: string;
+  region: string;
+  status: string;
+  status_label: string;
+  verification_status: string;
+  latitude: number | null;
+  longitude: number | null;
+  updated_at: string;
+  cover_image: string | null;
+  image_count: number;
+  advertiser: string;
+  open_reports_count: number;
+}
+export interface StaffDashboardActivity {
+  id?: string;
+  action: string;
+  created_at: string;
+  actor_name?: string | null;
+  listing_id?: string;
+  public_id?: string;
+}
+export interface StaffDashboard extends StaffSummary {
+  latest_listings: StaffDashboardListing[];
+  recent_activity: StaffDashboardActivity[];
+  activity_unavailable?: boolean;
+}

@@ -1,4 +1,10 @@
-import { PropertyDetail, PropertyImage, RoomTypeSummary, StayDetail, StayImage } from './listing.models';
+import {
+  PropertyDetail,
+  PropertyImage,
+  RoomTypeSummary,
+  StayDetail,
+  StayImage,
+} from './listing.models';
 import { Booking, BookingPage, ViewingPage, ViewingRequest } from './account.models';
 import { PaginatedResponse } from './api.models';
 
@@ -13,6 +19,7 @@ export interface ManagedProperty extends PropertyDetail {
 }
 
 export interface ManagedStay extends StayDetail {
+  submitted_at?: string | null;
   quality?: QualityScore;
 }
 

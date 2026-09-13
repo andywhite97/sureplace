@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { StayManagementApiService } from '../../core/api/manage-api.services';
 import { ManagedStay } from '../../core/models/manage.models';
@@ -66,9 +66,17 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
               />
             </div>
             <aside>
-              <sp-manage-status [status]="s.status" /><small
-                >Updated {{ s.updated_at | date: 'mediumDate' }}</small
-              ><a [routerLink]="['/account/manage/stays', s.id, 'edit']">Edit</a
+              <sp-manage-status [status]="s.status" />
+              @if (s.status === 'SUBMITTED' || s.status === 'UNDER_REVIEW') {
+                <small>SurePlace is reviewing this stay.</small>
+                @if (s.submitted_at) {
+                  <small>Submitted {{ s.submitted_at | date: 'mediumDate' }}</small>
+                }
+              }
+              <small>Updated {{ s.updated_at | date: 'mediumDate' }}</small
+              ><a [routerLink]="['/account/manage/stays', s.id, 'edit']">{{
+                s.status === 'DRAFT' || s.status === 'REJECTED' ? 'Edit' : 'Manage'
+              }}</a
               ><a [routerLink]="['/account/manage/stays', s.id, 'rooms']">Manage Rooms</a
               ><a [routerLink]="['/account/manage/stays', s.id, 'calendar']">Availability</a>
               @if (s.status === 'PUBLISHED') {
@@ -183,6 +191,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
   ],
 })
 export class StayManagementListComponent {
+  private router = inject(Router);
   private api = inject(StayManagementApiService);
   rows = signal<ManagedStay[]>([]);
   loading = signal(true);
@@ -224,7 +233,7 @@ export class StayManagementListComponent {
       });
   }
   submit(s: ManagedStay) {
-    this.api.submit(s.id).subscribe((x) => this.replace(x));
+    void this.router.navigate(['/account/manage/stays', s.id, 'edit']);
   }
   pause(s: ManagedStay) {
     if (confirm('Pause this stay? It will no longer appear publicly.'))

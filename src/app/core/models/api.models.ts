@@ -51,6 +51,8 @@ export interface ReferenceData {
   stay_amenities?: AmenityReference[];
   listing_types: ReferenceOption[];
   stay_types: ReferenceOption[];
+  bed_configurations?: ReferenceOption[];
+  bathroom_types?: ReferenceOption[];
   regions: RegionReference[];
   countries: ReferenceOption[];
   currencies: ReferenceOption[];

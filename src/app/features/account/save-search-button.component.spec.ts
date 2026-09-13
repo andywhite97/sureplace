@@ -17,6 +17,7 @@ describe('SaveSearchButtonComponent', () => {
     const auth = TestBed.inject(AuthService);
     const nav = vi.spyOn(TestBed.inject(Router), 'navigate');
     auth.user.set(null);
+    auth.status.set('unauthenticated');
     f.componentInstance.open();
     expect(f.componentInstance.modal()).toBe(false);
     expect(nav).toHaveBeenCalledWith(['/login'], { queryParams: { returnUrl: '/' } });
@@ -41,6 +42,7 @@ describe('SaveSearchButtonComponent', () => {
       is_staff: false,
       onboarding_intents: [],
     });
+    TestBed.inject(AuthService).status.set('authenticated');
     f.componentRef.setInput('searchType', 'STAY');
     f.componentRef.setInput('criteria', { town: 'Mbabane' });
     f.componentRef.setInput('defaultName', 'Stays in Mbabane');

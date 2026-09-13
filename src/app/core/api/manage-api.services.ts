@@ -24,7 +24,7 @@ import {
   AgencyRole,
   PropertyImage,
 } from '../models/manage.models';
-import { RoomTypeSummary } from '../models/listing.models';
+import { StayImage, RoomTypeSummary } from '../models/listing.models';
 
 @Injectable({ providedIn: 'root' })
 export class PropertyManagementApiService {
@@ -48,16 +48,28 @@ export class PropertyManagementApiService {
     return this.api.post<ManagedProperty>(`/properties/${encodeURIComponent(id)}/pause/`, {});
   }
   confirmAvailability(id: string) {
-    return this.api.post<ManagedProperty>(`/properties/${encodeURIComponent(id)}/confirm-availability/`, {});
+    return this.api.post<ManagedProperty>(
+      `/properties/${encodeURIComponent(id)}/confirm-availability/`,
+      {},
+    );
   }
   uploadImage(id: string, data: FormData) {
     return this.api.post<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, data);
   }
-  updateImage(id: string, imageId: string, body: { sort_order?: number; is_cover?: boolean; caption?: string }) {
-    return this.api.patch<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, { id: imageId, ...body });
+  updateImage(
+    id: string,
+    imageId: string,
+    body: { sort_order?: number; is_cover?: boolean; caption?: string },
+  ) {
+    return this.api.patch<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, {
+      id: imageId,
+      ...body,
+    });
   }
   deleteImage(id: string, imageId: string) {
-    return this.api.delete<void>(`/properties/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`);
+    return this.api.delete<void>(
+      `/properties/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`,
+    );
   }
 }
 
@@ -91,11 +103,20 @@ export class StayManagementApiService {
   uploadImage(id: string, data: FormData) {
     return this.api.post<unknown>(`/stays/${encodeURIComponent(id)}/images/`, data);
   }
-  updateImage(id: string, imageId: string, body: { sort_order?: number; is_cover?: boolean; caption?: string }) {
-    return this.api.patch<unknown>(`/stays/${encodeURIComponent(id)}/images/`, { id: imageId, ...body });
+  updateImage(
+    id: string,
+    imageId: string,
+    body: { sort_order?: number; is_cover?: boolean; caption?: string },
+  ) {
+    return this.api.patch<unknown>(`/stays/${encodeURIComponent(id)}/images/`, {
+      id: imageId,
+      ...body,
+    });
   }
   deleteImage(id: string, imageId: string) {
-    return this.api.delete<void>(`/stays/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`);
+    return this.api.delete<void>(
+      `/stays/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`,
+    );
   }
 }
 
@@ -109,19 +130,34 @@ export class RoomManagementApiService {
     return this.api.delete<void>(`/rooms/${encodeURIComponent(id)}/`);
   }
   calendar(id: string, start: string, end: string) {
-    return this.api.get<RoomAvailabilityDay[]>(`/rooms/${encodeURIComponent(id)}/calendar/`, { start, end });
+    return this.api.get<RoomAvailabilityDay[]>(`/rooms/${encodeURIComponent(id)}/calendar/`, {
+      start,
+      end,
+    });
   }
   bulkAvailability(id: string, body: AvailabilityBulkRequest) {
-    return this.api.post<{ updated: number }>(`/rooms/${encodeURIComponent(id)}/availability/bulk/`, body);
+    return this.api.post<{ updated: number }>(
+      `/rooms/${encodeURIComponent(id)}/availability/bulk/`,
+      body,
+    );
   }
   uploadImage(id: string, data: FormData) {
-    return this.api.post<unknown>(`/rooms/${encodeURIComponent(id)}/images/`, data);
+    return this.api.post<StayImage>(`/rooms/${encodeURIComponent(id)}/images/`, data);
   }
-  updateImage(id: string, imageId: string, body: { sort_order?: number; is_cover?: boolean; caption?: string }) {
-    return this.api.patch<unknown>(`/rooms/${encodeURIComponent(id)}/images/`, { id: imageId, ...body });
+  updateImage(
+    id: string,
+    imageId: string,
+    body: { sort_order?: number; is_cover?: boolean; caption?: string },
+  ) {
+    return this.api.patch<StayImage>(`/rooms/${encodeURIComponent(id)}/images/`, {
+      id: imageId,
+      ...body,
+    });
   }
   deleteImage(id: string, imageId: string) {
-    return this.api.delete<void>(`/rooms/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`);
+    return this.api.delete<void>(
+      `/rooms/${encodeURIComponent(id)}/images/?id=${encodeURIComponent(imageId)}`,
+    );
   }
 }
 
@@ -163,10 +199,16 @@ export class VerificationApiService {
     return this.api.get<VerificationTypeInfo[]>('/verification/types/');
   }
   submit(id: string) {
-    return this.api.post<VerificationRequestSummary>(`/verification/requests/${encodeURIComponent(id)}/submit/`, {});
+    return this.api.post<VerificationRequestSummary>(
+      `/verification/requests/${encodeURIComponent(id)}/submit/`,
+      {},
+    );
   }
   uploadDocument(id: string, data: FormData) {
-    return this.api.post<unknown>(`/verification/requests/${encodeURIComponent(id)}/documents/`, data);
+    return this.api.post<unknown>(
+      `/verification/requests/${encodeURIComponent(id)}/documents/`,
+      data,
+    );
   }
 }
 
@@ -195,16 +237,26 @@ export class AgencyManagementApiService {
     return this.api.get<AgencyInvitation[]>(`/agencies/${encodeURIComponent(id)}/invitations/`);
   }
   invite(id: string, body: { email: string; role: AgencyRole }) {
-    return this.api.post<AgencyInvitation>(`/agencies/${encodeURIComponent(id)}/invitations/`, body);
+    return this.api.post<AgencyInvitation>(
+      `/agencies/${encodeURIComponent(id)}/invitations/`,
+      body,
+    );
   }
   updateRole(id: string, memberId: string, role: AgencyRole) {
-    return this.api.patch<AgencyMember>(`/agencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}/role/`, { role });
+    return this.api.patch<AgencyMember>(
+      `/agencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}/role/`,
+      { role },
+    );
   }
   removeMember(id: string, memberId: string) {
-    return this.api.delete<void>(`/agencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}/`);
+    return this.api.delete<void>(
+      `/agencies/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}/`,
+    );
   }
   acceptInvitation(token: string) {
-    return this.api.post<{ detail: string; agency: Agency }>('/agency-invitations/accept/', { token });
+    return this.api.post<{ detail: string; agency: Agency }>('/agency-invitations/accept/', {
+      token,
+    });
   }
   declineInvitation(token: string) {
     return this.api.post<{ detail: string }>('/agency-invitations/decline/', { token });

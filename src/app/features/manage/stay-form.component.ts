@@ -1,13 +1,17 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { debounceTime, finalize, forkJoin } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { debounceTime, finalize, forkJoin, switchMap, of } from 'rxjs';
 import { StayManagementApiService } from '../../core/api/manage-api.services';
+import { normalizeApiError } from '../../core/api/error-normalizer';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ManagedStay, StayWriteRequest } from '../../core/models/manage.models';
+import { formatMoney } from '../../shared/listing/price-format';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { LocationPickerComponent } from './location-picker.component';
 import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
+import { RoomsComponent } from './rooms.component';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 
@@ -15,11 +19,11 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    RouterLink,
     SmartImageComponent,
     LocationPickerComponent,
     ManageStatusComponent,
     QualityScoreComponent,
+    RoomsComponent,
   ],
   template: `<main class="wizard-page">
     <section class="wizard-card">
@@ -28,7 +32,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
           <div class="wizard-nav">
             <button type="button" (click)="back()">
               <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-              Back
+              {{ current().key === 'rooms' ? 'Previous: Policies' : 'Back' }}
             </button>
             <strong>Step {{ step() + 1 }} of {{ steps.length }}</strong>
           </div>
@@ -51,18 +55,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
       }
 
       @if (submitted()) {
-        <section class="success-panel">
-          <span class="success-icon"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
-          <h1>Listing Submitted!</h1>
-          <p>Your listing is now under review. We'll notify you once there's an update.</p>
-          <div class="success-actions">
-            <a class="primary-cta" routerLink="/account/manage/stays">Go to My Listings</a>
-            <a class="secondary" routerLink="/account/manage/listings/new">Add Another Listing</a>
-            @if (stay()?.slug) {
-              <a class="ghost-link" [routerLink]="['/stays', stay()!.slug]">View Listing</a>
-            }
-          </div>
-        </section>
+        <p role="status">Opening your submission...</p>
       } @else {
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
           <section class="wizard-body">
@@ -312,18 +305,18 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                     <h1>Rooms</h1>
                     <p class="step-copy">Add the room options guests can book.</p>
                   </div>
-                  @if (stay()) {
-                    <a
-                      class="room-link"
-                      [routerLink]="['/account/manage/stays', stay()!.id, 'rooms']"
-                    >
-                      Manage Rooms
-                      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                    </a>
-                    <p class="hint">
-                      Your room setup opens in the existing room management workflow, so inventory
-                      and booking rules stay consistent.
-                    </p>
+                  @if (stay()?.id; as persistedStayId) {
+                    <app-rooms
+                      [embedded]="true"
+                      [stayId]="persistedStayId"
+                      (roomsChanged)="onRoomsChanged($event)"
+                      (pendingChange)="roomBusy.set($event)"
+                    />
+                    @if (!hasActiveRoom()) {
+                      <p class="room-requirement" role="status">
+                        Add at least one active room type before continuing.
+                      </p>
+                    }
                   } @else {
                     <p class="hint">Save the draft first, then add room types.</p>
                   }
@@ -376,6 +369,26 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                       </article>
                     }
                   </div>
+                  @if (roomTypes().length) {
+                    <section class="review-rooms" aria-labelledby="review-rooms-title">
+                      <header>
+                        <strong id="review-rooms-title">Rooms ({{ activeRoomCount() }})</strong>
+                        <button class="review-edit" type="button" (click)="go(6)">Edit</button>
+                      </header>
+                      @for (room of roomTypes(); track room.id) {
+                        @if (room.is_active) {
+                          <div class="review-room-row">
+                            <sp-image [src]="roomCover(room)" [alt]="room.name" ratio="4 / 3" />
+                            <strong>{{ room.name }}</strong>
+                            <span>{{ formatMoney(room.base_price, room.currency) }}/night</span>
+                            <span
+                              >{{ guestCount(room) }} &middot; {{ room.quantity }} available</span
+                            >
+                          </div>
+                        }
+                      }
+                    </section>
+                  }
                   @if (stay()?.quality; as quality) {
                     <sp-quality-score [score]="quality.score" [suggestions]="quality.suggestions" />
                   }
@@ -407,18 +420,29 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
             <button
               type="button"
               class="secondary"
-              [disabled]="step() === 0 || busy()"
+              [disabled]="step() === 0 || busy() || roomBusy()"
               (click)="back()"
             >
-              Back
+              {{ current().key === 'rooms' ? 'Previous: Policies' : 'Back' }}
             </button>
             @if (current().key === 'submit') {
               <button type="submit" class="primary" [disabled]="busy() || submitting()">
                 {{ submitting() ? 'Submitting...' : 'Submit Listing' }}
               </button>
             } @else {
-              <button type="button" class="primary" [disabled]="busy()" (click)="continue()">
-                {{ current().key === 'review' ? 'Review Submission' : 'Continue' }}
+              <button
+                type="button"
+                class="primary"
+                [disabled]="busy() || roomBusy() || (current().key === 'rooms' && !hasActiveRoom())"
+                (click)="continue()"
+              >
+                {{
+                  current().key === 'rooms'
+                    ? 'Continue: Review'
+                    : current().key === 'review'
+                      ? 'Review Submission'
+                      : 'Continue'
+                }}
                 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
               </button>
             }
@@ -430,6 +454,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
   styleUrl: './listing-wizard.scss',
 })
 export class StayFormComponent {
+  private destroyRef = inject(DestroyRef);
   private api = inject(StayManagementApiService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
@@ -449,6 +474,7 @@ export class StayFormComponent {
   ] as const;
   step = signal(0);
   busy = signal(false);
+  roomBusy = signal(false);
   submitting = signal(false);
   submitted = signal(false);
   error = signal('');
@@ -479,11 +505,15 @@ export class StayFormComponent {
   towns = computed(() => this.ref.data().regions.flatMap((region) => region.areas || []));
 
   constructor() {
-    this.form.valueChanges.pipe(debounceTime(900)).subscribe(() => {
-      this.dirty.set(true);
-      this.saveState.set(this.stay() ? 'unsaved' : 'idle');
-      if (this.stay() && !this.busy() && !this.submitting()) this.saveDraft(true);
-    });
+    this.form.valueChanges
+      .pipe(debounceTime(900), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.submitting() || this.submitted()) return;
+        this.dirty.set(true);
+        this.saveState.set(this.stay() ? 'unsaved' : 'idle');
+        if (this.stay() && !this.busy() && !this.roomBusy() && !this.submitting())
+          this.saveDraft(true);
+      });
     if (this.id) this.load();
   }
 
@@ -496,12 +526,14 @@ export class StayFormComponent {
   }
 
   continue() {
+    if (this.busy() || this.roomBusy() || this.submitting() || this.submitted()) return;
     if (!this.validateStep(this.step())) return;
     if (this.step() === 0 || this.stay()) this.saveDraft(true);
     this.step.set(Math.min(this.step() + 1, this.steps.length - 1));
   }
 
   back() {
+    if (this.busy() || this.roomBusy() || this.submitting()) return;
     if (this.step() > 0) {
       this.step.set(this.step() - 1);
       return;
@@ -510,7 +542,8 @@ export class StayFormComponent {
   }
 
   go(index: number) {
-    this.step.set(index);
+    if (!this.busy() && !this.roomBusy() && !this.submitting() && !this.submitted())
+      this.step.set(index);
   }
 
   hasAmenity(id: string) {
@@ -606,23 +639,45 @@ export class StayFormComponent {
   }
 
   submit() {
-    if (this.submitting()) return;
-    if (!this.validateAll()) return;
-    this.saveDraft(false, () => {
-      const id = this.stay()?.id;
-      if (!id) return;
-      this.submitting.set(true);
-      this.api
-        .submit(id)
-        .pipe(finalize(() => this.submitting.set(false)))
-        .subscribe({
-          next: (stay) => {
-            this.stay.set(stay);
-            this.submitted.set(true);
-          },
-          error: (e) => this.error.set(e?.error?.message || 'Stay could not be submitted.'),
-        });
-    });
+    if (this.busy() || this.roomBusy() || this.submitting() || this.submitted()) return;
+    this.form.controls.confirmed.markAsTouched();
+    if (!this.form.controls.confirmed.valid) {
+      this.error.set('Confirm the listing details before submitting.');
+      return;
+    }
+    const id = this.stay()?.id || this.id;
+    if (!id) {
+      this.error.set('Save your stay before submitting.');
+      return;
+    }
+    this.submitting.set(true);
+    this.error.set('');
+    this.api
+      .update(id, this.payload())
+      .pipe(
+        switchMap(() => this.api.detail(id)),
+        switchMap((stay) => {
+          this.stay.set(stay);
+          return ['SUBMITTED', 'UNDER_REVIEW'].includes(stay.status)
+            ? of(stay)
+            : this.api.submit(id);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false)),
+      )
+      .subscribe({
+        next: (stay) => {
+          this.stay.set(stay);
+          if (!['SUBMITTED', 'UNDER_REVIEW'].includes(stay.status)) {
+            this.error.set('Submission could not be confirmed. Please try again.');
+            return;
+          }
+          this.submitted.set(true);
+          this.dirty.set(false);
+          void this.router.navigate(['/account/manage/stays', stay.id, 'submitted']);
+        },
+        error: (error) => this.handleSubmitError(error),
+      });
   }
 
   reviewWarnings() {
@@ -634,10 +689,33 @@ export class StayFormComponent {
     if (!this.orderedImages().length) warnings.push({ message: 'Add at least one photo', step: 3 });
     if (!this.form.controls.phone.value && !this.form.controls.email.value)
       warnings.push({ message: 'Add contact information', step: 2 });
-    if (this.stay() && !this.stay()!.room_types.some((room) => room.is_active))
+    if (this.stay() && !this.hasActiveRoom())
       warnings.push({ message: 'Add a room type', step: 6 });
     return warnings;
   }
+
+  hasActiveRoom() {
+    return this.roomTypes().some((room) => room.is_active);
+  }
+
+  activeRoomCount() {
+    return this.roomTypes().filter((room) => room.is_active).length;
+  }
+
+  roomTypes() {
+    return this.stay()?.room_types || [];
+  }
+
+  roomCover(room: ManagedStay['room_types'][number]) {
+    const images = [...(room.images || [])].sort((a, b) => a.sort_order - b.sort_order);
+    return images.find((image) => image.is_cover)?.image || images[0]?.image || null;
+  }
+
+  guestCount(room: ManagedStay['room_types'][number]) {
+    return `${room.total_capacity} guest${room.total_capacity === 1 ? '' : 's'}`;
+  }
+
+  readonly formatMoney = formatMoney;
 
   reviewBlocks() {
     const v = this.form.getRawValue();
@@ -671,9 +749,14 @@ export class StayFormComponent {
       {
         title: 'Rooms',
         step: 6,
-        text: `${this.stay()?.room_types.length || 0} room type${this.stay()?.room_types.length === 1 ? '' : 's'}`,
+        text: `${this.roomTypes().length} room type${this.roomTypes().length === 1 ? '' : 's'}`,
       },
     ];
+  }
+
+  onRoomsChanged(rooms: ManagedStay['room_types']) {
+    const current = this.stay();
+    if (current) this.stay.set({ ...current, room_types: rooms });
   }
 
   stayTypeLabel() {
@@ -713,48 +796,69 @@ export class StayFormComponent {
     return valid;
   }
 
-  private validateAll() {
-    for (let index = 0; index <= 1; index += 1) if (!this.validateStep(index)) return false;
-    this.form.controls.confirmed.markAsTouched();
-    if (!this.form.controls.confirmed.valid) {
-      this.error.set('Confirm the listing details before submitting.');
-      return false;
-    }
-    return true;
+  private handleSubmitError(error: unknown) {
+    const normalized = normalizeApiError(error);
+    const fields = normalized.errors || {};
+    if ((error as { status?: number }).status === 400) {
+      const steps: Record<string, number> = {
+        room_type_required: 6,
+        room_type_invalid: 6,
+        missing_location: 1,
+        missing_stay_images: 3,
+        policy_invalid: 5,
+      };
+      const step = steps[normalized.code];
+      if (step !== undefined) this.step.set(step);
+      else if ('room_types' in fields) this.step.set(6);
+      const messages = Object.values(fields).flat().filter(Boolean).map(String);
+      this.error.set(messages.length ? messages.join(' ') : normalized.message);
+    } else this.error.set('Could not submit your stay. Please try again.');
   }
 
   private load() {
-    this.api.detail(this.id!).subscribe((stay) => {
-      this.stay.set(stay);
-      this.form.patchValue(
-        {
-          name: stay.name,
-          description: stay.description,
-          stay_type: stay.stay_type,
-          region: stay.region,
-          town: stay.town,
-          suburb: stay.suburb,
-          address: stay.address,
-          latitude: String(stay.latitude ?? ''),
-          longitude: String(stay.longitude ?? ''),
-          phone: stay.phone,
-          email: stay.email,
-          whatsapp_number: stay.whatsapp_number,
-          website: stay.website,
-          check_in_time: stay.check_in_time || '',
-          check_out_time: stay.check_out_time || '',
-          amenities: stay.amenities.map((a) => a.id),
-        },
-        { emitEvent: false },
-      );
-      this.step.set(this.firstIncompleteStep());
-      this.dirty.set(false);
-      this.saveState.set('saved');
-    });
+    this.api
+      .detail(this.id!)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((stay) => {
+        if (['SUBMITTED', 'UNDER_REVIEW'].includes(stay.status)) {
+          this.submitted.set(true);
+          void this.router.navigate(['/account/manage/stays', stay.id, 'submitted']);
+          return;
+        }
+        if (!['DRAFT', 'REJECTED'].includes(stay.status)) {
+          void this.router.navigate(['/account/manage/stays']);
+          return;
+        }
+        this.stay.set({ ...stay, room_types: stay.room_types || [] });
+        this.form.patchValue(
+          {
+            name: stay.name,
+            description: stay.description,
+            stay_type: stay.stay_type,
+            region: stay.region,
+            town: stay.town,
+            suburb: stay.suburb,
+            address: stay.address,
+            latitude: String(stay.latitude ?? ''),
+            longitude: String(stay.longitude ?? ''),
+            phone: stay.phone,
+            email: stay.email,
+            whatsapp_number: stay.whatsapp_number,
+            website: stay.website,
+            check_in_time: stay.check_in_time || '',
+            check_out_time: stay.check_out_time || '',
+            amenities: stay.amenities.map((a) => a.id),
+          },
+          { emitEvent: false },
+        );
+        this.step.set(this.firstIncompleteStep());
+        this.dirty.set(false);
+        this.saveState.set('saved');
+      });
   }
 
   private saveDraft(silent = false, after?: () => void) {
-    if (this.busy()) return;
+    if (this.busy() || this.roomBusy() || this.submitting() || this.submitted()) return;
     if (!this.canCreateDraft()) {
       after?.();
       return;
@@ -765,25 +869,31 @@ export class StayFormComponent {
       this.id || this.stay()
         ? this.api.update(this.id || this.stay()!.id, this.payload())
         : this.api.create(this.payload());
-    request.pipe(finalize(() => this.busy.set(false))).subscribe({
-      next: (stay) => {
-        const created = !this.id;
-        this.stay.set(stay);
-        this.dirty.set(false);
-        this.saveState.set('saved');
-        if (created) {
-          this.id = stay.id;
-          void this.router.navigate(['/account/manage/stays', stay.id, 'edit'], {
-            replaceUrl: true,
-          });
-        }
-        after?.();
-      },
-      error: (e) => {
-        this.saveState.set('error');
-        if (!silent) this.error.set(e?.error?.message || 'Stay could not be saved.');
-      },
-    });
+    request
+      .pipe(
+        switchMap((saved) => this.api.detail(saved.id)),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busy.set(false)),
+      )
+      .subscribe({
+        next: (stay) => {
+          const created = !this.id;
+          this.stay.set({ ...stay, room_types: stay.room_types || [] });
+          this.dirty.set(false);
+          this.saveState.set('saved');
+          if (created) {
+            this.id = stay.id;
+            void this.router.navigate(['/account/manage/stays', stay.id, 'edit'], {
+              replaceUrl: true,
+            });
+          }
+          after?.();
+        },
+        error: (e) => {
+          this.saveState.set('error');
+          if (!silent) this.error.set(e?.error?.message || 'Stay could not be saved.');
+        },
+      });
   }
 
   private canCreateDraft() {
@@ -792,7 +902,10 @@ export class StayFormComponent {
 
   private refresh() {
     const id = this.stay()?.id || this.id;
-    if (id) this.api.detail(id).subscribe((stay) => this.stay.set(stay));
+    if (id)
+      this.api
+        .detail(id)
+        .subscribe((stay) => this.stay.set({ ...stay, room_types: stay.room_types || [] }));
   }
 
   private firstIncompleteStep() {
@@ -800,7 +913,7 @@ export class StayFormComponent {
     if (!this.validateGroup(['region', 'town', 'latitude', 'longitude'])) return 1;
     if (!this.orderedImages().length) return 3;
     if (!this.form.controls.phone.value && !this.form.controls.email.value) return 2;
-    if (this.stay() && !this.stay()!.room_types.some((room) => room.is_active)) return 6;
+    if (this.stay() && !this.hasActiveRoom()) return 6;
     return 7;
   }
 

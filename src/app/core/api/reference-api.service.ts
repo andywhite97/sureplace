@@ -21,6 +21,7 @@ export class ReferenceApiService {
   private loaded = false;
   private request$ = this.createRequest();
   readonly data = signal(empty);
+  readonly error = signal(false);
 
   load() {
     return this.loaded ? of(this.data()) : this.request$;
@@ -28,18 +29,22 @@ export class ReferenceApiService {
 
   refresh() {
     this.loaded = false;
-    this.request$ = this.createRequest();
+    this.request$ = this.createRequest(true);
     return this.request$;
   }
 
-  private createRequest() {
-    return this.api.get<ReferenceData>('/reference/').pipe(
+  private createRequest(forceRefresh = false) {
+    const params: Record<string, string> = { schema: 'room-options-v1' };
+    if (forceRefresh) params['refresh'] = String(Date.now());
+    return this.api.get<ReferenceData>('/reference/', params).pipe(
       tap((value) => {
+        this.error.set(false);
         this.data.set(value);
         this.loaded = true;
       }),
       catchError(() => {
-        this.loaded = true;
+        this.error.set(true);
+        this.loaded = false;
         return of(empty);
       }),
       finalize(() => {

@@ -1,4 +1,6 @@
 import { inject, Injectable } from '@angular/core';
+import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { StaffDashboard, StaffDashboardActivity } from '../models/staff.models';
 import { ApiClient } from './api-client';
 import {
   ModerationAuditEvent,
@@ -12,6 +14,7 @@ export interface StaffListingQuery {
   search?: string;
   ordering?: string;
   page?: string;
+  page_size?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,6 +23,47 @@ export class StaffApiService {
 
   summary() {
     return this.api.get<StaffSummary>('/staff/properties/summary/');
+  }
+
+  dashboard() {
+    return this.summary().pipe(
+      switchMap((summary) => {
+        if (summary.latest_listings && summary.recent_activity)
+          return of(summary as StaffDashboard);
+        // Compatibility with the deployed summary while its additive dashboard fields roll out.
+        return forkJoin({
+          queue: this.properties({
+            status: 'SUBMITTED,UNDER_REVIEW',
+            ordering: '-updated_at',
+            page_size: '5',
+          }),
+          operations: this.api
+            .get<{
+              pending_verification_requests: number;
+              recent_moderation_activity: StaffDashboardActivity[];
+            }>('/moderation/summary/')
+            .pipe(catchError(() => of(null))),
+        }).pipe(
+          map(({ queue, operations }): StaffDashboard => ({
+            ...summary,
+            agency_reviews: null,
+            verification_requests: operations?.pending_verification_requests ?? null,
+            latest_listings: queue.results.slice(0, 5).map((item) => ({
+              ...item,
+              cover_image:
+                (item.images.find((image) => image.is_cover) || item.images[0])?.image || null,
+              image_count: item.images.length,
+              advertiser:
+                item.agency?.name ||
+                [item.owner?.first_name, item.owner?.last_name].filter(Boolean).join(' ') ||
+                'Property advertiser',
+            })),
+            recent_activity: (operations?.recent_moderation_activity || []).slice(0, 7),
+            activity_unavailable: !operations,
+          })),
+        );
+      }),
+    );
   }
 
   properties(query: StaffListingQuery = {}) {

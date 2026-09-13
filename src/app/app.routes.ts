@@ -254,6 +254,14 @@ export const routes: Routes = [
         title: 'Add stay | SurePlace',
       },
       {
+        path: 'manage/stays/:id/submitted',
+        loadComponent: () =>
+          import('./features/manage/stay-submitted.component').then(
+            (m) => m.StaySubmittedComponent,
+          ),
+        title: 'Stay submitted | SurePlace',
+      },
+      {
         path: 'manage/stays/:id/edit',
         loadComponent: () =>
           import('./features/manage/stay-form.component').then((m) => m.StayFormComponent),

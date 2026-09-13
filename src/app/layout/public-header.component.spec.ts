@@ -1,3 +1,5 @@
+import { of } from 'rxjs';
+import { AgencyManagementApiService } from '../core/api/manage-api.services';
 import { Component, computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -26,7 +28,11 @@ describe('PublicHeaderComponent mobile navigation', () => {
   });
   const unreadMessages = signal(0);
   const unreadNotifications = signal(0);
+  const initializing = signal(false);
   const auth = {
+    status: computed(() =>
+      initializing() ? 'initializing' : user() ? 'authenticated' : 'unauthenticated',
+    ),
     user,
     isAuthenticated: computed(() => user() !== null),
     logout: vi.fn(),
@@ -38,6 +44,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
 
   beforeEach(async () => {
     user.set(null);
+    initializing.set(false);
     unreadMessages.set(0);
     unreadNotifications.set(0);
     auth.logout.mockClear();
@@ -69,7 +76,9 @@ describe('PublicHeaderComponent mobile navigation', () => {
           { path: 'account/saved', component: EmptyComponent },
           { path: 'account/messages', component: EmptyComponent },
           { path: 'account/manage', component: EmptyComponent },
+          { path: 'account/profile', component: EmptyComponent },
         ]),
+        { provide: AgencyManagementApiService, useValue: { mine: () => of([]) } },
         { provide: AuthService, useValue: auth },
         { provide: ConfigApiService, useValue: { config } },
         { provide: AccountActivityStore, useValue: activity },
@@ -170,7 +179,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(text).toContain('Saved');
     expect(text).toContain('Messages');
     expect(text).toContain('Agents');
-    expect(text).toContain('Saved Searches / Alerts');
+    expect(text).toContain('Alerts');
     expect(text).toContain('Notifications');
     expect(text).toContain('Log out');
     expect(text).not.toContain('Session');
@@ -208,7 +217,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Manage Listings');
-    expect(text).toContain('Management Dashboard');
+    expect(text).toContain('Dashboard');
     expect(text).toContain('Properties');
     expect(text).toContain('Verification');
   });
@@ -338,5 +347,126 @@ describe('PublicHeaderComponent mobile navigation', () => {
       '[aria-current="page"]',
     ) as HTMLAnchorElement;
     expect(current.textContent).toContain('Messages');
+  });
+  it('keeps one accessible accordion open and excludes collapsed links from focus', () => {
+    user.set({ first_name: 'Staff', is_staff: true });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    const toggles = [
+      ...fixture.nativeElement.querySelectorAll('.accordion-toggle'),
+    ] as HTMLButtonElement[];
+    expect(toggles.length).toBe(4);
+    expect(toggles.every((button) => button.getAttribute('aria-expanded') === 'false')).toBe(true);
+    for (const button of toggles) {
+      button.click();
+      fixture.detectChanges();
+      expect(toggles.filter((row) => row.getAttribute('aria-expanded') === 'true')).toEqual([
+        button,
+      ]);
+      const panel = fixture.nativeElement.querySelector('#' + button.getAttribute('aria-controls'));
+      expect(panel.hasAttribute('inert')).toBe(false);
+    }
+    toggles[3].click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.expandedSection()).toBeNull();
+  });
+
+  it.each([
+    ['/account/profile', 'account'],
+    ['/account/manage/properties', 'manage'],
+    ['/account/manage/agency', 'agency'],
+    ['/account/manage/agency/team', 'agency'],
+    ['/staff/listings', 'staff'],
+    ['/account/messages', null],
+  ])('auto-expands the context for %s and highlights a collapsed parent', (url, section) => {
+    user.set({ is_staff: true });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.currentUrl.set(url!);
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.expandedSection()).toBe(section);
+    if (section) {
+      const button = fixture.nativeElement.querySelector(
+        '[aria-controls="mobile-section-' + section + '"]',
+      );
+      button.click();
+      fixture.detectChanges();
+      expect(button.classList.contains('context-active')).toBe(true);
+    }
+  });
+
+  it('offers management to seekers without exposing staff or agency links', () => {
+    user.set({ first_name: 'Seeker' });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    const drawer = fixture.nativeElement.querySelector('.drawer');
+    expect(drawer.querySelectorAll('.accordion-toggle').length).toBe(3);
+    expect(drawer.textContent).toContain('Create an agency');
+    expect(drawer.querySelectorAll('a[href="/account/saved"]').length).toBe(1);
+    expect(drawer.querySelectorAll('a[href="/account/messages"]').length).toBe(1);
+    expect(drawer.querySelector('#mobile-section-manage').textContent).not.toContain(
+      'Create an agency',
+    );
+    expect(drawer.querySelector('a[href="/account/manage/agency"]')).toBeNull();
+    expect(drawer.querySelector('a[href="/account/manage/agency/team"]')).toBeNull();
+    expect(drawer.querySelector('.primary-cta').textContent).toContain('List a Property');
+  });
+  it('navigates through an expanded child and restores scroll after closing', async () => {
+    user.set({ first_name: 'Ava' });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[aria-controls="mobile-section-account"]').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.drawer a[href="/account/profile"]').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(TestBed.inject(Router).url).toBe('/account/profile');
+    expect(fixture.componentInstance.menuState()).toBe('closing');
+    finishDrawerClose(fixture);
+    expect(fixture.nativeElement.querySelector('.backdrop')).toBeNull();
+    expect(document.body.style.position).toBe('');
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    const active = [
+      ...fixture.nativeElement.querySelectorAll('.drawer a[aria-current="page"]'),
+    ] as HTMLAnchorElement[];
+    expect(active.map((link) => link.textContent?.trim())).toEqual(['Profile']);
+  });
+
+  it('does not let collapsed children become the focus-trap endpoint', () => {
+    user.set({ first_name: 'Ava' });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    const logout = fixture.nativeElement.querySelector('.logout-row') as HTMLButtonElement;
+    logout.focus();
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    logout.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.drawer-head a'));
+  });
+  it('renders neutral account controls and drawer while auth initializes', () => {
+    initializing.set(true);
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openMenu();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-label="Loading account"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/register"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Log out');
+    user.set({ first_name: 'Andy' });
+    initializing.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Andy');
+    expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
   });
 });

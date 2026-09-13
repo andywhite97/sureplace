@@ -1,48 +1,56 @@
-import { Component, DestroyRef, HostListener, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { catchError, of } from 'rxjs';
-import { AgencyManagementApiService } from '../core/api/manage-api.services';
+import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
+import { ConfigApiService } from '../core/api/config-api.service';
+import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
+import { AgencyNavigationService } from '../core/services/agency-navigation.service';
+import {
+  accountNavigation,
+  desktopNavigation,
+  navigationActive,
+  unreadBadgeLabel,
+  NavigationBadge,
+} from '../core/services/account-navigation.config';
 import { SeoService } from '../core/services/seo.service';
-
-type AccountBadge = 'saved' | 'messages' | 'alerts' | 'bookings' | 'notifications';
-type AccountLink = { label: string; path: string; badge?: AccountBadge; exact?: boolean };
 
 @Component({
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterOutlet],
   template: `<main class="account">
-    <aside>
-      <h1>My SurePlace</h1>
-      <nav aria-label="Account navigation">
-        <p>My Account</p>
-        @for (link of links; track link.path) {
-          <a
-            [routerLink]="link.path"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
-          >
-            <span>{{ link.label }}</span>
-            @if (badge(link.badge)) {
-              <b>{{ badge(link.badge) }}</b>
-            }
-          </a>
+    @if (auth.isAuthenticated()) {
+      <aside>
+        <h1>My SurePlace</h1>
+        @if (auth.user()?.first_name; as name) {
+          <p class="user-summary">
+            <i class="fa-solid fa-circle-user" aria-hidden="true"></i><span>{{ name }}</span>
+          </p>
         }
-        <p>Manage Listings</p>
-        @for (link of visibleManageLinks(); track link.path) {
-          <a
-            [routerLink]="link.path"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
-          >
-            <span>{{ link.label }}</span>
-            @if (badge(link.badge)) {
-              <b>{{ badge(link.badge) }}</b>
-            }
-          </a>
-        }
-      </nav>
-    </aside>
+        <nav aria-label="Account navigation">
+          @for (section of sections(); track section.id) {
+            <section
+              [class.staff-switch]="section.id === 'staff'"
+              [attr.aria-labelledby]="'account-heading-' + section.id"
+            >
+              <h2 [id]="'account-heading-' + section.id">{{ section.title }}</h2>
+              @for (link of section.items; track link.commands) {
+                <a
+                  [routerLink]="link.commands"
+                  [class.active]="isActive(currentUrl(), link)"
+                  [attr.aria-current]="isActive(currentUrl(), link) ? 'page' : null"
+                >
+                  <i [class]="link.icon" aria-hidden="true"></i><span>{{ link.label }}</span>
+                  @if (badge(link.badge); as count) {
+                    <b [attr.aria-label]="badgeLabel(link.badge, count)">{{ count }}</b>
+                  }
+                </a>
+              }
+            </section>
+          }
+        </nav>
+      </aside>
+    }
     <section class="content"><router-outlet /></section>
   </main>`,
   styles: [
@@ -57,110 +65,128 @@ type AccountLink = { label: string; path: string; badge?: AccountBadge; exact?: 
       aside {
         position: sticky;
         top: calc(var(--app-header-height, 72px) + 1rem);
+        max-height: calc(100dvh - var(--app-header-height, 72px) - 2rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
         background: white;
-        padding: 1.25rem;
+        padding: 1rem;
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         align-self: start;
       }
       h1 {
         font-size: 1.25rem;
+        margin: 0 0 0.65rem;
       }
-      nav {
-        display: grid;
-        gap: 0.2rem;
-      }
-      nav p {
-        margin: 0.75rem 0 0.2rem;
+      .user-summary {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 0 0 0.5rem;
         color: var(--slate);
-        font-size: 0.72rem;
+        font-size: 0.9rem;
+      }
+      .user-summary span {
+        overflow-wrap: anywhere;
+      }
+      nav,
+      nav section {
+        display: grid;
+        gap: 0.15rem;
+      }
+      h2 {
+        margin: 1.2rem 0.55rem 0.35rem;
+        color: var(--slate);
+        font-size: 0.68rem;
         text-transform: uppercase;
-        font-weight: 900;
+        letter-spacing: 0.05em;
+        font-weight: 800;
       }
       a {
         display: flex;
-        justify-content: space-between;
-        gap: 0.7rem;
+        gap: 0.6rem;
         align-items: center;
-        padding: 0.7rem;
+        min-height: 44px;
+        padding: 0.55rem;
         border-radius: var(--radius-sm);
         color: var(--slate);
         text-decoration: none;
+        font-size: 0.88rem;
       }
-      .active {
+      a span {
+        flex: 1;
+        min-width: 0;
+      }
+      a i {
+        width: 1.1rem;
+        flex: 0 0 1.1rem;
+        text-align: center;
+        opacity: 0.8;
+      }
+      a:hover {
+        background: var(--mist);
+      }
+      a:focus-visible {
+        outline: 3px solid var(--teal);
+        outline-offset: 2px;
+      }
+      a.active {
         background: var(--mist);
         color: var(--teal);
-        font-weight: 700;
+        font-weight: 750;
+        box-shadow: inset 3px 0 var(--teal);
       }
       b {
-        min-width: 1.45rem;
+        min-width: 1.35rem;
         text-align: center;
         border-radius: 999px;
         background: var(--teal);
-        color: #fff;
-        font-size: 0.7rem;
-        padding: 0.15rem 0.35rem;
+        color: white;
+        font-size: 0.68rem;
+        padding: 0.15rem 0.3rem;
+      }
+      .staff-switch {
+        border-top: 1px solid var(--line);
+        margin-top: 1rem;
       }
       .content {
         min-width: 0;
         overflow-x: clip;
       }
-      @media (max-width: 760px) {
+      @media (max-width: 850px) {
         .account {
           display: block;
           width: min(100% - 1rem, 1380px);
           margin: 0.75rem auto 6rem;
         }
         aside {
-          position: static;
-          overflow: auto;
-          margin-bottom: 1rem;
-          padding: 0.7rem;
-        }
-        aside h1 {
           display: none;
-        }
-        nav {
-          display: flex;
-          width: max-content;
-        }
-        nav p {
-          align-self: center;
-          margin: 0 0.4rem;
         }
       }
     `,
   ],
 })
 export class AccountShellComponent {
+  auth = inject(AuthService);
   store = inject(AccountActivityStore);
+  private config = inject(ConfigApiService);
+  private agency = inject(AgencyNavigationService);
   private seo = inject(SeoService);
   private destroy = inject(DestroyRef);
-  private agencyApi = inject(AgencyManagementApiService);
-  hasAgency = signal(false);
-  links: AccountLink[] = [
-    { label: 'Overview', path: '/account', exact: true },
-    { label: 'Saved', path: '/account/saved', badge: 'saved' },
-    { label: 'Messages', path: '/account/messages', badge: 'messages' },
-    { label: 'Alerts', path: '/account/alerts', badge: 'alerts' },
-    { label: 'Viewings', path: '/account/viewings' },
-    { label: 'Bookings', path: '/account/bookings', badge: 'bookings' },
-    { label: 'Notifications', path: '/account/notifications', badge: 'notifications' },
-    { label: 'Profile', path: '/account/profile' },
-    { label: 'Settings', path: '/account/settings' },
-  ];
-  manageLinks: AccountLink[] = [
-    { label: 'Dashboard', path: '/account/manage', exact: true },
-    { label: 'Create an agency', path: '/account/manage/agency/create', exact: true },
-    { label: 'Agency', path: '/account/manage/agency', exact: true },
-    { label: 'Team', path: '/account/manage/agency/team' },
-    { label: 'Properties', path: '/account/manage/properties' },
-    { label: 'Stays', path: '/account/manage/stays' },
-    { label: 'Viewings', path: '/account/manage/viewings' },
-    { label: 'Bookings', path: '/account/manage/bookings', badge: 'bookings' },
-    { label: 'Verification', path: '/account/manage/verification' },
-  ];
-
+  private router = inject(Router);
+  currentUrl = signal(this.router.url);
+  sections = computed(() =>
+    desktopNavigation(
+      accountNavigation({
+        authenticated: this.auth.isAuthenticated(),
+        staff: !!this.auth.user()?.is_staff,
+        agencyLinks: this.agency.links(),
+        features: this.config.config().features,
+      }),
+    ),
+  );
+  isActive = navigationActive;
+  badgeLabel = unreadBadgeLabel;
   constructor() {
     this.seo.privatePage(
       'My SurePlace',
@@ -168,38 +194,24 @@ export class AccountShellComponent {
     );
     this.store.refresh();
     this.store.startPolling();
-    this.agencyApi
-      .mine()
-      .pipe(catchError(() => of([])))
-      .subscribe((agencies) => this.hasAgency.set(agencies.length > 0));
+    this.agency.refresh();
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe((event) => this.currentUrl.set(event.urlAfterRedirects));
     this.destroy.onDestroy(() => this.store.stopPolling());
   }
-
-  visibleManageLinks() {
-    return this.manageLinks.filter((link) => {
-      if (this.hasAgency()) return link.label !== 'Create an agency';
-      return !['Agency', 'Team'].includes(link.label);
-    });
+  badge(kind?: NavigationBadge) {
+    const value =
+      kind === 'messages'
+        ? this.store.unreadMessages()
+        : kind === 'notifications'
+          ? this.store.unreadNotifications()
+          : 0;
+    return value > 99 ? '99+' : value ? String(value) : '';
   }
-
-  badge(kind?: AccountBadge) {
-    const s = this.store.summary();
-    if (!kind || !s) return '';
-    const n =
-      kind === 'saved'
-        ? this.store.savedTotal()
-        : kind === 'messages'
-          ? this.store.unreadMessages()
-          : kind === 'alerts'
-            ? s.active_saved_searches
-            : kind === 'bookings'
-              ? s.pending_bookings
-              : kind === 'notifications'
-                ? s.unread_notifications
-                : 0;
-    return n > 99 ? '99+' : n ? String(n) : '';
-  }
-
   @HostListener('document:visibilitychange')
   visible() {
     if (!document.hidden) this.store.refresh(true);

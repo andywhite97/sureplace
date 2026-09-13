@@ -7,11 +7,21 @@ import {
   computed,
   effect,
   inject,
+  input,
   signal,
   viewChild,
 } from '@angular/core';
 import { NavigationEnd, Params, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs';
+import {
+  accountNavigation,
+  mobileAccountNavigation,
+  mobileRouteSection,
+  navigationActive,
+  unreadBadgeLabel,
+  MobileSectionId,
+} from '../core/services/account-navigation.config';
+import { AgencyNavigationService } from '../core/services/agency-navigation.service';
 import { ConfigApiService } from '../core/api/config-api.service';
 import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
@@ -24,59 +34,92 @@ type NavItem = {
   badge?: 'messages' | 'notifications';
   action?: 'logout';
   icon?: string;
+  exact?: boolean;
+  activePaths?: string[];
   cta?: 'primary' | 'secondary';
 };
-type NavSection = { title: string; items: NavItem[] };
+type SectionId = MobileSectionId;
+type NavSection = { title: string; items: NavItem[]; id?: SectionId; icon?: string };
 type MenuState = 'closed' | 'open' | 'closing';
 
 @Component({
   selector: 'sp-header',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
-  template: `<header>
+  template: `<header [class.staff-header]="staffWorkspace()">
       <a routerLink="/" class="logo" aria-label="SurePlace home" (click)="closeMenu()">
         <img src="/logo_dark.png" alt="SurePlace" width="420" height="140" />
       </a>
-      <nav class="desktop-nav" aria-label="Main navigation">
-        <a
-          routerLink="/properties"
-          routerLinkActive="active"
-          [attr.aria-current]="isPropertiesActive() ? 'page' : null"
-          >Properties</a
+      @if (staffWorkspace()) {
+        <span class="console-label">Staff Console</span>
+        <form class="staff-search" role="search" (submit)="searchStaff($event, staffSearch.value)">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input
+            #staffSearch
+            type="search"
+            aria-label="Search property listings"
+            placeholder="Search listings by title, ID or agency"
+          />
+          <button type="submit" aria-label="Search listings">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </button>
+        </form>
+        <div class="staff-identity">
+          <span class="staff-avatar" aria-hidden="true">{{ staffInitials() }}</span
+          ><span>{{ auth.user()?.first_name || 'Staff' }}<small>Staff member</small></span>
+        </div>
+        <a class="exit-console" aria-label="Exit Console" routerLink="/account"
+          ><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i
+          ><span>Exit Console</span></a
         >
-        @if (config.config().features.stays) {
-          <a routerLink="/stays" routerLinkActive="active">Stays</a>
-        }
-        <a routerLink="/agents" routerLinkActive="active">Agents</a>
-        @if (auth.isAuthenticated()) {
-          <a routerLink="/account/saved" routerLinkActive="active">Saved</a>
-          @if (config.config().features.internal_messaging) {
-            <a routerLink="/account/messages" routerLinkActive="active">Messages</a>
+      } @else {
+        <nav class="desktop-nav" aria-label="Main navigation">
+          <a
+            routerLink="/properties"
+            routerLinkActive="active"
+            [attr.aria-current]="isPropertiesActive() ? 'page' : null"
+            >Properties</a
+          >
+          @if (config.config().features.stays) {
+            <a routerLink="/stays" routerLinkActive="active">Stays</a>
           }
-        }
-      </nav>
-      <div class="actions">
-        @if (auth.isAuthenticated()) {
-          <a routerLink="/account">{{ auth.user()?.first_name || 'Account' }}</a>
-          <button type="button" (click)="auth.logout()">Log out</button>
-        } @else {
-          <a routerLink="/login">Log in</a>
-          @if (config.config().features.registration) {
-            <a routerLink="/register">Create account</a>
+          <a routerLink="/agents" routerLinkActive="active">Agents</a>
+          @if (auth.isAuthenticated()) {
+            <a routerLink="/account/saved" routerLinkActive="active">Saved</a>
+            @if (config.config().features.internal_messaging) {
+              <a routerLink="/account/messages" routerLinkActive="active">Messages</a>
+            }
           }
-        }
-        <a class="cta" [routerLink]="primaryCta().commands">{{ primaryCta().label }}</a>
-      </div>
-      <div class="mobile-shortcuts" aria-label="Quick account actions">
-        @if (auth.isAuthenticated()) {
-          <a routerLink="/account/saved" aria-label="Saved listings">
-            <i class="fa-regular fa-heart" aria-hidden="true"></i>
-          </a>
-        }
-        <a [routerLink]="auth.isAuthenticated() ? '/account' : '/login'" aria-label="Account">
-          <i class="fa-solid fa-user" aria-hidden="true"></i>
-        </a>
-      </div>
+        </nav>
+        <div class="actions">
+          @if (auth.isAuthenticated()) {
+            <a routerLink="/account">{{ auth.user()?.first_name || 'Account' }}</a>
+            <button type="button" (click)="auth.logout()">Log out</button>
+          } @else if (auth.status() === 'unauthenticated') {
+            <a routerLink="/login">Log in</a>
+            @if (config.config().features.registration) {
+              <a routerLink="/register">Create account</a>
+            }
+          }
+          @if (auth.status() === 'initializing') {
+            <span class="auth-placeholder" role="status" aria-label="Loading account"></span>
+          } @else {
+            <a class="cta" [routerLink]="primaryCta().commands">{{ primaryCta().label }}</a>
+          }
+        </div>
+        <div class="mobile-shortcuts" aria-label="Quick account actions">
+          @if (auth.isAuthenticated()) {
+            <a routerLink="/account/saved" aria-label="Saved listings">
+              <i class="fa-regular fa-heart" aria-hidden="true"></i>
+            </a>
+          }
+          @if (auth.status() !== 'initializing') {
+            <a [routerLink]="auth.isAuthenticated() ? '/account' : '/login'" aria-label="Account">
+              <i class="fa-solid fa-user" aria-hidden="true"></i>
+            </a>
+          }
+        </div>
+      }
       <button
         #menuButton
         class="menu-button"
@@ -117,47 +160,92 @@ type MenuState = 'closed' | 'open' | 'closing';
           </button>
         </div>
         <nav aria-label="Mobile navigation">
+          @if (auth.status() === 'initializing') {
+            <span class="auth-placeholder" role="status" aria-label="Loading account"></span>
+          }
           @for (section of mobileSections(); track section.title) {
             <section>
-              <h2>{{ section.title }}</h2>
-              @for (item of visible(section.items); track item.label; let row = $index) {
-                @if (item.action === 'logout') {
-                  <button
-                    type="button"
-                    class="drawer-row"
-                    [style.animation-delay.ms]="drawerRowDelay(row)"
-                    (click)="logout()"
-                  >
-                    <span>
-                      <i
-                        [class]="item.icon || 'fa-solid fa-right-from-bracket'"
-                        aria-hidden="true"
-                      ></i>
-                      {{ item.label }}
-                    </span>
-                  </button>
-                } @else {
-                  <a
-                    class="drawer-row"
-                    [routerLink]="item.commands"
-                    [queryParams]="item.queryParams"
-                    [class.current]="isActive(item)"
-                    [class.secondary-cta]="item.cta === 'secondary'"
-                    [class.primary-cta]="item.cta === 'primary'"
-                    [style.animation-delay.ms]="drawerRowDelay(row)"
-                    [attr.aria-current]="isActive(item) ? 'page' : null"
-                    (click)="closeMenu()"
-                  >
-                    <span>
-                      <i [class]="item.icon || 'fa-regular fa-circle'" aria-hidden="true"></i>
-                      {{ item.label }}
-                    </span>
-                    @if (badge(item.badge)) {
-                      <b>{{ badge(item.badge) }}</b>
-                    }
-                  </a>
-                }
+              @if (section.id) {
+                <button
+                  type="button"
+                  class="accordion-toggle"
+                  [class.context-active]="
+                    currentSection() === section.id && expandedSection() !== section.id
+                  "
+                  [attr.aria-expanded]="expandedSection() === section.id"
+                  [attr.aria-controls]="'mobile-section-' + section.id"
+                  (click)="toggleSection(section.id)"
+                >
+                  <span><i [class]="section.icon" aria-hidden="true"></i>{{ section.title }}</span>
+                  @if (
+                    section.id === 'account' &&
+                    expandedSection() !== section.id &&
+                    badge('notifications')
+                  ) {
+                    <b [attr.aria-label]="badgeLabel('notifications', badge('notifications'))">{{
+                      badge('notifications')
+                    }}</b>
+                  }
+                  <i
+                    class="fa-solid fa-chevron-right chevron"
+                    [class.expanded]="expandedSection() === section.id"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+              } @else if (section.title) {
+                <h2>{{ section.title }}</h2>
               }
+              <div
+                class="section-panel"
+                [class.accordion-panel]="!!section.id"
+                [class.expanded]="!section.id || expandedSection() === section.id"
+                [id]="section.id ? 'mobile-section-' + section.id : null"
+                [attr.inert]="section.id && expandedSection() !== section.id ? '' : null"
+                [attr.aria-hidden]="section.id && expandedSection() !== section.id ? 'true' : null"
+              >
+                <div class="section-children">
+                  @for (item of visible(section.items); track item.label; let row = $index) {
+                    @if (item.action === 'logout') {
+                      <button
+                        type="button"
+                        class="drawer-row logout-row"
+                        [style.animation-delay.ms]="drawerRowDelay(row)"
+                        (click)="logout()"
+                      >
+                        <span>
+                          <i
+                            [class]="item.icon || 'fa-solid fa-right-from-bracket'"
+                            aria-hidden="true"
+                          ></i>
+                          {{ item.label }}
+                        </span>
+                      </button>
+                    } @else {
+                      <a
+                        class="drawer-row"
+                        [routerLink]="item.commands"
+                        [queryParams]="item.queryParams"
+                        [class.current]="isActive(item)"
+                        [class.secondary-cta]="item.cta === 'secondary'"
+                        [class.primary-cta]="item.cta === 'primary'"
+                        [style.animation-delay.ms]="drawerRowDelay(row)"
+                        [attr.aria-current]="isActive(item) ? 'page' : null"
+                        (click)="closeMenu()"
+                      >
+                        <span>
+                          <i [class]="item.icon || 'fa-regular fa-circle'" aria-hidden="true"></i>
+                          {{ item.label }}
+                        </span>
+                        @if (badge(item.badge)) {
+                          <b [attr.aria-label]="badgeLabel(item.badge, badge(item.badge))">{{
+                            badge(item.badge)
+                          }}</b>
+                        }
+                      </a>
+                    }
+                  }
+                </div>
+              </div>
             </section>
           }
         </nav>
@@ -217,6 +305,115 @@ type MenuState = 'closed' | 'open' | 'closing';
           color var(--motion-fast) var(--ease-sureplace),
           background-color var(--motion-fast) var(--ease-sureplace),
           transform var(--motion-fast) var(--ease-sureplace);
+      }
+      .staff-header {
+        gap: 1rem;
+        padding-inline: clamp(1rem, 2.5vw, 2.5rem);
+      }
+      .console-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--teal);
+        background: var(--mist);
+        padding: 0.4rem 0.6rem;
+        border-radius: 0.5rem;
+        white-space: nowrap;
+      }
+      .staff-search {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex: 1;
+        max-width: 460px;
+        min-width: 120px;
+        padding: 0.2rem 0.6rem;
+        background: var(--mist);
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        color: var(--slate);
+      }
+      .staff-search input {
+        min-width: 0;
+        width: 100%;
+        border: 0;
+        background: transparent;
+        padding: 0.6rem 0;
+        font: inherit;
+        font-size: 0.85rem;
+      }
+      .staff-search button {
+        min-width: 44px;
+        min-height: 44px;
+      }
+      .staff-identity {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-left: auto;
+        font-size: 0.85rem;
+      }
+      .staff-identity small {
+        display: block;
+        color: var(--slate);
+        font-size: 0.7rem;
+      }
+      .staff-avatar {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        background: var(--mist);
+        color: var(--teal);
+        border-radius: 50%;
+        font-weight: 800;
+      }
+      .exit-console {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+      @media (max-width: 1100px) {
+        .staff-search {
+          display: none;
+        }
+      }
+      @media (max-width: 850px) {
+        .staff-identity {
+          display: none;
+        }
+        .staff-header .exit-console {
+          margin-left: auto;
+        }
+        .staff-header {
+          gap: 0.6rem;
+        }
+      }
+      @media (max-width: 560px) {
+        .staff-header .logo img {
+          max-width: 100px;
+          height: auto;
+        }
+        .staff-header .exit-console span {
+          display: none;
+        }
+        .staff-header .exit-console {
+          width: 44px;
+          justify-content: center;
+        }
+        .console-label {
+          font-size: 0.65rem;
+          padding: 0.3rem 0.4rem;
+        }
+      }
+      .auth-placeholder {
+        display: block;
+        width: 7rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        background: var(--mist);
       }
       .active {
         color: var(--teal);
@@ -328,6 +525,57 @@ type MenuState = 'closed' | 'open' | 'closing';
       .drawer section {
         display: grid;
         gap: 0.12rem;
+      }
+      .section-children {
+        min-height: 0;
+        display: grid;
+        gap: 0.12rem;
+      }
+      .accordion-panel {
+        display: grid;
+        grid-template-rows: 0fr;
+        visibility: hidden;
+        transition:
+          grid-template-rows 200ms ease,
+          visibility 200ms;
+      }
+      .accordion-panel.expanded {
+        grid-template-rows: 1fr;
+        visibility: visible;
+      }
+      .accordion-panel .section-children {
+        overflow: hidden;
+        padding-left: 0.85rem;
+      }
+      .drawer .accordion-panel a span {
+        font-size: 0.92rem;
+      }
+      .drawer .accordion-toggle {
+        width: 100%;
+        font-weight: 750;
+      }
+      .drawer .accordion-toggle > span {
+        flex: 1;
+      }
+      .drawer .accordion-toggle .chevron {
+        width: 16px;
+        font-size: 0.8rem;
+        transition: transform 180ms ease;
+      }
+      .chevron.expanded {
+        transform: rotate(90deg);
+      }
+      .drawer .context-active {
+        color: var(--teal);
+        background: color-mix(in srgb, var(--teal) 4%, white);
+      }
+      .drawer nav .logout-row {
+        margin-top: 0.75rem;
+        border-top: 1px solid var(--line);
+        color: #955050;
+      }
+      .drawer {
+        overscroll-behavior: contain;
       }
       .drawer h2 {
         margin: 0 0 0.45rem;
@@ -472,6 +720,8 @@ type MenuState = 'closed' | 'open' | 'closing';
         a,
         button,
         .backdrop,
+        .accordion-panel,
+        .chevron,
         .drawer,
         .drawer a,
         .drawer nav button {
@@ -499,7 +749,25 @@ type MenuState = 'closed' | 'open' | 'closing';
   ],
 })
 export class PublicHeaderComponent {
+  staffWorkspace = input(false);
+  staffInitials = computed(
+    () =>
+      [this.auth.user()?.first_name, this.auth.user()?.last_name]
+        .filter(Boolean)
+        .map((name) => name![0])
+        .join('')
+        .slice(0, 2) || 'SP',
+  );
+  searchStaff(event: Event, search: string) {
+    event.preventDefault();
+    void this.router.navigate(['/staff/listings'], {
+      queryParams: { search: search.trim(), status: '' },
+    });
+  }
+
   auth = inject(AuthService);
+  agencyNavigation = inject(AgencyNavigationService);
+  expandedSection = signal<SectionId | null>(null);
   config = inject(ConfigApiService);
   private router = inject(Router);
   private document = inject(DOCUMENT);
@@ -528,7 +796,11 @@ export class PublicHeaderComponent {
         : { label: 'List a Property', commands: '/account' },
   );
   mobileSections = computed<NavSection[]>(() =>
-    this.auth.isAuthenticated() ? this.authenticatedSections() : this.anonymousSections(),
+    this.auth.status() === 'initializing'
+      ? [this.anonymousSections()[0]]
+      : this.auth.isAuthenticated()
+        ? this.authenticatedSections()
+        : this.anonymousSections(),
   );
 
   constructor() {
@@ -584,134 +856,45 @@ export class PublicHeaderComponent {
     ];
   }
 
+  accountSections = computed(() =>
+    accountNavigation({
+      authenticated: this.auth.isAuthenticated(),
+      staff: !!this.auth.user()?.is_staff,
+      agencyLinks: this.agencyNavigation.links(),
+      features: this.config.config().features,
+    }),
+  );
+  badgeLabel = unreadBadgeLabel;
+
   authenticatedSections(): NavSection[] {
+    const shared = this.accountSections();
     const sections: NavSection[] = [
       {
         title: 'Explore',
         items: [
-          { label: 'Home', commands: '/', icon: 'fa-solid fa-house' },
-          {
-            label: 'Properties',
-            commands: '/properties',
-            icon: 'fa-solid fa-building',
-          },
-          { label: 'Stays', commands: '/stays', feature: 'stays', icon: 'fa-solid fa-bed' },
-          { label: 'Agents', commands: '/agents', icon: 'fa-solid fa-user-tie' },
-          { label: 'Saved', commands: '/account/saved', icon: 'fa-solid fa-heart' },
-          {
-            label: 'Messages',
-            commands: '/account/messages',
-            feature: 'internal_messaging',
-            badge: 'messages',
-            icon: 'fa-solid fa-message',
-          },
+          ...this.anonymousSections()[0].items,
+          ...shared.flatMap((section) => section.items.filter((item) => item.mobileExplore)),
         ],
       },
-      {
-        title: 'Account',
-        items: [
-          { label: 'Account', commands: '/account', icon: 'fa-solid fa-circle-user' },
-          {
-            label: 'Saved Searches / Alerts',
-            commands: '/account/alerts',
-            icon: 'fa-solid fa-bell',
-          },
-          {
-            label: 'Viewings',
-            commands: '/account/viewings',
-            icon: 'fa-solid fa-calendar-check',
-          },
-          {
-            label: 'Bookings',
-            commands: '/account/bookings',
-            feature: 'bookings',
-            icon: 'fa-solid fa-suitcase',
-          },
-          {
-            label: 'Notifications',
-            commands: '/account/notifications',
-            badge: 'notifications',
-            icon: 'fa-solid fa-inbox',
-          },
-          { label: 'Profile', commands: '/account/profile', icon: 'fa-solid fa-id-card' },
-          { label: 'Settings', commands: '/account/settings', icon: 'fa-solid fa-gear' },
-          {
-            label: 'Log out',
-            commands: '#',
-            action: 'logout',
-            icon: 'fa-solid fa-right-from-bracket',
-          },
-        ],
-      },
+      ...mobileAccountNavigation(shared),
     ];
-    if (this.hasSupplyAccess()) {
-      sections.push({
-        title: 'Manage Listings',
-        items: [
-          {
-            label: 'Management Dashboard',
-            commands: '/account/manage',
-            icon: 'fa-solid fa-gauge-high',
-          },
-          {
-            label: 'Properties',
-            commands: '/account/manage/properties',
-            icon: 'fa-solid fa-building-user',
-          },
-          {
-            label: 'Stays',
-            commands: '/account/manage/stays',
-            feature: 'stays',
-            icon: 'fa-solid fa-hotel',
-          },
-          {
-            label: 'Viewings',
-            commands: '/account/manage/viewings',
-            icon: 'fa-solid fa-calendar-days',
-          },
-          {
-            label: 'Bookings',
-            commands: '/account/manage/bookings',
-            feature: 'bookings',
-            icon: 'fa-solid fa-book-open',
-          },
-          {
-            label: 'Verification',
-            commands: '/account/manage/verification',
-            icon: 'fa-solid fa-shield-halved',
-          },
-        ],
-      });
-    } else {
-      sections.push({
-        title: 'Manage Listings',
-        items: [
-          {
-            label: 'List a Property',
-            commands: '/account/manage/properties/new',
-            icon: 'fa-solid fa-plus',
-            cta: 'primary',
-          },
-        ],
-      });
-    }
-    if (this.auth.user()?.is_staff) {
-      sections.push({
-        title: 'Staff',
-        items: [
-          {
-            label: 'Moderation Console',
-            commands: '/staff',
-            icon: 'fa-solid fa-shield-halved',
-          },
-          {
-            label: 'Listing Queue',
-            commands: '/staff/listings',
-            icon: 'fa-solid fa-building-user',
-          },
-        ],
-      });
-    }
+    sections.push({
+      title: '',
+      items: [
+        {
+          label: 'List a Property',
+          commands: '/account/manage/properties/new',
+          icon: 'fa-solid fa-plus',
+          cta: 'primary',
+        },
+        {
+          label: 'Log out',
+          commands: '#',
+          action: 'logout',
+          icon: 'fa-solid fa-right-from-bracket',
+        },
+      ],
+    });
     return sections;
   }
 
@@ -737,9 +920,20 @@ export class PublicHeaderComponent {
     return this.currentUrl().startsWith('/properties');
   }
 
+  currentSection(): SectionId | null {
+    if (!this.auth.isAuthenticated()) return null;
+    return mobileRouteSection(this.currentUrl(), this.accountSections());
+  }
+
+  toggleSection(id: SectionId) {
+    this.expandedSection.update((current) => (current === id ? null : id));
+  }
+
   openMenu() {
     if (!this.isBrowser()) return;
     if (this.menuState() !== 'closed') return;
+    this.expandedSection.set(this.currentSection());
+    this.agencyNavigation.refresh();
     this.menuRendered.set(true);
     this.menuState.set('open');
     this.lockScroll();
@@ -772,15 +966,8 @@ export class PublicHeaderComponent {
   }
 
   isActive(item: NavItem) {
-    if (typeof item.commands !== 'string') return false;
-    const url = this.currentUrl();
-    if (item.queryParams?.['listing_type']) {
-      return (
-        url.startsWith(item.commands) &&
-        url.includes(`listing_type=${item.queryParams['listing_type']}`)
-      );
-    }
-    return url === item.commands || (item.commands !== '/' && url.startsWith(item.commands));
+    if (item.cta || typeof item.commands !== 'string') return false;
+    return navigationActive(this.currentUrl(), { ...item, commands: item.commands });
   }
 
   trapFocus(event: KeyboardEvent) {
@@ -791,7 +978,7 @@ export class PublicHeaderComponent {
       root.querySelectorAll<HTMLElement>(
         'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])',
       ),
-    ).filter((item) => !item.hasAttribute('disabled'));
+    ).filter((item) => !item.hasAttribute('disabled') && !item.closest('[inert]'));
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (!first || !last) return;

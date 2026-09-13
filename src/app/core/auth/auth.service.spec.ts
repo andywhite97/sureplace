@@ -50,6 +50,8 @@ describe('AuthService', () => {
     http.expectOne('/api/v1/auth/me/').flush(user);
     expect(completed).toBe(true);
     expect(auth.user()).toEqual(user);
+    expect(auth.status()).toBe('authenticated');
+    expect(auth.isAuthenticated()).toBe(true);
     expect(storage.read()?.access).toBe('access');
   });
 
@@ -67,6 +69,8 @@ describe('AuthService', () => {
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigateByUrl');
     auth.logout();
+    expect(auth.status()).toBe('unauthenticated');
+    expect(storage.read()).toBeNull();
     http.expectOne('/api/v1/auth/logout/').flush({});
     expect(storage.read()).toBeNull();
     expect(navigate).toHaveBeenCalledWith('/');
