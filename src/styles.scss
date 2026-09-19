@@ -189,7 +189,7 @@ input:focus-visible {
 }
 @media (max-width: 700px) {
   body {
-    padding-bottom: 66px;
+    padding-bottom: calc(66px + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 600px) {

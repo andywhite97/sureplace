@@ -36,7 +36,17 @@ export const routes: Routes = [
       import('./features/stays/detail/stay-detail.component').then((m) => m.StayDetailComponent),
     title: 'Stay | SurePlace',
   },
-  { path: 'agents', loadComponent: placeholder, data: { title: 'SurePlace agents' } },
+  {
+    path: 'agents',
+    loadComponent: () => import('./features/agents/agents.component').then((m) => m.AgentsComponent),
+    title: 'Agents | SurePlace',
+  },
+  {
+    path: 'agents/:id',
+    loadComponent: () =>
+      import('./features/agents/agent-profile.component').then((m) => m.AgentProfileComponent),
+    title: 'Agent profile | SurePlace',
+  },
   {
     path: 'verification',
     loadComponent: placeholder,

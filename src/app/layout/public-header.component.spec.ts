@@ -141,15 +141,16 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(properties).toBeTruthy();
   });
 
-  it('renders compact mobile shortcut icons without saved listings for guests', () => {
+  it('renders a mobile notification shortcut for guests', () => {
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
     const shortcuts = fixture.nativeElement.querySelectorAll('.mobile-shortcuts a');
     const menu = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
 
     expect(shortcuts.length).toBe(1);
-    expect(shortcuts[0].getAttribute('aria-label')).toBe('Account');
-    expect(shortcuts[0].querySelector('.fa-user')).toBeTruthy();
+    expect(shortcuts[0].getAttribute('aria-label')).toBe('Sign in to view notifications');
+    expect(shortcuts[0].getAttribute('href')).toBe('/login');
+    expect(shortcuts[0].querySelector('.fa-bell')).toBeTruthy();
     expect(menu.querySelector('.fa-bars')).toBeTruthy();
   });
 

@@ -10,7 +10,7 @@ import { MobileNavigationComponent } from './mobile-navigation.component';
 class EmptyComponent {}
 
 describe('MobileNavigationComponent', () => {
-  const user = signal<unknown | null>(null);
+  const user = signal<{ first_name: string; last_name?: string; avatar?: string | null } | null>(null);
   const config = signal({
     default_country: 'SZ',
     default_currency: 'SZL',
@@ -40,7 +40,7 @@ describe('MobileNavigationComponent', () => {
           { path: 'account/messages/:id', component: EmptyComponent },
           { path: 'account/manage/properties/:id/edit', component: EmptyComponent },
         ]),
-        { provide: AuthService, useValue: { user, isAuthenticated: computed(() => user() !== null) } },
+        { provide: AuthService, useValue: { user, isAuthenticated: computed(() => user() !== null), status: computed(() => user() ? 'authenticated' : 'unauthenticated') } },
         { provide: ConfigApiService, useValue: { config } },
         { provide: AccountActivityStore, useValue: { unreadMessages: computed(() => unreadMessages()) } },
       ],
@@ -68,6 +68,27 @@ describe('MobileNavigationComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain('Messages');
+  });
+
+  it('gives guests browse access and clear sign-in and join destinations', () => {
+    user.set(null);
+    const fixture = TestBed.createComponent(MobileNavigationComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Explore');
+    expect(fixture.nativeElement.textContent).toContain('Saved');
+    expect(fixture.nativeElement.textContent).toContain('Sign in');
+    expect(fixture.nativeElement.textContent).toContain('Join');
+    expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('a[href="/register"]')).toBeTruthy();
+  });
+
+  it('uses the uploaded profile image in the account destination', () => {
+    user.set({ first_name: 'Ava', avatar: '/media/ava.jpg' });
+    const fixture = TestBed.createComponent(MobileNavigationComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.account-link img')?.getAttribute('src')).toBe('/media/ava.jpg');
   });
 
   it('hides on contextual conversation and management form routes', async () => {

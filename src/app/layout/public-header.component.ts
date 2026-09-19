@@ -108,14 +108,22 @@ type MenuState = 'closed' | 'open' | 'closing';
           }
         </div>
         <div class="mobile-shortcuts" aria-label="Quick account actions">
-          @if (auth.isAuthenticated()) {
-            <a routerLink="/account/saved" aria-label="Saved listings">
-              <i class="fa-regular fa-heart" aria-hidden="true"></i>
-            </a>
-          }
           @if (auth.status() !== 'initializing') {
-            <a [routerLink]="auth.isAuthenticated() ? '/account' : '/login'" aria-label="Account">
-              <i class="fa-solid fa-user" aria-hidden="true"></i>
+            <a
+              class="notification-link"
+              [routerLink]="auth.isAuthenticated() ? '/account/notifications' : '/login'"
+              [attr.aria-label]="
+                auth.isAuthenticated()
+                  ? badge('notifications')
+                    ? badgeLabel('notifications', badge('notifications'))
+                    : 'Notifications'
+                  : 'Sign in to view notifications'
+              "
+            >
+              <i class="fa-regular fa-bell" aria-hidden="true"></i>
+              @if (auth.isAuthenticated() && badge('notifications')) {
+                <b aria-hidden="true">{{ badge('notifications') }}</b>
+              }
             </a>
           }
         </div>
@@ -436,6 +444,7 @@ type MenuState = 'closed' | 'open' | 'closing';
         gap: 0.35rem;
       }
       .mobile-shortcuts a {
+        position: relative;
         width: 42px;
         height: 42px;
         display: grid;
@@ -444,6 +453,18 @@ type MenuState = 'closed' | 'open' | 'closing';
         border-radius: var(--radius-sm);
         background: #fff;
         font-size: 1rem;
+      }
+      .mobile-shortcuts b {
+        position: absolute;
+        top: -0.2rem;
+        right: -0.2rem;
+        min-width: 1.2rem;
+        padding: 0.08rem 0.28rem;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 0.65rem;
+        line-height: 1.2;
       }
       .menu-button:active,
       .cta:active {
@@ -682,18 +703,30 @@ type MenuState = 'closed' | 'open' | 'closing';
         }
       }
       @media (max-width: 850px) {
-        header {
+        header:not(.staff-header) {
           height: 72px;
+          display: grid;
+          grid-template-columns: 44px minmax(0, 1fr) 44px;
+          gap: 0;
           padding-inline: 1rem;
+        }
+        header:not(.staff-header) > .logo {
+          grid-column: 2;
+          justify-self: center;
         }
         .desktop-nav,
         .actions {
           display: none;
         }
         .mobile-shortcuts {
+          grid-column: 3;
+          grid-row: 1;
           display: flex;
+          justify-self: end;
         }
         .menu-button {
+          grid-column: 1;
+          grid-row: 1;
           display: grid;
           margin-left: 0;
         }
