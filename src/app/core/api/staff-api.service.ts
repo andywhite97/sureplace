@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
-import { StaffDashboard, StaffDashboardActivity } from '../models/staff.models';
+import { StaffDashboard, StaffDashboardActivity, StaffReportReview } from '../models/staff.models';
+import { PaginatedResponse } from '../models/api.models';
 import { ApiClient } from './api-client';
 import {
   ModerationAuditEvent,
@@ -123,5 +124,30 @@ export class StaffApiService {
     return this.api.post<StaffProperty>(`/staff/properties/${encodeURIComponent(id)}/notes/`, {
       note,
     });
+  }
+
+  reports() {
+    return this.api.get<PaginatedResponse<StaffReportReview>>('/moderation/reports/');
+  }
+
+  assignReport(id: string) {
+    return this.api.post<StaffReportReview>(
+      `/moderation/reports/${encodeURIComponent(id)}/assign/`,
+      {},
+    );
+  }
+
+  resolveReport(id: string, notes: string) {
+    return this.api.post<StaffReportReview>(
+      `/moderation/reports/${encodeURIComponent(id)}/resolve/`,
+      { notes },
+    );
+  }
+
+  dismissReport(id: string, notes: string) {
+    return this.api.post<StaffReportReview>(
+      `/moderation/reports/${encodeURIComponent(id)}/dismiss/`,
+      { notes },
+    );
   }
 }

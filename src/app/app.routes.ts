@@ -1,7 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard, capabilityGuard, guestGuard, staffGuard } from './core/guards/auth.guard';
-const placeholder = () =>
-  import('./features/placeholder.component').then((m) => m.PlaceholderComponent);
 export const routes: Routes = [
   {
     path: '',
@@ -50,11 +48,9 @@ export const routes: Routes = [
   },
   {
     path: 'verification',
-    loadComponent: placeholder,
-    data: {
-      title: 'SurePlace verification',
-      message: 'How SurePlace verification helps you understand who you are dealing with.',
-    },
+    loadComponent: () =>
+      import('./features/verification-info.component').then((m) => m.VerificationInfoComponent),
+    title: 'SurePlace verification | Safer property decisions',
   },
   {
     path: 'login',
@@ -383,14 +379,8 @@ export const routes: Routes = [
       {
         path: 'reports',
         loadComponent: () =>
-          import('./features/staff/staff-placeholder.component').then(
-            (m) => m.StaffPlaceholderComponent,
-          ),
-        data: {
-          title: 'Reports',
-          message:
-            'Report review will live here. Property report context is already visible from listing detail.',
-        },
+          import('./features/staff/staff-reports.component').then((m) => m.StaffReportsComponent),
+        title: 'Listing reports | SurePlace staff',
       },
       {
         path: 'agencies',

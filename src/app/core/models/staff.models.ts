@@ -31,6 +31,20 @@ export interface StaffListingReport {
   created_at: string;
 }
 
+export interface StaffReportReview {
+  id: string;
+  reporter: string;
+  property: string | null;
+  stay: string | null;
+  reason: string;
+  details: string;
+  status: 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED';
+  assigned_to: string | null;
+  reviewed_at: string | null;
+  resolution_notes: string;
+  created_at: string;
+}
+
 export interface StaffProperty {
   id: string;
   public_id: string;
