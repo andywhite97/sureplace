@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize, forkJoin, Observable, of, shareReplay, tap } from 'rxjs';
 import { VerificationApiService } from '../../core/api/manage-api.services';
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import {
   VerificationDefinition,
   VerificationEligibility,
@@ -32,6 +33,7 @@ interface LocalFile {
 })
 export class VerificationComponent {
   private api = inject(VerificationApiService);
+  private toast = inject(ToastService);
   private draftCreation$?: Observable<VerificationRequestSummary>;
   readonly auth = inject(AuthService);
   definitions = signal<VerificationDefinition[]>([]);
@@ -305,13 +307,16 @@ export class VerificationComponent {
           this.draft.set(updated);
           this.requests.update((xs) => xs.map((x) => (x.id === updated.id ? updated : x)));
           this.step.set(3);
+          this.toast.show('Verification submitted for review.', 'success');
         },
-        error: (r) =>
-          this.error.set(
+        error: (r) => {
+          const message =
             r?.error?.detail ||
-              r?.error?.non_field_errors?.[0] ||
-              'Verification could not be submitted.',
-          ),
+            r?.error?.non_field_errors?.[0] ||
+            'Verification could not be submitted.';
+          this.error.set(message);
+          this.toast.show(message, 'error');
+        },
       });
   }
   fileSize(size: number) {

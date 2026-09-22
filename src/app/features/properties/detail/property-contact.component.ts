@@ -1,6 +1,6 @@
 import {
-  AfterViewChecked,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
   HostListener,
@@ -15,7 +15,7 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
-import { PropertyDetail } from '../../../core/models/listing.models';
+import { PropertyAdvertiser, PropertyDetail } from '../../../core/models/listing.models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PropertyActionsApiService } from '../../../core/api/property-actions-api.service';
 import { MessagingApiService } from '../../../core/api/messaging-api.service';
@@ -29,21 +29,22 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
       <p class="label">Advertised by</p>
       <div class="advertiser">
         <div class="avatar" aria-hidden="true">
-          @if (property().agency?.logo) {
-            <img [src]="property().agency!.logo!" [alt]="property().agency!.name" />
+          @if (advertiser().image) {
+            <img [src]="advertiser().image!" alt="" />
           } @else {
             <i
               class="fa-solid"
-              [class.fa-building]="property().agency"
-              [class.fa-user]="!property().agency"
+              [class.fa-building]="advertiser().kind === 'AGENCY'"
+              [class.fa-user-tie]="advertiser().kind === 'AGENT'"
+              [class.fa-user]="advertiser().kind === 'OWNER'"
             ></i>
           }
         </div>
         <div>
-          <h2>{{ property().agent?.name || property().agency?.name || 'Property owner' }}</h2>
-          <p>{{ advertiserRole() }}</p>
-          @if (property().agency && property().agent) {
-            <small>Listed by {{ property().agent!.name }} &middot; Agent</small>
+          <h2>{{ advertiser().name }}</h2>
+          <p>{{ advertiser().role }}</p>
+          @if (advertiser().representative_name) {
+            <small>Listed by {{ advertiser().representative_name }} &middot; Agent</small>
           }
         </div>
       </div>
@@ -54,6 +55,11 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
           }
         }
       </div>
+      @if (advertiser().profile_slug) {
+        <a class="profile-link" [routerLink]="['/agencies', advertiser().profile_slug]"
+          >View profile <span aria-hidden="true">&rarr;</span></a
+        >
+      }
       <button class="primary" type="button" (click)="message()">Message on SurePlace</button>
       @if (whatsapp()) {
         <a class="secondary" [href]="whatsapp()" target="_blank" rel="noopener">WhatsApp</a>
@@ -146,9 +152,52 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
     }`,
   styleUrl: './property-contact.component.scss',
 })
-export class PropertyContactComponent implements AfterViewChecked {
+export class PropertyContactComponent {
   property = input.required<PropertyDetail>();
-  @ViewChild('overlay') private overlay?: ElementRef<HTMLElement>;
+  advertiser = computed<PropertyAdvertiser>(() => {
+    const property = this.property();
+    if (property.advertiser) return property.advertiser;
+    if (property.agency) {
+      return {
+        kind: 'AGENCY',
+        name: property.agency.name,
+        role: 'Property agency',
+        image: property.agency.logo,
+        verification_status: property.agency.verification_status,
+        profile_slug: property.agency.slug,
+        representative_name: property.agent?.name ?? null,
+        representative_image: null,
+      };
+    }
+    if (property.agent) {
+      return {
+        kind: 'AGENT',
+        name: property.agent.name,
+        role: 'Property agent',
+        image: null,
+        verification_status: property.agent.verification_status,
+        profile_slug: null,
+        representative_name: null,
+        representative_image: null,
+      };
+    }
+    return {
+      kind: 'OWNER',
+      name: 'Property owner',
+      role: 'Private owner',
+      image: null,
+      verification_status: null,
+      profile_slug: null,
+      representative_name: null,
+      representative_image: null,
+    };
+  });
+  private overlay?: ElementRef<HTMLElement>;
+  @ViewChild('overlay')
+  private set overlayElement(value: ElementRef<HTMLElement> | undefined) {
+    this.overlay = value;
+    if (value) this.attachOverlay();
+  }
   @ViewChild('dialog') private dialog?: ElementRef<HTMLElement>;
   private auth = inject(AuthService);
   private api = inject(PropertyActionsApiService);
@@ -185,19 +234,11 @@ export class PropertyContactComponent implements AfterViewChecked {
     this.destroyRef.onDestroy(() => this.teardownOverlay());
   }
 
-  ngAfterViewChecked() {
-    this.attachOverlay();
-  }
   whatsapp() {
     const number = this.property().agent?.whatsapp_number?.replace(/\D/g, '');
     if (!number) return null;
     const text = `Hi, I'm interested in ${this.property().public_id} - ${this.property().title} on SurePlace.`;
     return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
-  }
-  advertiserRole() {
-    if (this.property().agency && !this.property().agent) return 'Real estate agency';
-    if (this.property().agent) return 'Property agent';
-    return 'Property owner';
   }
   private requireAuth() {
     if (this.auth.isAuthenticated()) return true;

@@ -1,6 +1,6 @@
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, finalize, of } from 'rxjs';
+import { catchError, finalize, of, tap } from 'rxjs';
 import { StayCard } from '../../core/models/listing.models';
 import { AuthService } from '../../core/auth/auth.service';
 import { FavouritesApiService } from '../../core/api/favourites-api.service';
@@ -89,6 +89,9 @@ export class StayCardComponent implements OnInit {
     const action = before ? this.fav.remove('stay', this.item().id) : this.fav.addStay(this.item().id);
     action
       .pipe(
+        tap(() =>
+          this.toast.show(before ? 'Removed from favourites.' : 'Stay saved to favourites.', 'success'),
+        ),
         catchError(() => {
           this.favourited.set(before);
           this.toast.show('Could not update saved stays.', 'error');

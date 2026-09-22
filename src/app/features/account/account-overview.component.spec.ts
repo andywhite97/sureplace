@@ -5,6 +5,7 @@ import { AccountNotification, SeekerSummary } from '../../core/models/account.mo
 import { AuthService } from '../../core/auth/auth.service';
 import { AccountActivityStore } from '../../core/services/account-activity.store';
 import { NotificationNavigationService } from '../../core/services/notification-navigation.service';
+import { UserCapabilityService } from '../../core/services/user-capability.service';
 import { AccountOverviewComponent } from './account-overview.component';
 
 const summary = (overrides: Partial<SeekerSummary> = {}): SeekerSummary => ({
@@ -62,6 +63,17 @@ describe('AccountOverviewComponent', () => {
         },
         { provide: AccountActivityStore, useValue: store },
         { provide: NotificationNavigationService, useValue: navigation },
+        {
+          provide: UserCapabilityService,
+          useValue: {
+            capabilities: signal({
+              canAccessManageDashboard: true,
+              canManageProperties: true,
+              canManageStays: true,
+              canAccessAgencyTools: true,
+            }),
+          },
+        },
       ],
     });
   });

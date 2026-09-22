@@ -7,8 +7,10 @@ import { StayManagementApiService } from '../../core/api/manage-api.services';
 import { normalizeApiError } from '../../core/api/error-normalizer';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ManagedStay, StayWriteRequest } from '../../core/models/manage.models';
+import { ToastService } from '../../core/services/toast.service';
 import { formatMoney } from '../../shared/listing/price-format';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
+import { EswatiniPhoneInputComponent } from '../../shared/ui/eswatini-phone-input.component';
 import { LocationPickerComponent } from './location-picker.component';
 import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
 import { RoomsComponent } from './rooms.component';
@@ -19,6 +21,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    EswatiniPhoneInputComponent,
     SmartImageComponent,
     LocationPickerComponent,
     ManageStatusComponent,
@@ -170,7 +173,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                     <div class="pair">
                       <label class="field">
                         <span>Phone</span>
-                        <input formControlName="phone" autocomplete="tel" />
+                        <sp-eswatini-phone-input formControlName="phone" />
                       </label>
                       <label class="field">
                         <span>Email</span>
@@ -180,7 +183,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                     <div class="pair">
                       <label class="field">
                         <span>WhatsApp</span>
-                        <input formControlName="whatsapp_number" autocomplete="tel" />
+                        <sp-eswatini-phone-input formControlName="whatsapp_number" />
                       </label>
                       <label class="field">
                         <span>Website</span>
@@ -456,11 +459,13 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 export class StayFormComponent {
   private destroyRef = inject(DestroyRef);
   private api = inject(StayManagementApiService);
+  private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   ref = inject(ReferenceApiService);
   id = this.route.snapshot.paramMap.get('id');
+  agencyId = this.id ? '' : this.route.snapshot.queryParamMap.get('agency') || '';
   steps = [
     { key: 'basic', label: 'Basic' },
     { key: 'location', label: 'Location' },
@@ -593,7 +598,10 @@ export class StayFormComponent {
         .pipe(finalize(() => this.busy.set(false)))
         .subscribe({
           next: () => this.refresh(),
-          error: () => this.error.set('Photo upload failed.'),
+          error: () => {
+            this.error.set('Photo upload failed.');
+            this.toast.show('Photo upload failed.', 'error');
+          },
         });
     });
   }
@@ -622,20 +630,35 @@ export class StayFormComponent {
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: () => this.refresh(),
-        error: () => this.error.set('Photo order could not be saved.'),
+        error: () => {
+          this.error.set('Photo order could not be saved.');
+          this.toast.show('Photo order could not be saved.', 'error');
+        },
       });
   }
 
   setCover(imageId: string) {
     const id = this.stay()?.id;
     if (!id) return;
-    this.api.updateImage(id, imageId, { is_cover: true }).subscribe(() => this.refresh());
+    this.api.updateImage(id, imageId, { is_cover: true }).subscribe({
+      next: () => {
+        this.refresh();
+        this.toast.show('Cover image updated.', 'success');
+      },
+      error: () => this.toast.show('Cover image could not be updated.', 'error'),
+    });
   }
 
   deleteImage(imageId: string) {
     const id = this.stay()?.id;
     if (id && confirm('Delete this photo?'))
-      this.api.deleteImage(id, imageId).subscribe(() => this.refresh());
+      this.api.deleteImage(id, imageId).subscribe({
+        next: () => {
+          this.refresh();
+          this.toast.show('Photo deleted.', 'success');
+        },
+        error: () => this.toast.show('Photo could not be deleted.', 'error'),
+      });
   }
 
   submit() {
@@ -674,6 +697,7 @@ export class StayFormComponent {
           }
           this.submitted.set(true);
           this.dirty.set(false);
+          this.toast.show('Stay submitted for review.', 'success');
           void this.router.navigate(['/account/manage/stays', stay.id, 'submitted']);
         },
         error: (error) => this.handleSubmitError(error),
@@ -813,6 +837,7 @@ export class StayFormComponent {
       const messages = Object.values(fields).flat().filter(Boolean).map(String);
       this.error.set(messages.length ? messages.join(' ') : normalized.message);
     } else this.error.set('Could not submit your stay. Please try again.');
+    this.toast.show(this.error(), 'error');
   }
 
   private load() {
@@ -940,6 +965,7 @@ export class StayFormComponent {
       check_in_time: v.check_in_time || null,
       check_out_time: v.check_out_time || null,
       amenities: v.amenities,
+      agency: this.agencyId || undefined,
     };
   }
 

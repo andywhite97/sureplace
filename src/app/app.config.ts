@@ -9,12 +9,13 @@ import { isPlatformBrowser } from '@angular/common';
 import { provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap, take } from 'rxjs';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { ConfigApiService } from './core/api/config-api.service';
 import { ReferenceApiService } from './core/api/reference-api.service';
 import { AuthService } from './core/auth/auth.service';
+import { UserCapabilityService } from './core/services/user-capability.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -33,9 +34,14 @@ export const appConfig: ApplicationConfig = {
       const config = inject(ConfigApiService);
       const reference = inject(ReferenceApiService);
       const auth = inject(AuthService);
-      // Public pages may render while auth restores. Guards await this same shared operation.
-      auth.initialize().subscribe();
+      const capabilities = inject(UserCapabilityService);
+      // Resolve the shared UX summary before authenticated navigation renders.
+      const capabilityInitialization = auth.initialize().pipe(
+        switchMap(() => capabilities.resolve()),
+        take(1),
+      );
       forkJoin([config.load(), reference.load()]).subscribe();
+      return capabilityInitialization;
     }),
   ],
 };

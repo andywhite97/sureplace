@@ -38,7 +38,7 @@ export class MessagingStore {
       .list()
       .pipe(
         catchError(() => {
-          if (!silent) this.listError.set('Conversations could not be loaded.');
+          if (!silent) this.listError.set("We couldn't load your messages.");
           return of({ count: 0, next: null, previous: null, results: this.conversations() });
         }),
         finalize(() => this.listLoading.set(false)),
@@ -149,14 +149,12 @@ export class MessagingStore {
     const row = this.conversations().find((c) => c.id === id);
     const selected = this.selected();
     if (!row?.unread_count && selected?.id !== id) return;
-    this.api
-      .markRead(id)
-      .subscribe(() => {
-        this.conversations.update((xs) =>
-          xs.map((c) => (c.id === id ? { ...c, unread_count: 0 } : c)),
-        );
-        if (selected?.id === id) this.selected.update((c) => (c ? { ...c, unread_count: 0 } : c));
-      });
+    this.api.markRead(id).subscribe(() => {
+      this.conversations.update((xs) =>
+        xs.map((c) => (c.id === id ? { ...c, unread_count: 0 } : c)),
+      );
+      if (selected?.id === id) this.selected.update((c) => (c ? { ...c, unread_count: 0 } : c));
+    });
   }
   private dedupe(items: Message[]) {
     return [...new Map(items.map((m) => [m.id, m])).values()].sort((a, b) =>

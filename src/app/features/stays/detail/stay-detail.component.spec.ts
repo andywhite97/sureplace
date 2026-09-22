@@ -79,6 +79,16 @@ describe('StayDetailComponent', () => {
     ],
     agency: null,
     agent: null,
+    host: {
+      kind: 'OWNER',
+      name: 'Host One',
+      role: 'Stay owner',
+      image: null,
+      verification_status: null,
+      profile_slug: null,
+      representative_name: null,
+      representative_image: null,
+    },
   };
   const authenticated = signal(false);
   const user = signal(null);
@@ -158,6 +168,9 @@ describe('StayDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Piggs Peak, Hhohho, Eswatini');
     expect(fixture.nativeElement.textContent).not.toContain('Reviews');
     expect(fixture.nativeElement.querySelector('.mobile-booking')).toBeTruthy();
+    expect(fixture.componentInstance.googleMapsDirectionsUrl(-25.96, 31.25)).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=-25.96%2C31.25',
+    );
   });
 
   it('shows Verified Stay only from the stay verification status', () => {

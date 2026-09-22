@@ -7,6 +7,7 @@ import { AgencyManagementApiService } from '../core/api/manage-api.services';
 import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
 import { SeoService } from '../core/services/seo.service';
+import { UserCapabilityService } from '../core/services/user-capability.service';
 import { AccountShellComponent } from './account-shell.component';
 
 @Component({ standalone: true, template: '' })
@@ -18,11 +19,29 @@ describe('AccountShellComponent grouped navigation', () => {
   const mine = vi.fn();
   const messages = signal(0);
   const notifications = signal(0);
+  const capabilities = signal<any>({
+    canAccessManageDashboard: true,
+    canManageProperties: true,
+    canManageStays: true,
+    canAccessVerification: true,
+    canCreateAgency: true,
+    canAccessAgencyTools: false,
+    canManageAgency: false,
+  });
   beforeEach(() => {
     user.set({ first_name: 'Andy', is_email_verified: true });
     features.set({ stays: true, bookings: true, internal_messaging: true });
     messages.set(0);
     notifications.set(0);
+    capabilities.set({
+      canAccessManageDashboard: true,
+      canManageProperties: true,
+      canManageStays: true,
+      canAccessVerification: true,
+      canCreateAgency: true,
+      canAccessAgencyTools: false,
+      canManageAgency: false,
+    });
     mine.mockReset().mockReturnValue(of([]));
     TestBed.configureTestingModule({
       imports: [AccountShellComponent],
@@ -34,6 +53,7 @@ describe('AccountShellComponent grouped navigation', () => {
           useValue: { config: computed(() => ({ features: features() })) },
         },
         { provide: AgencyManagementApiService, useValue: { mine } },
+        { provide: UserCapabilityService, useValue: { capabilities, refresh: vi.fn() } },
         { provide: SeoService, useValue: { privatePage: vi.fn() } },
         {
           provide: AccountActivityStore,
@@ -69,7 +89,12 @@ describe('AccountShellComponent grouped navigation', () => {
     expect(f.nativeElement.querySelector('a[href="/staff"]')).toBeNull();
   });
   it.each(['OWNER', 'ADMIN', 'AGENT'])('shares agency permissions for %s', (role) => {
-    mine.mockReturnValue(of([{ user_role: role }]));
+    capabilities.update((value: any) => ({
+      ...value,
+      canCreateAgency: false,
+      canAccessAgencyTools: true,
+      canManageAgency: role !== 'AGENT',
+    }));
     const f = create();
     expect(f.nativeElement.querySelector('a[href="/account/manage/agency"]')).toBeTruthy();
     expect(!!f.nativeElement.querySelector('a[href="/account/manage/agency/team"]')).toBe(
@@ -86,6 +111,21 @@ describe('AccountShellComponent grouped navigation', () => {
   it('hides the sidebar entirely for guests', () => {
     user.set(null);
     expect(create().nativeElement.querySelector('aside')).toBeNull();
+  });
+  it('hides empty Manage and Agency groups for a seeker-only account', () => {
+    capabilities.set({
+      canAccessManageDashboard: false,
+      canManageProperties: false,
+      canManageStays: false,
+      canAccessVerification: false,
+      canCreateAgency: false,
+      canAccessAgencyTools: false,
+      canManageAgency: false,
+    });
+    const f = create();
+    expect(f.nativeElement.textContent).not.toContain('Manage');
+    expect(f.nativeElement.querySelector('[aria-labelledby="account-heading-manage"]')).toBeNull();
+    expect(f.nativeElement.querySelector('[aria-labelledby="account-heading-agency"]')).toBeNull();
   });
   it('respects feature flags on desktop', () => {
     features.set({ stays: false, bookings: false, internal_messaging: false });
@@ -110,7 +150,14 @@ describe('AccountShellComponent grouped navigation', () => {
     '/account/manage/agency/team',
     '/account/manage/agency/profile',
   ])('marks only one item active on %s', async (url) => {
-    mine.mockReturnValue(of([{ user_role: 'OWNER' }]));
+    if (url.includes('/agency/')) {
+      capabilities.update((value: any) => ({
+        ...value,
+        canCreateAgency: false,
+        canAccessAgencyTools: true,
+        canManageAgency: true,
+      }));
+    }
     const f = create();
     await TestBed.inject(Router).navigateByUrl(url);
     f.detectChanges();

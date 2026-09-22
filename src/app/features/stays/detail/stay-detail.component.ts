@@ -53,6 +53,11 @@ export class StayDetailComponent {
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private platformId = inject(PLATFORM_ID);
+
+  googleMapsDirectionsUrl(latitude: number, longitude: number) {
+    const destination = encodeURIComponent(`${latitude},${longitude}`);
+    return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+  }
   stay = signal<StayDetail | null>(null);
   related = signal<StayCard[]>([]);
   loading = signal(true);
@@ -65,6 +70,7 @@ export class StayDetailComponent {
   saving = signal(false);
   expanded = signal(false);
   amenitiesExpanded = signal(false);
+  criteriaEditorOpen = signal(false);
   readonly visibleAmenityCount = 8;
   minDate = this.query.today();
   searchForm = this.fb.nonNullable.group({
@@ -85,6 +91,15 @@ export class StayDetailComponent {
     () => this.stay()?.room_types.find((r) => r.id === this.selectedRoomId()) || null,
   );
   selectedAvailability = computed(() => this.availabilityFor(this.selectedRoomId()));
+  availableRoomTypes = computed(() => {
+    const stay = this.stay();
+    if (!stay || !this.validCriteria() || !this.availability().length)
+      return stay?.room_types || [];
+    const availabilityByRoom = new Map(
+      this.availability().map((result) => [result.room_type_id, result.available]),
+    );
+    return stay.room_types.filter((room) => availabilityByRoom.get(room.id) === true);
+  });
   markers = computed(() => {
     const s = this.stay();
     const latitude = Number(s?.latitude);
@@ -161,6 +176,7 @@ export class StayDetailComponent {
       return;
     }
     this.criteria.set(v);
+    this.criteriaEditorOpen.set(false);
     this.selectedRoomId.set(null);
     this.availability.set([]);
     this.availabilityError.set('');
@@ -170,6 +186,7 @@ export class StayDetailComponent {
       replaceUrl: true,
     });
     if (d.complete) this.loadAvailability();
+    this.scrollToRooms();
   }
   loadAvailability() {
     const s = this.stay(),
@@ -181,7 +198,16 @@ export class StayDetailComponent {
       .availability(s.slug, c)
       .pipe(finalize(() => this.availabilityLoading.set(false)))
       .subscribe({
-        next: (r) => this.availability.set(r.room_types),
+        next: (r) => {
+          this.availability.set(r.room_types);
+          const selectedRoomId = this.selectedRoomId();
+          if (
+            selectedRoomId &&
+            !r.room_types.some((room) => room.room_type_id === selectedRoomId && room.available)
+          ) {
+            this.selectedRoomId.set(null);
+          }
+        },
         error: (e) =>
           this.availabilityError.set(e?.error?.message || 'Room availability could not be loaded.'),
       });
@@ -207,6 +233,43 @@ export class StayDetailComponent {
     const c = this.criteria();
     return this.query.validateDates(c.check_in, c.check_out).complete;
   }
+  openCriteriaEditor() {
+    this.criteriaEditorOpen.set(true);
+    this.scrollToRooms();
+  }
+
+  private scrollToRooms() {
+    setTimeout(() =>
+      document.getElementById('rooms')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  }
+  dateRangeLabel() {
+    const criteria = this.criteria();
+    if (!criteria.check_in || !criteria.check_out) return 'Add dates';
+    const format = (value: string) =>
+      new Intl.DateTimeFormat('en-SZ', { day: 'numeric', month: 'short' }).format(
+        new Date(`${value}T00:00:00`),
+      );
+    return `${format(criteria.check_in)} – ${format(criteria.check_out)}`;
+  }
+  nightsLabel() {
+    const criteria = this.criteria();
+    if (!criteria.check_in || !criteria.check_out) return 'Choose your check-in and check-out';
+    const nights = Math.max(
+      0,
+      (Date.parse(`${criteria.check_out}T00:00:00Z`) -
+        Date.parse(`${criteria.check_in}T00:00:00Z`)) /
+        86400000,
+    );
+    return nights ? `${nights} night${nights === 1 ? '' : 's'}` : 'Choose valid dates';
+  }
+  guestRoomLabel() {
+    const criteria = this.criteria();
+    const guests = criteria.adults + criteria.children;
+    return `${guests} guest${guests === 1 ? '' : 's'} · ${criteria.rooms} room${
+      criteria.rooms === 1 ? '' : 's'
+    }`;
+  }
   toggleFavourite() {
     const s = this.stay();
     if (!s) return;
@@ -219,6 +282,12 @@ export class StayDetailComponent {
     this.saving.set(true);
     (before ? this.fav.remove('stay', s.id) : this.fav.addStay(s.id))
       .pipe(
+        tap(() =>
+          this.toast.show(
+            before ? 'Removed from favourites.' : 'Stay saved to favourites.',
+            'success',
+          ),
+        ),
         catchError(() => {
           this.stay.update((x) => (x ? { ...x, is_favourited: before } : x));
           this.toast.show('Could not update saved stays.', 'error');

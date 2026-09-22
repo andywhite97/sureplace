@@ -27,6 +27,14 @@ export interface AuthTokens {
   access: string;
   refresh: string;
 }
+export interface UserCapabilitySummary {
+  has_individual_property_context: boolean;
+  has_individual_stay_context: boolean;
+  has_agent_profile: boolean;
+  has_agency_management_context: boolean;
+  can_manage_agency: boolean;
+  agency_count: number;
+}
 export interface RegistrationResponse {
   user: User;
   email_verification_required: boolean;
@@ -35,6 +43,8 @@ export interface RegistrationResponse {
 export interface ReferenceOption {
   value: string;
   label: string;
+  image?: string | null;
+  image_url?: string | null;
 }
 export interface RegionReference extends ReferenceOption {
   areas: string[];

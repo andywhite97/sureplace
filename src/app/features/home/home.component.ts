@@ -17,7 +17,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Subscription, catchError, finalize, of } from 'rxjs';
+import { Subscription, catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { PropertiesApiService } from '../../core/api/properties-api.service';
 import { StaysApiService } from '../../core/api/stays-api.service';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
@@ -38,6 +38,7 @@ type Destination = {
   alt: string;
   position: string;
 };
+type DestinationCounts = { properties: number | null; stays: number | null };
 type PropertyTypeVisual = {
   descriptor: string;
   icon: string;
@@ -187,6 +188,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   locations = DESTINATIONS.map((destination) => destination.name);
   destinationImage = DESTINATION_IMAGE;
   destinationImageFailed = signal(false);
+  destinationCounts = signal<Record<string, DestinationCounts>>({});
   propertyTypeImage = PROPERTY_TYPE_IMAGE;
   propertyTypeImageFailed = signal(false);
   minStayDate = this.stayQuery.today();
@@ -269,6 +271,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.staysLoading.set(false);
       this.cdr.markForCheck();
     }
+    this.loadDestinationCounts();
   }
   setMode(mode: Mode) {
     this.mode.set(mode);
@@ -305,7 +308,9 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   propertyTypeVisual(value: string) {
     return PROPERTY_TYPE_VISUALS[value] ?? DEFAULT_TYPE_VISUAL;
   }
-  propertyTypeBackground(_type: PropertyTypeOption) {
+  propertyTypeBackground(type: PropertyTypeOption) {
+    const image = type.image || type.image_url;
+    if (image) return `url("${image}")`;
     if (this.propertyTypeImageFailed()) return null;
     return `url("${this.propertyTypeImage}")`;
   }
@@ -340,8 +345,40 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   destinationPosition(destination: Destination) {
     return destination.position;
   }
+  destinationCount(destination: Destination, kind: keyof DestinationCounts) {
+    return this.destinationCounts()[destination.name]?.[kind] ?? null;
+  }
   markDestinationImageFailed() {
     this.destinationImageFailed.set(true);
+  }
+  private loadDestinationCounts() {
+    if (
+      !isPlatformBrowser(this.platformId) ||
+      typeof (this.propertiesApi as Partial<PropertiesApiService>).search !== 'function' ||
+      typeof (this.staysApi as Partial<StaysApiService>).search !== 'function' ||
+      !window.matchMedia?.('(max-width: 767px)').matches
+    )
+      return;
+    forkJoin(
+      DESTINATIONS.map((destination) =>
+        forkJoin({
+          properties: this.propertiesApi.search({ town: destination.name }).pipe(
+            map((page) => page.count),
+            catchError(() => of(null)),
+          ),
+          stays: this.config.config().features.stays
+            ? this.staysApi.search({ town: destination.name }).pipe(
+                map((page) => page.count),
+                catchError(() => of(null)),
+              )
+            : of(null),
+        }),
+      ),
+    ).subscribe((counts) =>
+      this.destinationCounts.set(
+        Object.fromEntries(DESTINATIONS.map((destination, index) => [destination.name, counts[index]])),
+      ),
+    );
   }
   supply(path: 'property' | 'stay') {
     void this.router.navigate([this.auth.isAuthenticated() ? '/account' : '/register'], {

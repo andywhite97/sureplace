@@ -22,16 +22,40 @@
     </section>
   } @else if (property(); as p) {
     <article class="detail">
-      <a class="back" routerLink="/properties"><span aria-hidden="true">&larr;</span> Back to properties</a>
+      <a class="back desktop-back" routerLink="/properties"
+        ><span aria-hidden="true">&larr;</span> Back to properties</a
+      >
 
       <div class="top-grid">
         <div class="main-column">
-          <sp-property-gallery [images]="p.images" [title]="p.title" />
+          <div class="hero-shell">
+            <a class="mobile-back" routerLink="/properties" aria-label="Back to properties">
+              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            </a>
+            <sp-property-gallery [images]="p.images" [title]="p.title" />
+            <div class="hero-actions" aria-label="Property actions">
+              <button
+                type="button"
+                class="favourite"
+                [class.saved]="p.is_favourited"
+                [disabled]="saving()"
+                (click)="toggleFavourite()"
+                aria-label="Save property"
+              >
+                <sp-icon name="heart" />
+              </button>
+              <button type="button" (click)="share()" aria-label="Share property">
+                <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
 
           <header class="summary">
             <div class="summary-main">
               <div class="badges-row">
-                <span class="listing-type">{{ p.listing_type === 'RENT' ? 'For rent' : 'For sale' }}</span>
+                <span class="listing-type">{{
+                  p.listing_type === 'RENT' ? 'For rent' : 'For sale'
+                }}</span>
                 @if (p.featured) {
                   <span class="soft-badge">Featured</span>
                 }
@@ -55,7 +79,7 @@
               <sp-availability-status [status]="p.availability_status" [label]="availability()" />
             </div>
 
-            <div class="header-actions" aria-label="Property actions">
+            <div class="header-actions desktop-actions" aria-label="Property actions">
               <button
                 type="button"
                 [class.saved]="p.is_favourited"
@@ -73,7 +97,7 @@
         </div>
 
         <div class="sidebar" id="contact">
-          <sp-property-contact [property]="p" />
+          <sp-property-contact #contactPanel [property]="p" />
         </div>
       </div>
 
@@ -198,12 +222,23 @@
                 [zoom]="14"
               />
             </div>
-            <a
-              class="nearby"
-              routerLink="/properties"
-              [queryParams]="{ town: p.town, listing_type: p.listing_type }"
-              >View more properties near this area <span aria-hidden="true">&rarr;</span></a
-            >
+            <div class="location-actions">
+              <a
+                class="directions"
+                [href]="googleMapsDirectionsUrl(p.latitude!, p.longitude!)"
+                target="_blank"
+                rel="noopener"
+              >
+                <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i>
+                Open directions in Google Maps
+              </a>
+              <a
+                class="nearby"
+                routerLink="/properties"
+                [queryParams]="{ town: p.town, listing_type: p.listing_type }"
+                >Explore nearby homes <span aria-hidden="true">&rarr;</span></a
+              >
+            </div>
           </section>
         }
       </div>
@@ -215,7 +250,8 @@
             slides-per-view="1.08"
             space-between="16"
             breakpoints='{"620":{"slidesPerView":2},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
-            pagination="true"
+            [pagination]="related().length > 1"
+            pagination-type="progressbar"
           >
             @for (item of related(); track item.id) {
               <swiper-slide><sp-property-card [item]="item" /></swiper-slide>
@@ -225,14 +261,12 @@
       }
 
       <div class="mobile-contact" aria-label="Contact advertiser">
-        <button type="button" (click)="share()">
-          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-          Share
+        <button type="button" class="message" (click)="contactPanel.message()">
+          <i class="fa-regular fa-message" aria-hidden="true"></i> Message
         </button>
-        @if (p.agent?.whatsapp_number) {
-          <a [href]="'https://wa.me/' + p.agent!.whatsapp_number">WhatsApp</a>
-        }
-        <a href="#contact">Contact</a>
+        <button type="button" class="viewing" (click)="contactPanel.openViewing()">
+          <i class="fa-regular fa-calendar" aria-hidden="true"></i> Request Viewing
+        </button>
       </div>
     </article>
   }

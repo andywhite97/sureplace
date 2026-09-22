@@ -6,6 +6,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { finalize } from 'rxjs';
 import { StaffApiService } from '../../core/api/staff-api.service';
 import { StaffProperty } from '../../core/models/staff.models';
+import { ToastService } from '../../core/services/toast.service';
 import { formatMoney } from '../../shared/listing/price-format';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 
@@ -413,6 +414,7 @@ export class StaffListingDetailComponent {
   private api = inject(StaffApiService);
   private route = inject(ActivatedRoute);
   private sanitizer = inject(DomSanitizer);
+  private toast = inject(ToastService);
   listing = signal<StaffProperty | null>(null);
   loading = signal(true);
   busy = signal(false);
@@ -485,7 +487,20 @@ export class StaffListingDetailComponent {
           : this.api.restore(listing.id);
     request
       .pipe(finalize(() => this.busy.set(false)))
-      .subscribe((updated) => this.listing.set(updated));
+      .subscribe({
+        next: (updated) => {
+          this.listing.set(updated);
+          this.toast.show(
+            action === 'start'
+              ? 'Listing review started.'
+              : action === 'approve'
+                ? 'Listing approved.'
+                : 'Listing restored.',
+            'success',
+          );
+        },
+        error: () => this.toast.show('The moderation action could not be completed.', 'error'),
+      });
   }
 
   confirmFeedback() {
@@ -500,9 +515,20 @@ export class StaffListingDetailComponent {
         : action === 'reject'
           ? this.api.reject(listing.id, feedback)
           : this.api.suspend(listing.id, feedback);
-    request.pipe(finalize(() => this.busy.set(false))).subscribe((updated) => {
-      this.listing.set(updated);
-      this.cancelFeedback();
+    request.pipe(finalize(() => this.busy.set(false))).subscribe({
+      next: (updated) => {
+        this.listing.set(updated);
+        this.cancelFeedback();
+        this.toast.show(
+          action === 'changes'
+            ? 'Changes requested.'
+            : action === 'reject'
+              ? 'Listing rejected.'
+              : 'Listing suspended.',
+          'success',
+        );
+      },
+      error: () => this.toast.show('The moderation action could not be completed.', 'error'),
     });
   }
 
@@ -514,9 +540,13 @@ export class StaffListingDetailComponent {
     this.api
       .addNote(listing.id, note)
       .pipe(finalize(() => this.busy.set(false)))
-      .subscribe((updated) => {
-        this.listing.set(updated);
-        this.note = '';
+      .subscribe({
+        next: (updated) => {
+          this.listing.set(updated);
+          this.note = '';
+          this.toast.show('Internal note saved.', 'success');
+        },
+        error: () => this.toast.show('Internal note could not be saved.', 'error'),
       });
   }
 

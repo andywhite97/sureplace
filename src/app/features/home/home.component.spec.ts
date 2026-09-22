@@ -128,6 +128,17 @@ describe('HomeComponent', () => {
     expect(properties.featured).toHaveBeenCalled();
     expect(stays.featured).toHaveBeenCalled();
   });
+
+  it('provides the focused mobile search and browse intents', () => {
+    const f = TestBed.createComponent(HomeComponent);
+    f.detectChanges();
+
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.mobile-search-panel')).toBeTruthy();
+    expect(el.querySelector('.mobile-intents')).toBeTruthy();
+    expect(el.querySelector('.mobile-intents')?.textContent).toContain('Properties');
+    expect(el.querySelector('.mobile-intents')?.textContent).toContain('List a place');
+  });
   it('switches Rent, Buy and Stay without navigating', () => {
     const f = TestBed.createComponent(HomeComponent);
     f.detectChanges();
@@ -322,7 +333,7 @@ describe('HomeComponent', () => {
     f.detectChanges();
     const swiper = f.nativeElement.querySelector('swiper-container.destination-swiper');
     expect(swiper).toBeTruthy();
-    expect(swiper.getAttribute('slides-per-view')).toBe('1.12');
+    expect(swiper.getAttribute('slides-per-view')).toBe('2.1');
     expect(swiper.getAttribute('auto-height')).toBe('true');
     expect(swiper.getAttribute('observer')).toBe('true');
     expect(swiper.getAttribute('observe-parents')).toBe('true');
@@ -393,12 +404,19 @@ describe('HomeComponent', () => {
       ),
     ).toBeNull();
   });
+  it('prefers the backend-provided category image when one is available', () => {
+    const f = TestBed.createComponent(HomeComponent);
+    const type = { value: 'HOUSE', label: 'House', image: 'https://images.example/house.webp' };
+    expect(f.componentInstance.propertyTypeBackground(type)).toBe(
+      'url("https://images.example/house.webp")',
+    );
+  });
   it('initializes property type mobile Swiper while preserving desktop grid markup', () => {
     const f = TestBed.createComponent(HomeComponent);
     f.detectChanges();
     const swiper = f.nativeElement.querySelector('swiper-container.type-swiper');
     expect(swiper).toBeTruthy();
-    expect(swiper.getAttribute('slides-per-view')).toBe('1.12');
+    expect(swiper.getAttribute('slides-per-view')).toBe('2.2');
     expect(swiper.getAttribute('auto-height')).toBe('true');
     expect(swiper.getAttribute('observer')).toBe('true');
     expect(swiper.getAttribute('observe-parents')).toBe('true');
@@ -420,14 +438,33 @@ describe('HomeComponent', () => {
 
     expect(swipers.length).toBe(4);
     expect(swipers.every((swiper) => swiper.getAttribute('pagination') === 'true')).toBe(true);
+    expect(
+      swipers.every((swiper) => swiper.getAttribute('pagination-type') === 'progressbar'),
+    ).toBe(true);
+    expect(
+      swipers.every(
+        (swiper) => swiper.getAttribute('pagination-progressbar-opposite') === null,
+      ),
+    ).toBe(true);
     expect(swipers.every((swiper) => swiper.getAttribute('auto-height') === 'true')).toBe(true);
     expect(swipers.every((swiper) => swiper.getAttribute('observer') === 'true')).toBe(true);
     expect(swipers.every((swiper) => swiper.getAttribute('observe-parents') === 'true')).toBe(
       true,
     );
+    const listings = swipers.filter((swiper) => swiper.classList.contains('listing-swiper'));
+    expect(listings.every((swiper) => swiper.getAttribute('slides-per-view') === '1.1')).toBe(
+      true,
+    );
     expect(
-      swipers.every((swiper) => Number(swiper.getAttribute('slides-per-view')) <= 1.12),
-    ).toBe(true);
+      swipers.find((swiper) => swiper.classList.contains('type-swiper'))?.getAttribute(
+        'slides-per-view',
+      ),
+    ).toBe('2.2');
+    expect(
+      swipers.find((swiper) => swiper.classList.contains('destination-swiper'))?.getAttribute(
+        'slides-per-view',
+      ),
+    ).toBe('2.1');
   });
   it('keeps property type cards keyboard reachable with descriptive labels', () => {
     const f = TestBed.createComponent(HomeComponent);

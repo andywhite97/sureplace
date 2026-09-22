@@ -10,8 +10,34 @@
     <div class="shade"></div>
     <div class="hero-copy">
       <p class="eyebrow">Property. Without the noise.</p>
-      <h1 id="hero-title">Find your SurePlace.</h1>
-      <p>Discover properties and stays across Eswatini. Simple, trusted and easy to search.</p>
+      <h1 id="hero-title">
+        <span class="desktop-headline">Find your Sure<span class="brand-place">Place</span>.</span>
+        <span class="mobile-headline">Feel at home in Eswatini.</span>
+      </h1>
+      <p>
+        <span class="desktop-headline">Discover properties and stays across Eswatini. Simple, trusted and easy to search.</span>
+        <span class="mobile-headline">Homes, stays and trusted people—right where you need them.</span>
+      </p>
+    </div>
+    <div class="mobile-search-panel">
+      <div class="mobile-modes" role="tablist" aria-label="Mobile search type">
+        <button type="button" role="tab" [attr.aria-selected]="mode() === 'RENT'" (click)="setMode('RENT')">Rent</button>
+        <button type="button" role="tab" [attr.aria-selected]="mode() === 'BUY'" (click)="setMode('BUY')">Buy</button>
+        @if (config.config().features.stays) {
+          <button type="button" role="tab" [attr.aria-selected]="mode() === 'STAY'" (click)="setMode('STAY')">Stay</button>
+        }
+      </div>
+      @if (mode() === 'STAY') {
+        <form class="mobile-search-form" [formGroup]="stayForm" (ngSubmit)="search()">
+          <label><i class="fa-solid fa-location-dot" aria-hidden="true"></i><select formControlName="town" aria-label="Stay destination"><option value="">Where would you like to stay?</option>@for (region of references.data().regions; track region.value) {@for (area of region.areas; track area) {<option [value]="area">{{ area }}</option>}}</select></label>
+          <button type="submit" aria-label="Search stays"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+        </form>
+      } @else {
+        <form class="mobile-search-form" [formGroup]="propertyForm" (ngSubmit)="search()">
+          <label><i class="fa-solid fa-location-dot" aria-hidden="true"></i><select formControlName="town" aria-label="Property location"><option value="">Where would you like to live?</option>@for (region of references.data().regions; track region.value) {@for (area of region.areas; track area) {<option [value]="area">{{ area }}</option>}}</select></label>
+          <button type="submit" aria-label="Search properties"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+        </form>
+      }
     </div>
     <div class="search-panel">
       <div class="modes" role="tablist" aria-label="Search type">
@@ -122,11 +148,20 @@
     </div>
   </section>
 
+  <section class="mobile-intents" aria-label="Quick property filters">
+    <div>
+      <a routerLink="/properties"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Filters</span></a>
+      <a routerLink="/properties"><i class="fa-solid fa-tag" aria-hidden="true"></i><span>Price</span></a>
+      <a routerLink="/properties"><i class="fa-solid fa-bed" aria-hidden="true"></i><span>Bedrooms</span></a>
+      <a routerLink="/properties"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Property type</span></a>
+    </div>
+  </section>
+
   <section class="market section" aria-labelledby="featured-properties" spRevealOnScroll>
     <header>
       <div>
         <p class="eyebrow">Homes to discover</p>
-        <h2 id="featured-properties">Featured Properties</h2>
+        <h2 id="featured-properties"><span class="desktop-section-title">Featured Properties</span><span class="mobile-section-title">Featured listings</span></h2>
         <p>Handpicked listings across Eswatini.</p>
       </div>
       <a routerLink="/properties">Explore properties <span aria-hidden="true">→</span></a>
@@ -141,13 +176,14 @@
       <swiper-container
         #homepageSwiper
         class="homepage-swiper listing-swiper"
-        slides-per-view="1.08"
+        slides-per-view="1.1"
         space-between="16"
         auto-height="true"
         observer="true"
         observe-parents="true"
         breakpoints='{"560":{"slidesPerView":2.1},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
         pagination="true"
+        pagination-type="progressbar"
       >
         @for (property of properties(); track property.id) {
           <swiper-slide><sp-property-card [item]="property" /></swiper-slide>
@@ -157,6 +193,14 @@
       <a class="discovery" routerLink="/properties">Browse all available properties</a>
     }
   </section>
+
+  @if (config.config().features.stays) {
+    <section class="mobile-stay-strip" aria-label="Explore accommodation">
+      <i class="fa-solid fa-bed" aria-hidden="true"></i>
+      <div><strong>Looking for accommodation?</strong><span>Explore guesthouses, hotels and more.</span></div>
+      <a routerLink="/stays">Explore <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    </section>
+  }
 
   <section class="types section" aria-labelledby="property-types" spRevealOnScroll>
     <header>
@@ -210,13 +254,14 @@
     <swiper-container
       #homepageSwiper
       class="homepage-swiper type-swiper"
-      slides-per-view="1.12"
+      slides-per-view="2.2"
       space-between="14"
       auto-height="true"
       observer="true"
       observe-parents="true"
       breakpoints='{"560":{"slidesPerView":2.2,"spaceBetween":18}}'
       pagination="true"
+      pagination-type="progressbar"
     >
       @for (type of references.data().property_types; track type.value) {
         <swiper-slide>
@@ -253,6 +298,19 @@
   </section>
 
   @if (config.config().features.stays) {
+    <section class="mobile-stay-banner" aria-label="Discover SurePlace stays">
+      <img src="hero-eswatini-home.jpg" alt="Scenic stay in Eswatini" loading="lazy" />
+      <div></div>
+      <section>
+        <p>STAYS ON SUREPLACE</p>
+        <h2>More than just a place.</h2>
+        <span>Discover stays for work, getaways and everything in between.</span>
+        <a routerLink="/stays">Explore stays <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+      </section>
+    </section>
+  }
+
+  @if (config.config().features.stays) {
     <section class="market stays section" aria-labelledby="featured-stays" spRevealOnScroll>
       <header>
         <div>
@@ -272,13 +330,14 @@
         <swiper-container
           #homepageSwiper
           class="homepage-swiper listing-swiper"
-          slides-per-view="1.08"
+          slides-per-view="1.1"
           space-between="16"
           auto-height="true"
           observer="true"
           observe-parents="true"
           breakpoints='{"560":{"slidesPerView":2.1},"900":{"slidesPerView":3},"1180":{"slidesPerView":4}}'
           pagination="true"
+          pagination-type="progressbar"
         >
           @for (stay of stays(); track stay.id) {
             <swiper-slide><sp-stay-card [item]="stay" /></swiper-slide>
@@ -293,8 +352,8 @@
   <section class="destinations section" aria-labelledby="destinations" spRevealOnScroll>
     <header>
       <div>
-        <h2 id="destinations">Explore Eswatini</h2>
-        <p>Find properties and stays in some of Eswatini's most popular places.</p>
+        <h2 id="destinations"><span class="desktop-section-title">Explore Eswatini</span><span class="mobile-section-title">Popular destinations</span></h2>
+        <p><span class="desktop-section-title">Find properties and stays in some of Eswatini's most popular places.</span><span class="mobile-section-title">Explore places across Eswatini.</span></p>
       </div>
     </header>
     <img
@@ -352,13 +411,14 @@
     <swiper-container
       #homepageSwiper
       class="homepage-swiper destination-swiper"
-      slides-per-view="1.12"
-      space-between="14"
+      slides-per-view="2.1"
+      space-between="12"
       auto-height="true"
       observer="true"
       observe-parents="true"
       breakpoints='{"560":{"slidesPerView":2.1,"spaceBetween":18}}'
       pagination="true"
+      pagination-type="progressbar"
     >
       @for (destination of destinations; track destination.name) {
         <swiper-slide>
@@ -375,20 +435,14 @@
             <div class="destination-content">
               <h3>{{ destination.name }}</h3>
               <div class="destination-actions">
-                <a
-                  routerLink="/properties"
-                  [queryParams]="{ town: destination.name }"
-                  [attr.aria-label]="'View properties in ' + destination.name"
-                >
-                  <i class="fa-solid fa-house" aria-hidden="true"></i><span>Properties</span>
+                <a class="destination-count" routerLink="/properties" [queryParams]="{ town: destination.name }" [attr.aria-label]="'View properties in ' + destination.name">
+                  <i class="fa-solid fa-house" aria-hidden="true"></i>
+                  @if (destinationCount(destination, 'properties') !== null) { <span>{{ destinationCount(destination, 'properties') }} properties</span> } @else { <span>Properties</span> }
                 </a>
                 @if (config.config().features.stays) {
-                  <a
-                    routerLink="/stays"
-                    [queryParams]="{ town: destination.name }"
-                    [attr.aria-label]="'View stays in ' + destination.name"
-                  >
-                    <i class="fa-solid fa-bed" aria-hidden="true"></i><span>Stays</span>
+                  <a class="destination-count" routerLink="/stays" [queryParams]="{ town: destination.name }" [attr.aria-label]="'View stays in ' + destination.name">
+                    <i class="fa-solid fa-bed" aria-hidden="true"></i>
+                    @if (destinationCount(destination, 'stays') !== null) { <span>{{ destinationCount(destination, 'stays') }} stays</span> } @else { <span>Stays</span> }
                   </a>
                 }
                 <a
@@ -410,7 +464,7 @@
   <section class="trust section" aria-labelledby="trust">
     <div class="trust-intro">
       <p class="eyebrow">Trust, made visible</p>
-      <h2 id="trust">Know who you're dealing with.</h2>
+      <h2 id="trust"><span class="desktop-section-title">Know who you're dealing with.</span><span class="mobile-section-title">Why choose SurePlace?</span></h2>
       <p>
         SurePlace provides clearer signals so you can make better-informed decisions. Verification
         supports trust, but never replaces your own checks.
@@ -445,7 +499,8 @@
     <div>
       <p class="eyebrow">Reach active seekers</p>
       <h2>Have a property or stay to list?</h2>
-      <p>Reach people actively searching for properties and accommodation across Eswatini.</p>
+      <p class="desktop-supply-copy">Reach people actively searching for properties and accommodation across Eswatini.</p>
+      <p class="mobile-supply-copy">Are you an agent or agency? List with SurePlace and reach more people.</p>
     </div>
     <div>
       <button type="button" (click)="supply('property')">List a Property</button>

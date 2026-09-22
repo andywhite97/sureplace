@@ -80,7 +80,7 @@ export class PropertySearchComponent {
   resultSummary = computed(() => {
     if (this.loading()) return 'Updating results...';
     const total = this.count();
-    return `${total} ${total === 1 ? 'property' : 'properties'} - Discover verified properties across Eswatini.`;
+    return `${total} ${total === 1 ? 'property' : 'properties'} available in ${this.locationLabel()}.`;
   });
   locationLabel = computed(() => {
     const s = this.state();

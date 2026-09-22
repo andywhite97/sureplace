@@ -1,28 +1,38 @@
-import { computed, signal } from '@angular/core';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, Subject, throwError } from 'rxjs';
-import { AgencyManagementApiService } from '../api/manage-api.services';
-import { AuthService } from '../auth/auth.service';
-import { Agency } from '../models/manage.models';
+import { of } from 'rxjs';
+import { UserCapabilityService } from './user-capability.service';
 import { AgencyNavigationService } from './agency-navigation.service';
 
 describe('AgencyNavigationService', () => {
-  const user = signal<{ is_email_verified: boolean } | null>(null);
-  const mine = vi.fn();
+  const capabilities = signal<any>({
+    canAccessAgencyTools: false,
+    canCreateAgency: true,
+    canManageAgency: false,
+  });
   beforeEach(() => {
-    user.set({ is_email_verified: true });
-    mine.mockReset().mockReturnValue(of([]));
+    capabilities.set({
+      canAccessAgencyTools: false,
+      canCreateAgency: true,
+      canManageAgency: false,
+    });
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: { user, isAuthenticated: computed(() => !!user()) } },
-        { provide: AgencyManagementApiService, useValue: { mine } },
+        {
+          provide: UserCapabilityService,
+          useValue: { capabilities, refresh: vi.fn(() => of(capabilities())) },
+        },
       ],
     });
   });
   it.each(['OWNER', 'ADMIN', 'AGENT'])(
     'uses the backend membership role %s for Team visibility',
     (role) => {
-      mine.mockReturnValue(of([{ user_role: role } as Agency]));
+      capabilities.set({
+        canAccessAgencyTools: true,
+        canCreateAgency: false,
+        canManageAgency: role !== 'AGENT',
+      });
       const service = TestBed.inject(AgencyNavigationService);
       service.refresh();
       expect(service.links().map((link) => link.label)).toEqual(
@@ -30,30 +40,35 @@ describe('AgencyNavigationService', () => {
       );
     },
   );
-  it('does not expose Team to unverified members', () => {
-    user.set({ is_email_verified: false });
-    mine.mockReturnValue(of([{ user_role: 'OWNER' } as Agency]));
+  it('does not expose Team to ordinary agency members', () => {
+    capabilities.set({
+      canAccessAgencyTools: true,
+      canCreateAgency: false,
+      canManageAgency: false,
+    });
     const service = TestBed.inject(AgencyNavigationService);
     service.refresh();
     expect(service.links().map((link) => link.label)).toEqual(['Agency']);
   });
-  it('offers creation only after confirmed empty membership', () => {
+  it('offers creation only when listing or agent context makes it relevant', () => {
     const service = TestBed.inject(AgencyNavigationService);
     service.refresh();
     expect(service.links().map((link) => link.label)).toEqual(['Create an agency']);
-    mine.mockReturnValue(throwError(() => new Error('unavailable')));
-    service.refresh();
+    capabilities.set({
+      canAccessAgencyTools: false,
+      canCreateAgency: false,
+      canManageAgency: false,
+    });
     expect(service.links()).toEqual([]);
   });
-  it('ignores stale responses after logout and makes no anonymous request', () => {
-    const response = new Subject<Agency[]>();
-    mine.mockReturnValue(response);
+  it('removes agency links when membership capability is cleared', () => {
+    capabilities.set({ canAccessAgencyTools: true, canCreateAgency: false, canManageAgency: true });
     const service = TestBed.inject(AgencyNavigationService);
-    service.refresh();
-    user.set(null);
-    service.refresh();
-    response.next([{ user_role: 'OWNER' } as Agency]);
+    capabilities.set({
+      canAccessAgencyTools: false,
+      canCreateAgency: false,
+      canManageAgency: false,
+    });
     expect(service.links()).toEqual([]);
-    expect(mine).toHaveBeenCalledTimes(1);
   });
 });

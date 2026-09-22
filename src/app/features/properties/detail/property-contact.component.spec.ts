@@ -16,6 +16,16 @@ describe('PropertyContactComponent', () => {
     title: 'Green Home',
     agent: { name: 'Agent Demo', whatsapp_number: '+268 7612 3456' },
     agency: { name: 'Agency' },
+    advertiser: {
+      kind: 'AGENCY',
+      name: 'Agency',
+      role: 'Real estate agency',
+      image: null,
+      verification_status: 'VERIFIED',
+      profile_slug: 'agency',
+      representative_name: 'Agent Demo',
+      representative_image: null,
+    },
     verification_badges: [{ type: 'AGENT', label: 'Verified Agent' }],
   };
   const authenticated = signal(true);

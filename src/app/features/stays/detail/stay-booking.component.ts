@@ -19,7 +19,9 @@ import {
 } from '../../../core/models/listing.models';
 import { StaysApiService } from '../../../core/api/stays-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { formatMoney } from '../../../shared/listing/price-format';
+import { EswatiniPhoneInputComponent } from '../../../shared/ui/eswatini-phone-input.component';
 
 export interface BookingCriteria {
   check_in: string;
@@ -32,7 +34,7 @@ export interface BookingCriteria {
 @Component({
   selector: 'sp-stay-booking',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
   template: `<aside class="booking">
     @if (success(); as booking) {
       <div class="success" role="status">
@@ -52,7 +54,7 @@ export interface BookingCriteria {
         ><a routerLink="/stays">Browse more stays</a>
       </div>
     } @else {
-      <p class="eyebrow">From</p>
+      <p class="eyebrow">Booking summary</p>
       <h2>{{ room() ? money(room()!.base_price, room()!.currency) : startingPrice() }}</h2>
       <p class="per-night">per night</p>
       @if (room(); as room) {
@@ -99,7 +101,7 @@ export interface BookingCriteria {
           <label>Guest name<input formControlName="guest_name" autocomplete="name" /></label
           ><label
             >Email<input type="email" formControlName="guest_email" autocomplete="email" /></label
-          ><label>Phone<input formControlName="guest_phone" autocomplete="tel" /></label
+          ><label>Phone<sp-eswatini-phone-input formControlName="guest_phone" /></label
           ><label
             >Special requests<textarea rows="3" formControlName="special_requests"></textarea>
           </label>
@@ -136,6 +138,55 @@ export interface BookingCriteria {
         border-radius: 1.2rem;
         padding: 1.25rem;
         box-shadow: 0 22px 54px rgba(21, 43, 42, 0.12);
+      }
+      @media (max-width: 767px) {
+        .booking {
+          gap: 0.7rem;
+          padding: 1rem;
+          border-radius: 1rem;
+          box-shadow: 0 10px 26px rgba(21, 43, 42, 0.07);
+        }
+        .booking h2 {
+          color: var(--teal);
+          font-size: 1.55rem;
+        }
+        .summary {
+          gap: 0;
+          padding: 0;
+          border: 1px solid var(--line);
+          border-radius: 0.85rem;
+          overflow: hidden;
+        }
+        .summary p {
+          padding: 0.7rem 0.75rem;
+        }
+        .summary p + p {
+          border-top: 1px solid var(--line);
+        }
+        .primary {
+          min-height: 48px;
+          border-radius: 0.8rem;
+        }
+        .booking:not(:has(.summary)) {
+          display: block;
+          min-height: 0;
+          padding: 0.75rem 0.9rem;
+          border-radius: 0.8rem;
+          box-shadow: none;
+        }
+        .booking:not(:has(.summary)) .eyebrow,
+        .booking:not(:has(.summary)) h2,
+        .booking:not(:has(.summary)) .per-night,
+        .booking:not(:has(.summary)) .primary,
+        .booking:not(:has(.summary)) > small {
+          display: none;
+        }
+        .booking:not(:has(.summary)) .empty {
+          margin: 0;
+          color: var(--slate);
+          font-size: 0.88rem;
+          line-height: 1.35;
+        }
       }
       .eyebrow {
         color: var(--teal);
@@ -227,6 +278,7 @@ export class StayBookingComponent {
   private api = inject(StaysApiService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
   submitting = signal(false);
   error = signal('');
   success = signal<BookingSummary | null>(null);
@@ -295,6 +347,11 @@ export class StayBookingComponent {
         globalThis.crypto?.randomUUID?.() || `booking-${Date.now()}-${Math.random()}`;
     this.submitting.set(true);
     this.error.set('');
+    const progressToast = this.toast.show({
+      kind: 'loading',
+      title: 'Sending booking request',
+      message: 'Please wait while we contact the stay.',
+    });
     this.api
       .createBooking(
         this.stay().id,
@@ -312,12 +369,23 @@ export class StayBookingComponent {
               ? 'That room is no longer available for all selected dates. Please adjust your dates or choose another room.'
               : message || 'Please check your booking details and try again.',
           );
+          this.toast.show(this.error(), 'error');
           return of(null);
         }),
-        finalize(() => this.submitting.set(false)),
+        finalize(() => {
+          this.submitting.set(false);
+          this.toast.dismiss(progressToast);
+        }),
       )
       .subscribe((result) => {
-        if (result) this.success.set(result);
+        if (result) {
+          this.success.set(result);
+          this.toast.show({
+            kind: 'success',
+            title: 'Booking request sent',
+            message: `Reference ${result.reference}`,
+          });
+        }
       });
   }
 

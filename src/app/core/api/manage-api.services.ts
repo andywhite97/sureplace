@@ -24,6 +24,7 @@ import {
   AgencyInvitation,
   AgencyMember,
   AgencyRole,
+  ManagementDashboardResponse,
   PropertyImage,
 } from '../models/manage.models';
 import { StayImage, RoomTypeSummary } from '../models/listing.models';
@@ -31,8 +32,8 @@ import { StayImage, RoomTypeSummary } from '../models/listing.models';
 @Injectable({ providedIn: 'root' })
 export class PropertyManagementApiService {
   private api = inject(ApiClient);
-  mine() {
-    return this.api.get<ManagedPropertyPage>('/properties/mine/');
+  mine(params: Record<string, string> = {}) {
+    return this.api.get<ManagedPropertyPage>('/properties/mine/', params);
   }
   detail(id: string) {
     return this.api.get<ManagedProperty>(`/properties/${encodeURIComponent(id)}/`);
@@ -78,8 +79,8 @@ export class PropertyManagementApiService {
 @Injectable({ providedIn: 'root' })
 export class StayManagementApiService {
   private api = inject(ApiClient);
-  mine() {
-    return this.api.get<ManagedStayPage>('/stays/mine/');
+  mine(params: Record<string, string> = {}) {
+    return this.api.get<ManagedStayPage>('/stays/mine/', params);
   }
   detail(id: string) {
     return this.api.get<ManagedStay>(`/stays/${encodeURIComponent(id)}/`);
@@ -234,6 +235,9 @@ export class AgencyManagementApiService {
   }
   dashboard(id: string) {
     return this.api.get<AgencyDashboard>(`/agencies/${encodeURIComponent(id)}/dashboard/`);
+  }
+  managementDashboard(params: Record<string, string> = {}) {
+    return this.api.get<ManagementDashboardResponse>('/management-dashboard/', params);
   }
   update(id: string, body: FormData | Partial<Agency>) {
     return this.api.patch<Agency>(`/agencies/${encodeURIComponent(id)}/`, body);

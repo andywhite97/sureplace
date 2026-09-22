@@ -78,7 +78,7 @@
           </div>
         }
       </div>
-      <button class="search" type="submit">Search</button>
+      <button class="search" type="submit">Search stays</button>
       @if (dateError()) {
         <p class="date-error" role="alert">{{ dateError() }}</p>
       }
@@ -269,6 +269,12 @@
   } @else {
     <section class="results" [class.map-mode]="state().view === 'map'" [class.loading]="loading()">
       <div class="listing-pane" aria-live="polite">
+        @if (!loading() && results().length) {
+          <div class="mobile-results-summary" aria-label="Result summary">
+            <strong>{{ count() }} {{ count() === 1 ? 'stay' : 'stays' }}</strong>
+            <span>Page {{ state().page || 1 }} of {{ pages() }}</span>
+          </div>
+        }
         <div class="grid">
           @if (loading() && !results().length) {
             @for (i of [1, 2, 3, 4, 5, 6]; track i) {

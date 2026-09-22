@@ -44,6 +44,7 @@ export interface PropertyWriteRequest {
   furnished: boolean;
   pet_friendly: boolean;
   amenities: string[];
+  agency?: string;
 }
 
 export interface StayWriteRequest {
@@ -63,6 +64,7 @@ export interface StayWriteRequest {
   check_in_time: string | null;
   check_out_time: string | null;
   amenities: string[];
+  agency?: string;
 }
 
 export interface RoomWriteRequest {
@@ -217,6 +219,59 @@ export interface AgencyDashboard {
   team_members: number;
   pending_invitations: number;
   verification_status: string;
+}
+
+export interface ManagementContext {
+  kind: 'individual' | 'agency';
+  id: string | null;
+  name: string;
+  role: AgencyRole;
+  agency?: Agency;
+}
+
+export interface ManagementListing {
+  id: string;
+  kind: 'property' | 'stay';
+  public_id: string;
+  slug: string;
+  title: string;
+  subtype: string;
+  status: string;
+  town: string;
+  suburb: string;
+  cover_image: string | null;
+  updated_at: string;
+  facts: string[];
+  edit_url: string;
+  public_url: string | null;
+  rooms_url?: string;
+  availability_url?: string;
+}
+
+export interface ManagementDashboardResponse {
+  mode: 'onboarding' | 'dashboard';
+  contexts: {
+    individual: boolean;
+    agencies: Agency[];
+  };
+  context: ManagementContext | null;
+  stats: {
+    total_listings: number;
+    published_listings: number;
+    enquiries: number;
+    pending_requests: number;
+    pending_viewings: number;
+    pending_bookings: number;
+  } | null;
+  listings: {
+    count: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+    next_page: number | null;
+    previous_page: number | null;
+    results: ManagementListing[];
+  };
 }
 
 export interface AgencyMember {

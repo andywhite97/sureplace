@@ -10,6 +10,18 @@
     ></span>
   </header>
 
+  <section class="mobile-profile-card" aria-label="Your profile">
+    <span class="profile-avatar" aria-hidden="true">{{ initials() }}</span>
+    <div>
+      <p>My Profile</p>
+      <strong>{{ profileName() }}</strong>
+      <small>{{ auth.user()?.email }}</small>
+    </div>
+    <a routerLink="/account/profile"
+      >Edit profile <i class="fa-solid fa-chevron-right" aria-hidden="true"></i
+    ></a>
+  </section>
+
   @if (store.loading() && !store.summary()) {
     <section class="summary-grid" aria-label="Loading account summary">
       @for (item of [1, 2, 3, 4, 5, 6]; track item) {
@@ -176,17 +188,17 @@
           }
         </dl>
         <nav aria-label="Management actions">
-          @if (activity.has_properties) {
+          @if (activity.has_properties && capabilities.capabilities().canManageProperties) {
             <a routerLink="/account/manage/properties"
               >Manage properties <i class="fa-solid fa-arrow-right"></i
             ></a>
           }
-          @if (activity.has_stays) {
+          @if (activity.has_stays && capabilities.capabilities().canManageStays) {
             <a routerLink="/account/manage/stays"
               >Manage stays <i class="fa-solid fa-arrow-right"></i
             ></a>
           }
-          @if (activity.agency) {
+          @if (activity.agency && capabilities.capabilities().canAccessAgencyTools) {
             <a routerLink="/account/manage/agency/profile"
               >Agency profile <i class="fa-solid fa-arrow-right"></i
             ></a>
@@ -226,6 +238,18 @@
       ></a>
     </nav>
   </section>
+
+  @if (!capabilities.capabilities().canAccessManageDashboard) {
+    <section class="overview-section listing-entry">
+      <div>
+        <h2>Want to list on SurePlace?</h2>
+        <p>Add listing preferences to unlock the tools you need when you are ready.</p>
+      </div>
+      <a routerLink="/account/profile"
+        >Update your profile <i class="fa-solid fa-arrow-right"></i
+      ></a>
+    </section>
+  }
 
   <section class="overview-section recent-section">
     <header class="section-heading">

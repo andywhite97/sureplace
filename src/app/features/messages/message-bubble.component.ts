@@ -88,6 +88,40 @@ import { Message } from '../../core/models/messaging.models';
       .failed .bubble {
         outline: 2px solid #b94a48;
       }
+      @media (max-width: 767px) {
+        li {
+          margin: .4rem 0;
+        }
+        .bubble {
+          max-width: 82%;
+          padding: .6rem .7rem .45rem;
+          border-radius: .8rem .8rem .8rem .2rem;
+          background: #fff;
+          color: var(--midnight);
+          box-shadow: 0 2px 10px rgba(21,43,42,.045);
+        }
+        .mine .bubble {
+          background: #c8f4ec;
+          color: var(--midnight);
+          border-radius: .8rem .8rem .2rem .8rem;
+        }
+        .bubble p {
+          font-size: .79rem;
+          line-height: 1.38;
+        }
+        .bubble footer {
+          margin-top: .15rem;
+          font-size: .62rem;
+          color: var(--slate);
+          opacity: 1;
+        }
+        .system-card {
+          max-width: 88%;
+          padding: .5rem .7rem;
+          border-radius: .7rem;
+          font-size: .75rem;
+        }
+      }
     `,
   ],
 })

@@ -1,13 +1,8 @@
-import { isPlatformBrowser } from '@angular/common';
 import {
-  CUSTOM_ELEMENTS_SCHEMA,
   Component,
   ElementRef,
   HostListener,
-  PLATFORM_ID,
-  afterNextRender,
   computed,
-  inject,
   input,
   signal,
   viewChild,
@@ -19,7 +14,6 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
   selector: 'sp-stay-gallery',
   standalone: true,
   imports: [SmartImageComponent],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `<section class="gallery" aria-label="Stay gallery">
       @if (images().length) {
         <div class="mosaic" [class.single]="visibleImages().length === 1">
@@ -48,20 +42,14 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
           }
         </div>
         <div class="mobile-swiper">
-          <swiper-container
-            #main
-            keyboard="true"
-            navigation="true"
-            (swiperslidechange)="changed($event)"
-          >
+          <div #mobileTrack class="mobile-track" (scroll)="changed($event)">
             @for (
               image of images().slice(0, 12);
               track image.id;
               let first = $first;
               let i = $index
             ) {
-              <swiper-slide
-                ><button type="button" (click)="open(i)">
+              <button type="button" class="mobile-slide" (click)="open(i)">
                   <sp-image
                     [src]="image.image"
                     [alt]="image.caption || title() + ' in ' + location()"
@@ -69,10 +57,29 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
                     [priority]="first"
                     [width]="760"
                     [height]="570"
-                  /></button
-              ></swiper-slide>
+                  /></button>
             }
-          </swiper-container>
+          </div>
+          @if (images().length > 1) {
+            <div class="thumbnails" aria-label="Choose a stay photo">
+              @for (image of images().slice(0, 8); track image.id; let i = $index) {
+                <button
+                  type="button"
+                  [class.active]="selected() === i"
+                  [attr.aria-label]="'View photo ' + (i + 1)"
+                  (click)="select(i)"
+                >
+                  <sp-image
+                    [src]="image.image"
+                    [alt]="image.caption || title() + ' photo ' + (i + 1)"
+                    ratio="1 / 1"
+                    [width]="140"
+                    [height]="140"
+                  />
+                </button>
+              }
+            </div>
+          }
           <span class="counter">{{ selected() + 1 }} / {{ images().length }}</span>
           <button type="button" class="mobile-all" (click)="open(selected())">
             <i class="fa-regular fa-images" aria-hidden="true"></i> View all photos
@@ -191,14 +198,25 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
         display: none;
         position: relative;
       }
-      .mobile-swiper button {
+      .mobile-track {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+      .mobile-track::-webkit-scrollbar {
+        display: none;
+      }
+      .mobile-slide {
+        flex: 0 0 100%;
         width: 100%;
         padding: 0;
         border: 0;
         background: transparent;
+        scroll-snap-align: start;
       }
-      swiper-container {
-        overflow: hidden;
+      .mobile-track {
+        overflow-y: hidden;
         border-radius: 1rem;
         background: #dce8e5;
       }
@@ -214,6 +232,29 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
         width: auto;
         padding: 0.65rem 0.8rem;
         font-size: 0.82rem;
+      }
+      .thumbnails {
+        display: flex;
+        gap: 0.55rem;
+        overflow-x: auto;
+        padding: 0.7rem 0.1rem 0.1rem;
+        scrollbar-width: none;
+      }
+      .thumbnails::-webkit-scrollbar {
+        display: none;
+      }
+      .thumbnails button {
+        flex: 0 0 4.35rem;
+        overflow: hidden;
+        border: 2px solid transparent;
+        border-radius: 0.7rem;
+        background: #dce8e5;
+      }
+      .thumbnails button.active {
+        border-color: var(--teal);
+      }
+      .thumbnails sp-image {
+        display: block;
       }
       .fallback {
         overflow: hidden;
@@ -273,12 +314,66 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
       .next {
         right: 0.75rem;
       }
-      @media (max-width: 760px) {
+      @media (max-width: 767px) {
         .mosaic {
           display: none;
         }
         .mobile-swiper {
           display: block;
+        }
+        .mobile-track {
+          width: 100%;
+          height: auto;
+          aspect-ratio: 4 / 3;
+          border-radius: 0 0 1.2rem 1.2rem;
+        }
+        .mobile-slide,
+        .mobile-slide sp-image {
+          height: 100%;
+          min-height: 0;
+        }
+        :host ::ng-deep .mobile-slide sp-image > div {
+          width: 100%;
+          height: 100%;
+          aspect-ratio: auto !important;
+        }
+        .counter {
+          top: auto;
+          right: 0.75rem;
+          bottom: 0.75rem;
+          background: rgba(21, 43, 42, 0.78);
+        }
+        .mobile-all {
+          display: none;
+        }
+        .thumbnails {
+          gap: .5rem;
+          height: 4.55rem;
+          padding: .55rem .1rem .05rem;
+        }
+        .thumbnails button {
+          flex-basis: 3.85rem;
+          width: 3.85rem;
+          height: 3.85rem;
+          padding: 0;
+          border-radius: .6rem;
+        }
+        .thumbnails sp-image,
+        :host ::ng-deep .thumbnails sp-image > div {
+          width: 100%;
+          height: 100%;
+        }
+        .fallback {
+          width: 100%;
+          height: auto;
+          aspect-ratio: 4 / 3;
+          border-radius: 0 0 1.2rem 1.2rem;
+        }
+        .fallback sp-image,
+        :host ::ng-deep .fallback sp-image > div {
+          width: 100%;
+          height: 100%;
+          aspect-ratio: auto !important;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -293,29 +388,25 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
   ],
 })
 export class StayGalleryComponent {
-  private platformId = inject(PLATFORM_ID);
   images = input<StayImage[]>([]);
   title = input.required<string>();
   location = input('');
-  main = viewChild<ElementRef & { nativeElement: { swiper: { slideTo: (i: number) => void } } }>(
-    'main',
-  );
+  mobileTrack = viewChild<ElementRef<HTMLElement>>('mobileTrack');
   selected = signal(0);
   lightboxOpen = signal(false);
   visibleImages = computed(() => this.images().slice(0, 5));
   activeImage = computed(() => this.images()[this.selected()] || null);
 
-  constructor() {
-    afterNextRender(() => {
-      if (isPlatformBrowser(this.platformId))
-        void import('swiper/element/bundle').then(({ register }) => register());
-    });
-  }
-
   open(index: number) {
     this.selected.set(index);
-    this.main()?.nativeElement.swiper?.slideTo(index);
     this.lightboxOpen.set(true);
+  }
+
+  select(index: number) {
+    this.selected.set(index);
+    const track = this.mobileTrack()?.nativeElement;
+    const slide = track?.children.item(index) as HTMLElement | null;
+    slide?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'start' });
   }
 
   close() {
@@ -335,9 +426,9 @@ export class StayGalleryComponent {
   }
 
   changed(e: Event) {
-    const detail = (e as CustomEvent).detail;
-    const swiper = Array.isArray(detail) ? detail[0] : detail;
-    this.selected.set(swiper?.activeIndex || 0);
+    const track = e.currentTarget as HTMLElement;
+    const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    if (index !== this.selected()) this.selected.set(index);
   }
 
   @HostListener('document:keydown.escape')

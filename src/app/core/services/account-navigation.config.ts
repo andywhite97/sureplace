@@ -1,3 +1,5 @@
+import type { UserCapabilities, UserCapabilityKey } from './user-capability.service';
+
 export type AccountSectionId = 'account' | 'activity' | 'manage' | 'agency' | 'staff';
 export type MobileSectionId = Exclude<AccountSectionId, 'activity'>;
 export type NavigationBadge = 'messages' | 'notifications';
@@ -10,6 +12,7 @@ export interface AccountNavItem {
   activePaths?: string[];
   badge?: NavigationBadge;
   feature?: NavigationFeature;
+  capability?: UserCapabilityKey;
   mobileExplore?: boolean;
 }
 export interface AccountNavSection {
@@ -75,22 +78,26 @@ const sections: AccountNavSection[] = [
         commands: '/account/manage',
         exact: true,
         icon: 'fa-solid fa-gauge-high',
+        capability: 'canAccessManageDashboard',
       },
       {
         label: 'Properties',
         commands: '/account/manage/properties',
         icon: 'fa-solid fa-building-user',
+        capability: 'canManageProperties',
       },
       {
         label: 'Stays',
         commands: '/account/manage/stays',
         icon: 'fa-solid fa-bed',
         feature: 'stays',
+        capability: 'canManageStays',
       },
       {
         label: 'Verification',
         commands: '/account/manage/verification',
         icon: 'fa-solid fa-shield-halved',
+        capability: 'canAccessVerification',
       },
     ],
   },
@@ -111,12 +118,19 @@ export function accountNavigation(context: {
   staff: boolean;
   agencyLinks: AccountNavItem[];
   features: Record<NavigationFeature, boolean>;
+  capabilities: UserCapabilities;
 }): AccountNavSection[] {
   if (!context.authenticated) return [];
-  const result = sections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => !item.feature || context.features[item.feature]),
-  }));
+  const result = sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) =>
+          (!item.feature || context.features[item.feature]) &&
+          (!item.capability || context.capabilities[item.capability]),
+      ),
+    }))
+    .filter((section) => section.items.length);
   if (context.agencyLinks.length)
     result.push({
       id: 'agency',

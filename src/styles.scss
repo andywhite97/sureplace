@@ -192,6 +192,28 @@ input:focus-visible {
     padding-bottom: calc(66px + env(safe-area-inset-bottom));
   }
 }
+
+swiper-container[pagination-type='progressbar'] {
+  --swiper-theme-color: var(--teal);
+  --swiper-pagination-progressbar-bg-color: color-mix(in srgb, var(--teal) 14%, var(--line));
+  --swiper-pagination-progressbar-size: 4px;
+}
+@media (max-width: 767px) {
+  swiper-container[pagination-type='progressbar']::part(pagination) {
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: 0;
+    width: 100%;
+  }
+}
+/* Desktop galleries retain their existing uncluttered presentation. The progress bar
+   remains configured for every slider and is revealed on phone layouts. */
+@media (min-width: 768px) {
+  swiper-container[pagination-type='progressbar']::part(pagination) {
+    display: none;
+  }
+}
 @media (max-width: 600px) {
   .property-search-page .map-pane {
     height: calc(100vh - 155px);
@@ -216,4 +238,20 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+.directions-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 0.55rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.7rem;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 850;
+  text-align: center;
+  text-decoration: none;
 }

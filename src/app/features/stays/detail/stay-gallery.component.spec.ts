@@ -42,6 +42,22 @@ describe('StayGalleryComponent', () => {
     expect(fixture.nativeElement.querySelector('[role=dialog]')).toBeTruthy();
   });
 
+  it('uses a native mobile scroll track and selectable thumbnails instead of a Swiper element', () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [StayGalleryComponent],
+    }).createComponent(StayGalleryComponent);
+    fixture.componentRef.setInput('title', 'Valley Guest House');
+    fixture.componentRef.setInput('images', images);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('swiper-container')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.mobile-track .mobile-slide').length).toBe(6);
+    expect(fixture.nativeElement.querySelectorAll('.thumbnails button').length).toBe(6);
+
+    fixture.componentInstance.select(2);
+    expect(fixture.componentInstance.selected()).toBe(2);
+  });
+
   it('uses the fallback image state when a stay has no photos', () => {
     const fixture = TestBed.configureTestingModule({
       imports: [StayGalleryComponent],

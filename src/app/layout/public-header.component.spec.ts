@@ -6,6 +6,7 @@ import { provideRouter, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { ConfigApiService } from '../core/api/config-api.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
+import { UserCapabilityService } from '../core/services/user-capability.service';
 import { PublicHeaderComponent } from './public-header.component';
 
 @Component({ standalone: true, template: '' })
@@ -41,6 +42,20 @@ describe('PublicHeaderComponent mobile navigation', () => {
     unreadMessages: computed(() => unreadMessages()),
     unreadNotifications: computed(() => unreadNotifications()),
   };
+  const capabilities = computed(() => {
+    const intents = ((user() as any)?.onboarding_intents || []) as string[];
+    const property = intents.some((value) => ['PROPERTY_OWNER', 'PROPERTY_AGENT'].includes(value));
+    const stays = intents.includes('HOSPITALITY_OPERATOR');
+    return {
+      canAccessManageDashboard: property || stays,
+      canManageProperties: property,
+      canManageStays: stays,
+      canAccessVerification: property || stays,
+      canCreateAgency: property || stays,
+      canAccessAgencyTools: false,
+      canManageAgency: false,
+    } as any;
+  });
 
   beforeEach(async () => {
     user.set(null);
@@ -82,6 +97,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
         { provide: AuthService, useValue: auth },
         { provide: ConfigApiService, useValue: { config } },
         { provide: AccountActivityStore, useValue: activity },
+        { provide: UserCapabilityService, useValue: { capabilities, refresh: vi.fn() } },
       ],
     }).compileComponents();
   });
@@ -167,7 +183,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(headerText).toContain('Messages');
     expect(headerText).toContain('Ava');
     expect(headerText).toContain('Log out');
-    expect(headerText).toContain('List a Property');
+    expect(headerText).toContain('List on SurePlace');
     expect(headerText).not.toContain('Log in');
     expect(headerText).not.toContain('Create account');
     expect(headerText).not.toContain('Rent');
@@ -358,7 +374,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     const toggles = [
       ...fixture.nativeElement.querySelectorAll('.accordion-toggle'),
     ] as HTMLButtonElement[];
-    expect(toggles.length).toBe(4);
+    expect(toggles.length).toBe(2);
     expect(toggles.every((button) => button.getAttribute('aria-expanded') === 'false')).toBe(true);
     for (const button of toggles) {
       button.click();
@@ -369,16 +385,13 @@ describe('PublicHeaderComponent mobile navigation', () => {
       const panel = fixture.nativeElement.querySelector('#' + button.getAttribute('aria-controls'));
       expect(panel.hasAttribute('inert')).toBe(false);
     }
-    toggles[3].click();
+    toggles[1].click();
     fixture.detectChanges();
     expect(fixture.componentInstance.expandedSection()).toBeNull();
   });
 
   it.each([
     ['/account/profile', 'account'],
-    ['/account/manage/properties', 'manage'],
-    ['/account/manage/agency', 'agency'],
-    ['/account/manage/agency/team', 'agency'],
     ['/staff/listings', 'staff'],
     ['/account/messages', null],
   ])('auto-expands the context for %s and highlights a collapsed parent', (url, section) => {
@@ -399,20 +412,18 @@ describe('PublicHeaderComponent mobile navigation', () => {
     }
   });
 
-  it('offers management to seekers without exposing staff or agency links', () => {
+  it('keeps seeker account navigation free of management and agency links', () => {
     user.set({ first_name: 'Seeker' });
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
     fixture.componentInstance.openMenu();
     fixture.detectChanges();
     const drawer = fixture.nativeElement.querySelector('.drawer');
-    expect(drawer.querySelectorAll('.accordion-toggle').length).toBe(3);
-    expect(drawer.textContent).toContain('Create an agency');
+    expect(drawer.querySelectorAll('.accordion-toggle').length).toBe(1);
+    expect(drawer.textContent).not.toContain('Create an agency');
     expect(drawer.querySelectorAll('a[href="/account/saved"]').length).toBe(1);
     expect(drawer.querySelectorAll('a[href="/account/messages"]').length).toBe(1);
-    expect(drawer.querySelector('#mobile-section-manage').textContent).not.toContain(
-      'Create an agency',
-    );
+    expect(drawer.querySelector('#mobile-section-manage')).toBeNull();
     expect(drawer.querySelector('a[href="/account/manage/agency"]')).toBeNull();
     expect(drawer.querySelector('a[href="/account/manage/agency/team"]')).toBeNull();
     expect(drawer.querySelector('.primary-cta').textContent).toContain('List a Property');

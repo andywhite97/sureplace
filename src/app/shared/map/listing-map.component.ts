@@ -97,7 +97,10 @@ export class ListingMapComponent implements OnDestroy {
   private initQueued = false;
   private initializing = false;
   private destroyed = false;
-  private resizeFrame: number | null = null;
+  private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private initializeFrame: number | null = null;
+  private canvasWidth = 0;
+  private canvasHeight = 0;
   private warnedInvalidCenter = false;
 
   constructor() {
@@ -134,8 +137,11 @@ export class ListingMapComponent implements OnDestroy {
   ngOnDestroy() {
     this.destroyed = true;
     this.resizeObserver?.disconnect();
-    if (this.resizeFrame !== null && typeof cancelAnimationFrame !== 'undefined') {
-      cancelAnimationFrame(this.resizeFrame);
+    if (this.resizeTimer !== null) {
+      clearTimeout(this.resizeTimer);
+    }
+    if (this.initializeFrame !== null && typeof cancelAnimationFrame !== 'undefined') {
+      cancelAnimationFrame(this.initializeFrame);
     }
     this.map?.remove();
     this.resizeObserver = undefined;
@@ -182,8 +188,8 @@ export class ListingMapComponent implements OnDestroy {
       return;
     }
 
-    this.resizeFrame = requestAnimationFrame(() => {
-      this.resizeFrame = null;
+    this.initializeFrame = requestAnimationFrame(() => {
+      this.initializeFrame = null;
       callback();
     });
   }
@@ -225,7 +231,7 @@ export class ListingMapComponent implements OnDestroy {
       this.map.on('moveend', () => this.pendingBounds.set(true));
       this.observeSize();
       this.render(this.normalizedMarkers(), this.selectedId());
-      this.invalidateSize();
+      this.map.invalidateSize({ animate: false, pan: false, debounceMoveend: true });
     } finally {
       this.initializing = false;
     }
@@ -234,18 +240,27 @@ export class ListingMapComponent implements OnDestroy {
   private observeSize() {
     if (typeof ResizeObserver === 'undefined') return;
     this.resizeObserver?.disconnect();
-    this.resizeObserver = new ResizeObserver(() => this.invalidateSize());
+    const rect = this.canvas().nativeElement.getBoundingClientRect();
+    this.canvasWidth = rect.width;
+    this.canvasHeight = rect.height;
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const size = entries[0]?.contentRect;
+      if (!size || (size.width === this.canvasWidth && size.height === this.canvasHeight)) return;
+      this.canvasWidth = size.width;
+      this.canvasHeight = size.height;
+      this.invalidateSize();
+    });
     this.resizeObserver.observe(this.canvas().nativeElement);
   }
 
   private invalidateSize() {
-    if (!this.map || typeof requestAnimationFrame === 'undefined') return;
-    if (this.resizeFrame !== null) return;
+    if (!this.map || this.resizeTimer !== null) return;
 
-    this.resizeFrame = requestAnimationFrame(() => {
-      this.resizeFrame = null;
-      this.map?.invalidateSize();
-    });
+    this.resizeTimer = setTimeout(() => {
+      this.resizeTimer = null;
+      if (!this.destroyed)
+        this.map?.invalidateSize({ animate: false, pan: false, debounceMoveend: true });
+    }, 120);
   }
 
   private render(items: NormalizedMapMarker[], selected: string | null) {
@@ -275,7 +290,6 @@ export class ListingMapComponent implements OnDestroy {
       this.map.setView(center, this.zoom(), { animate: false });
     }
     this.render(this.normalizedMarkers(), this.selectedId());
-    this.invalidateSize();
   }
 
   private normalizedCenter(): [number, number] | null {

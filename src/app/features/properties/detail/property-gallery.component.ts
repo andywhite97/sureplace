@@ -23,6 +23,8 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
         #main
         keyboard="true"
         navigation="true"
+        pagination="true"
+        pagination-type="progressbar"
         (swiperslidechange)="changed($event)"
       >
         @for (image of images().slice(0, 12); track image.id; let first = $first) {

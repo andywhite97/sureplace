@@ -1,0 +1,184 @@
+<section class="profile-page">
+  <header class="page-heading">
+    <h1>My Profile</h1>
+    <p>Manage your personal information and preferences.</p>
+  </header>
+
+  @if (loading()) {
+    <div class="profile-skeleton" aria-label="Loading profile">
+      <div class="skeleton identity-skeleton"></div>
+      <div class="skeleton form-skeleton"></div>
+      <div class="skeleton preference-skeleton"></div>
+    </div>
+  } @else if (error() && !user()) {
+    <div class="page-state">
+      <i class="fa-regular fa-circle-user" aria-hidden="true"></i>
+      <h2>We couldn't load your profile.</h2>
+      <button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else if (user(); as currentUser) {
+    <section class="identity-card" aria-label="Profile identity">
+      <div class="avatar" aria-hidden="true">
+        @if (avatarPreview() || currentUser.avatar; as avatar) {
+          <img [src]="avatar" [alt]="displayName(currentUser)" />
+        } @else {
+          <span>{{ initials(currentUser) }}</span>
+        }
+        <i class="fa-solid fa-camera avatar-camera"></i>
+      </div>
+      <div class="identity-copy">
+        <strong>{{ displayName(currentUser) }}</strong>
+        <span>{{ currentUser.email }}</span>
+      </div>
+      <div class="photo-actions">
+        <input
+          #avatarInput
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          (change)="changePhoto($any($event.target).files, avatarInput)"
+        />
+        <button type="button" (click)="avatarInput.click()" [disabled]="avatarBusy()">
+          <i
+            [class]="avatarBusy() ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-camera'"
+            aria-hidden="true"
+          ></i>
+          {{ avatarBusy() ? 'Uploading...' : 'Change photo' }}
+        </button>
+        <small>JPG, PNG or WebP. Max 5MB.</small>
+      </div>
+    </section>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <section class="profile-card personal-card">
+        <header class="card-heading">
+          <h2>Personal information</h2>
+          <p>This information is used across SurePlace.</p>
+        </header>
+        <div class="personal-grid">
+          <label [class.invalid]="fieldError('first_name')">
+            <span>First name</span>
+            <input
+              type="text"
+              formControlName="first_name"
+              autocomplete="given-name"
+              (input)="clearFieldError('first_name')"
+              [attr.aria-describedby]="fieldError('first_name') ? 'first-name-error' : null"
+            />
+            @if (fieldError('first_name')) {
+              <small id="first-name-error">{{ fieldError('first_name') }}</small>
+            }
+          </label>
+          <label [class.invalid]="fieldError('last_name')">
+            <span>Last name</span>
+            <input
+              type="text"
+              formControlName="last_name"
+              autocomplete="family-name"
+              (input)="clearFieldError('last_name')"
+              [attr.aria-describedby]="fieldError('last_name') ? 'last-name-error' : null"
+            />
+            @if (fieldError('last_name')) {
+              <small id="last-name-error">{{ fieldError('last_name') }}</small>
+            }
+          </label>
+          <label class="phone-field" [class.invalid]="fieldError('phone_number')">
+            <span>Phone number</span>
+            <sp-eswatini-phone-input
+              formControlName="phone_number"
+              placeholder="76 000 000"
+              [invalid]="!!fieldError('phone_number')"
+              [describedBy]="fieldError('phone_number') ? 'phone-error' : ''"
+              (input)="clearFieldError('phone_number')"
+            />
+            @if (fieldError('phone_number')) {
+              <small id="phone-error">{{ fieldError('phone_number') }}</small>
+            }
+          </label>
+        </div>
+      </section>
+
+      <fieldset class="profile-card preferences-card">
+        <legend class="visually-hidden">What brings you to SurePlace?</legend>
+        <header class="card-heading preferences-heading" aria-hidden="true">
+          <h2>What brings you to SurePlace?</h2>
+          <p>Select all that apply. This helps us personalise your experience.</p>
+        </header>
+        @if (listingPrompt()) {
+          <p class="listing-prompt"><i class="fa-solid fa-circle-info"></i>{{ listingPrompt() }}</p>
+        }
+        <div class="intent-grid">
+          @for (intent of intents; track intent.value) {
+            <label class="intent-option" [class.selected]="hasIntent(intent.value)">
+              <input
+                type="checkbox"
+                [checked]="hasIntent(intent.value)"
+                (change)="toggleIntent(intent.value, $any($event.target).checked)"
+              />
+              <span class="intent-icon" aria-hidden="true"><i [class]="intent.icon"></i></span>
+              <span class="intent-copy">
+                <strong>{{ intent.label }}</strong>
+                <small>{{ intent.description }}</small>
+              </span>
+              <span class="checkbox" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+            </label>
+          }
+        </div>
+        <p class="preferences-note">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          <span>You can update your preferences at any time.</span>
+        </p>
+      </fieldset>
+
+      <div class="form-actions mobile-actions">
+        <button class="primary" type="submit" [disabled]="form.invalid || form.pristine || busy()">
+          {{ busy() ? 'Saving...' : 'Save profile' }}
+        </button>
+        @if (form.dirty) {
+          <button class="discard" type="button" (click)="discard()" [disabled]="busy()">
+            Discard changes
+          </button>
+        }
+      </div>
+
+      <section class="profile-card account-card">
+        <header class="card-heading">
+          <h2>Account information</h2>
+          <p>Manage your account security and communication preferences.</p>
+        </header>
+        <div class="account-rows">
+          <div class="account-row">
+            <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+            <span
+              ><strong>Email address</strong><small>{{ currentUser.email }}</small></span
+            >
+          </div>
+          <a class="account-row" routerLink="/account/settings/password">
+            <i class="fa-solid fa-key" aria-hidden="true"></i>
+            <span><strong>Password</strong><small>••••••••</small></span>
+            <b>Change password</b>
+            <i class="fa-solid fa-chevron-right row-chevron" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        @if (error()) {
+          <p class="form-error" role="alert">{{ error() }}</p>
+        }
+
+        <div class="form-actions desktop-actions">
+          <button
+            class="primary"
+            type="submit"
+            [disabled]="form.invalid || form.pristine || busy()"
+          >
+            {{ busy() ? 'Saving...' : 'Save profile' }}
+          </button>
+          @if (form.dirty) {
+            <button class="discard" type="button" (click)="discard()" [disabled]="busy()">
+              Discard changes
+            </button>
+          }
+        </div>
+      </section>
+    </form>
+  }
+</section>

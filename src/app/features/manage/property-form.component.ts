@@ -672,6 +672,7 @@ export class PropertyFormComponent implements OnDestroy {
   private platformId = inject(PLATFORM_ID);
   ref = inject(ReferenceApiService);
   id = this.route.snapshot.paramMap.get('id');
+  agencyId = this.id ? '' : this.route.snapshot.queryParamMap.get('agency') || '';
   steps = [
     { key: 'basic', label: 'Basic' },
     { key: 'location', label: 'Location' },
@@ -1039,8 +1040,14 @@ export class PropertyFormComponent implements OnDestroy {
         .deleteImage(id, image.id)
         .pipe(finalize(() => this.busy.set(false)))
         .subscribe({
-          next: () => this.refresh(),
-          error: () => this.error.set('Photo could not be deleted.'),
+          next: () => {
+            this.refresh();
+            this.toast.show('Photo deleted.', 'success');
+          },
+          error: () => {
+            this.error.set('Photo could not be deleted.');
+            this.toast.show('Photo could not be deleted.', 'error');
+          },
         });
     }
   }
@@ -1062,11 +1069,14 @@ export class PropertyFormComponent implements OnDestroy {
           this.listing.set(property);
           this.syncPhotoOrder(property);
           this.submitted.set(true);
+          this.toast.show('Property submitted for review.', 'success');
         },
-        error: (e) =>
-          this.error.set(
-            e?.error?.detail || e?.error?.message || 'Property could not be submitted.',
-          ),
+        error: (e) => {
+          const message =
+            e?.error?.detail || e?.error?.message || 'Property could not be submitted.';
+          this.error.set(message);
+          this.toast.show(message, 'error');
+        },
       });
   }
 
@@ -1463,6 +1473,7 @@ export class PropertyFormComponent implements OnDestroy {
       furnished: v.furnished,
       pet_friendly: v.pet_friendly,
       amenities: v.amenities,
+      agency: this.agencyId || undefined,
     };
   }
 

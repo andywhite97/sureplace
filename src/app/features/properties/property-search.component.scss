@@ -38,10 +38,11 @@
 .desktop-filters {
   max-width: 1200px;
   margin: auto;
-  padding: 0.65rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   display: grid;
-  grid-template-columns: auto repeat(6, minmax(85px, 1fr)) auto auto;
-  gap: 0.5rem;
+  grid-template-columns: auto 1.05fr 1.05fr 1.15fr 0.85fr 0.85fr 0.8fr auto auto;
+  align-items: end;
+  gap: 0.6rem;
   position: relative;
 }
 .desktop-filters label {
@@ -60,21 +61,26 @@
   width: 100%;
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 0.45rem;
-  padding: 0.55rem;
+  min-height: 44px;
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.65rem;
   background: #fff;
 }
 .mode {
   display: flex;
   background: var(--mist);
-  border-radius: 0.5rem;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
   padding: 0.2rem;
 }
 .mode button,
 .more,
 .apply {
   border: 0;
-  border-radius: 0.4rem;
+  min-height: 44px;
+  border-radius: 0.6rem;
   padding: 0.55rem 0.7rem;
   background: transparent;
   font-weight: 800;
@@ -123,6 +129,86 @@ legend {
   width: auto;
 }
 .mobile-actions {
+  display: none;
+}
+.sheet-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(10, 30, 29, 0.44);
+}
+.sheet {
+  width: min(680px, 100%);
+  max-height: min(84vh, 780px);
+  overflow: auto;
+  padding: 1.25rem;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.sheet header,
+.sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.sheet header {
+  margin-bottom: 1rem;
+}
+.sheet h2 {
+  margin: 0;
+}
+.sheet header button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mist);
+  color: var(--midnight);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.sheet form {
+  display: grid;
+  gap: 0.85rem;
+}
+.sheet form > label,
+.sheet .pair label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--midnight);
+  font-size: 0.83rem;
+  font-weight: 800;
+}
+.sheet .pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.sheet-actions {
+  position: sticky;
+  bottom: -1.25rem;
+  margin-top: 0.4rem;
+  padding: 0.9rem 0 0;
+  background: #fff;
+}
+.sheet-actions button {
+  min-height: 46px;
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sheet-actions button:first-child {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--midnight);
+}
+.mobile-results-summary {
   display: none;
 }
 .chips {
@@ -272,19 +358,145 @@ legend {
     gap: 0.85rem;
   }
 }
+
+@media (min-width: 601px) and (max-width: 1000px) {
+  .mobile-actions {
+    grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.8fr);
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.75rem 1.25rem;
+  }
+  .location-control {
+    display: grid;
+    min-height: 48px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.55rem;
+    border-radius: 0.7rem !important;
+    text-align: left;
+  }
+  .location-control span {
+    overflow: hidden;
+    color: var(--midnight);
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .location-control b {
+    color: var(--teal);
+    font-size: 0.78rem;
+  }
+  .mobile-segment,
+  .mobile-view-toggle {
+    display: grid;
+    padding: 0.2rem;
+    border: 1px solid var(--line);
+    border-radius: 0.7rem;
+    background: var(--mist);
+  }
+  .mobile-segment {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mobile-segment button,
+  .mobile-view-toggle button {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 0;
+    background: transparent;
+    font-weight: 850;
+  }
+  .mobile-segment button.active,
+  .mobile-view-toggle button.active {
+    background: var(--teal);
+    color: #fff;
+  }
+  .mobile-filter-row {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+  .mobile-filter-row button {
+    display: inline-flex;
+    min-width: 0;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    overflow: hidden;
+    color: var(--midnight);
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-filter-row button i {
+    color: var(--teal);
+  }
+  .mobile-secondary-row {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(150px, 0.7fr) 180px minmax(180px, 0.8fr);
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .more-filter {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-weight: 850;
+  }
+  .mobile-view-toggle {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mobile-sort {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem !important;
+    color: var(--slate);
+  }
+  .mobile-sort > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .mobile-sort > i {
+    color: var(--teal);
+  }
+  .mobile-sort select {
+    min-height: 44px;
+    font-weight: 800;
+    text-transform: none;
+  }
+  .view-controls {
+    display: none;
+  }
+}
+
 @media (max-width: 600px) {
   .toolbar {
     top: 72px;
   }
   .intro {
-    padding: 1.15rem 0.8rem 0.75rem;
+    margin: 0.9rem 0.75rem 0;
+    padding: 1.1rem 1rem;
+    background: #eaf6f3;
+    border: 1px solid #cbe8e1;
+    border-radius: 1.15rem;
   }
   .intro .eyebrow,
   .intro .count {
     display: none;
   }
   .intro h1 {
-    font-size: 1.65rem;
+    font-size: clamp(1.5rem, 7vw, 1.72rem);
     line-height: 1.08;
     margin: 0 0 0.35rem;
     letter-spacing: 0;
@@ -294,7 +506,10 @@ legend {
     color: var(--slate);
     font-size: 0.92rem;
     line-height: 1.4;
-    margin: 0;
+    margin: 0 0 0.85rem;
+  }
+  .intro sp-save-search-button {
+    display: block;
   }
   .chips {
     min-height: auto;
@@ -309,18 +524,24 @@ legend {
     display: none;
   }
   .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
   .results {
-    padding: 0.9rem 0.75rem 3rem;
+    padding: 0.9rem 0.75rem calc(5rem + env(safe-area-inset-bottom));
   }
   .skeleton {
-    height: 260px;
-    border-radius: 0.8rem;
+    height: 390px;
+    border-radius: 1.1rem;
   }
   .mobile-actions {
     padding: 0.65rem 0.75rem 0.75rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .mobile-actions > * {
+    min-width: 0;
+    grid-column: 1;
   }
   .location-control {
     min-height: 48px;
@@ -372,52 +593,99 @@ legend {
     color: #fff;
   }
   .mobile-filter-row {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
     gap: 0.45rem;
+    overflow-x: auto;
+    padding: 0.05rem 0 0.2rem;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+  .mobile-filter-row::-webkit-scrollbar {
+    display: none;
   }
   .mobile-filter-row button {
-    min-width: 0;
+    min-width: max-content;
+    flex: 0 0 auto;
     min-height: 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    padding: 0.45rem 0.35rem;
-    overflow: hidden;
+    padding: 0.45rem 0.75rem;
     color: var(--midnight);
     font-size: 0.76rem;
     font-weight: 800;
     white-space: nowrap;
-    text-overflow: ellipsis;
+    scroll-snap-align: start;
   }
   .mobile-filter-row button i {
     color: var(--teal);
   }
   .mobile-secondary-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 44px 140px minmax(0, 1fr);
     gap: 0.55rem;
     align-items: center;
   }
   .more-filter {
+    width: 44px;
     min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
+    padding: 0 !important;
+    overflow: hidden;
+    font-size: 0;
     font-weight: 850;
+  }
+  .more-filter i {
+    font-size: 0.95rem;
   }
   .mobile-view-toggle {
     grid-template-columns: 1fr 1fr;
-    min-width: 150px;
+    min-width: 0;
   }
-  .mobile-actions > label {
-    grid-template-columns: auto minmax(0, 1fr);
+  .mobile-sort {
+    position: relative;
+    display: block !important;
+  }
+  .mobile-sort > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .mobile-sort > i {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 0.7rem;
+    color: var(--teal);
+    font-size: 0.75rem;
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+  .mobile-sort select {
+    min-height: 44px;
+    padding-left: 1.85rem;
+    color: var(--midnight);
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: none;
+  }
+  .mobile-results-summary {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.2rem 0 0.75rem;
+    color: var(--slate);
+    font-size: 0.82rem;
   }
-  .mobile-actions > label select {
-    min-height: 42px;
+  .mobile-results-summary strong {
+    color: var(--midnight);
   }
   .pagination {
     gap: 0.6rem;
@@ -441,7 +709,28 @@ legend {
   }
 }
 @media (max-width: 359px) {
-  .grid {
-    grid-template-columns: 1fr;
+  .mobile-secondary-row {
+    grid-template-columns: 42px 128px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .sheet-backdrop {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+  .sheet {
+    width: 100%;
+    height: min(88dvh, 760px);
+    padding: 1.1rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+    border-radius: 1.35rem 1.35rem 0 0;
+    box-shadow: 0 -18px 42px rgba(12, 36, 37, 0.2);
+  }
+  .sheet-actions {
+    margin-inline: -1rem;
+    padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
+  }
+  .sheet .pair {
+    gap: 0.6rem;
   }
 }

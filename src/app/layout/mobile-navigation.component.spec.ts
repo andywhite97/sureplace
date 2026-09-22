@@ -53,6 +53,7 @@ describe('MobileNavigationComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Home');
     expect(text).toContain('Explore');
     expect(text).toContain('Saved');
     expect(text).toContain('Messages');
@@ -60,6 +61,8 @@ describe('MobileNavigationComponent', () => {
     expect(text).toContain('4');
     expect(text).not.toContain('Bookings');
     expect(text).not.toContain('Notifications');
+    expect(fixture.nativeElement.querySelector('a[href="/"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('a[href="/properties"]')).toBeTruthy();
   });
 
   it('respects the messaging feature flag', () => {
@@ -75,6 +78,7 @@ describe('MobileNavigationComponent', () => {
     const fixture = TestBed.createComponent(MobileNavigationComponent);
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.textContent).toContain('Home');
     expect(fixture.nativeElement.textContent).toContain('Explore');
     expect(fixture.nativeElement.textContent).toContain('Saved');
     expect(fixture.nativeElement.textContent).toContain('Sign in');

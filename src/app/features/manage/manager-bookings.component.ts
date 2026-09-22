@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ManagerBookingsApiService } from '../../core/api/manage-api.services';
 import { Booking } from '../../core/models/account.models';
+import { ToastService } from '../../core/services/toast.service';
 import { formatMoney } from '../../shared/listing/price-format';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { ManageStatusComponent } from './manage-ui';
@@ -18,6 +19,7 @@ import { ManageStatusComponent } from './manage-ui';
 })
 export class ManagerBookingsComponent {
   private api = inject(ManagerBookingsApiService);
+  private toast = inject(ToastService);
   rows = signal<Booking[]>([]);
   filter = signal('PENDING');
   loading = signal(true);
@@ -36,6 +38,6 @@ export class ManagerBookingsComponent {
   load() { this.loading.set(true); this.api.list().pipe(finalize(() => this.loading.set(false))).subscribe({ next: (p) => this.rows.set(p.results), error: () => this.error.set('Manager bookings could not be loaded.') }); }
   actions(b: Booking): Array<'confirm' | 'decline' | 'cancel' | 'complete'> { if (b.status === 'PENDING') return ['confirm', 'decline', 'cancel']; if (b.status === 'CONFIRMED') return ['cancel', 'complete']; return []; }
   label(a: string) { return a[0].toUpperCase() + a.slice(1); }
-  go(b: Booking, action: 'confirm' | 'decline' | 'cancel' | 'complete') { this.busy.set(true); this.api.action(b.id, action).pipe(finalize(() => this.busy.set(false))).subscribe({ next: () => this.load(), error: (e) => this.error.set(e?.error?.message || 'Booking action could not be completed.') }); }
+  go(b: Booking, action: 'confirm' | 'decline' | 'cancel' | 'complete') { this.busy.set(true); this.api.action(b.id, action).pipe(finalize(() => this.busy.set(false))).subscribe({ next: () => { this.toast.show(`Booking ${action === 'confirm' ? 'confirmed' : action === 'decline' ? 'declined' : action === 'cancel' ? 'cancelled' : 'completed'}.`, 'success'); this.load(); }, error: (e) => { const message = e?.error?.message || 'Booking action could not be completed.'; this.error.set(message); this.toast.show(message, 'error'); } }); }
   private today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 }

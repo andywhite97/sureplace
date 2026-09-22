@@ -1,0 +1,84 @@
+<section class="settings-page">
+  <header class="page-heading">
+    <h1>Settings</h1>
+    <p>Manage your preferences and app settings.</p>
+  </header>
+
+  <section class="settings-card" aria-labelledby="notifications-title">
+    <header class="card-heading">
+      <span class="heading-icon" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
+      <span>
+        <h2 id="notifications-title">Notifications</h2>
+        <p>Choose what you want to be notified about.</p>
+      </span>
+    </header>
+
+    @if (loading()) {
+      <div class="preference-skeleton" aria-label="Loading notification preferences">
+        @for (row of [1, 2, 3, 4, 5]; track row) {
+          <div class="skeleton-row" aria-hidden="true"><span></span><b></b><i></i></div>
+        }
+      </div>
+    } @else if (loadError() || !prefs()) {
+      <div class="load-state" role="alert">
+        <i class="fa-regular fa-bell-slash" aria-hidden="true"></i>
+        <div>
+          <strong>We couldn't load your notification preferences.</strong>
+          <button type="button" (click)="load()">Try again</button>
+        </div>
+      </div>
+    } @else if (prefs(); as preferences) {
+      <div class="preference-list">
+        @for (row of notificationRows; track row.key) {
+          <div
+            class="preference-row"
+            [class.muted]="row.childOfEmail && !preferences.email_enabled"
+          >
+            <i [class]="row.icon" aria-hidden="true"></i>
+            <span class="preference-copy">
+              <strong>{{ row.label }}</strong>
+              <small>{{ row.description }}</small>
+            </span>
+            <sp-toggle-switch
+              [label]="row.label"
+              [checked]="preferences[row.key]"
+              [disabled]="isDisabled(row)"
+              (checkedChange)="set(row, $event)"
+            />
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  @if (!loading() && prefs(); as preferences) {
+    <section class="settings-card" aria-labelledby="privacy-title">
+      <header class="card-heading">
+        <span class="heading-icon" aria-hidden="true"
+          ><i class="fa-solid fa-shield-halved"></i
+        ></span>
+        <span>
+          <h2 id="privacy-title">Privacy &amp; data</h2>
+          <p>Control how SurePlace communicates with you.</p>
+        </span>
+      </header>
+      <div class="preference-list">
+        @for (row of privacyRows; track row.key) {
+          <div class="preference-row">
+            <i [class]="row.icon" aria-hidden="true"></i>
+            <span class="preference-copy">
+              <strong>{{ row.label }}</strong>
+              <small>{{ row.description }}</small>
+            </span>
+            <sp-toggle-switch
+              [label]="row.label"
+              [checked]="preferences[row.key]"
+              [disabled]="isDisabled(row)"
+              (checkedChange)="set(row, $event)"
+            />
+          </div>
+        }
+      </div>
+    </section>
+  }
+</section>

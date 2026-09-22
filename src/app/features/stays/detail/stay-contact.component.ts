@@ -1,22 +1,50 @@
-import { Component, HostListener, inject, input, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
-import { StayDetail } from '../../../core/models/listing.models';
+import { StayDetail, StayHost } from '../../../core/models/listing.models';
 import { StaysApiService } from '../../../core/api/stays-api.service';
 import { MessagingApiService } from '../../../core/api/messaging-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { VerificationBadgeComponent } from '../../../shared/ui/verification-badge.component';
 
 @Component({
   selector: 'sp-stay-contact',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink, VerificationBadgeComponent],
   template: `<aside>
-      <p class="label">Stay contact</p>
-      <h2>{{ stay().name }}</h2>
-      @if (stay().agency || stay().agent) {
-        <p class="managed-by">{{ stay().agency || stay().agent }}</p>
+      <div class="host-heading">
+        <span class="host-avatar" aria-hidden="true">
+          @if (host().image) {
+            <img [src]="host().image!" alt="" />
+          } @else {
+            <i
+              class="fa-solid"
+              [class.fa-building]="host().kind === 'AGENCY'"
+              [class.fa-user-tie]="host().kind === 'AGENT'"
+              [class.fa-user]="host().kind === 'OWNER'"
+            ></i>
+          }
+        </span>
+        <div>
+          <p class="label">Hosted by</p>
+          <h2>{{ host().name }}</h2>
+          <p class="managed-by">{{ host().role }}</p>
+          @if (host().representative_name) {
+            <p class="representative">Managed by {{ host().representative_name }}</p>
+          }
+        </div>
+      </div>
+      @if (host().verification_status === 'VERIFIED') {
+        <sp-verification-badge
+          [label]="host().kind === 'AGENCY' ? 'Verified Agency' : 'Verified Agent'"
+        />
+      }
+      @if (host().profile_slug) {
+        <a class="profile-link" [routerLink]="['/agencies', host().profile_slug]">
+          View host profile <span aria-hidden="true">&rarr;</span>
+        </a>
       }
       <button class="primary" type="button" (click)="message()">
         <i class="fa-regular fa-message" aria-hidden="true"></i> Message on SurePlace
@@ -88,6 +116,31 @@ import { ToastService } from '../../../core/services/toast.service';
         background: #fff;
         box-shadow: 0 14px 32px rgba(21, 43, 42, 0.05);
       }
+      .host-heading {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 0.7rem;
+      }
+      .host-avatar {
+        display: grid;
+        place-items: center;
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 50%;
+        background: var(--mist);
+        color: var(--teal);
+        font-size: 1.1rem;
+        overflow: hidden;
+      }
+      .host-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .host-heading h2 {
+        font-size: 1rem;
+      }
       h2,
       p {
         margin: 0;
@@ -100,6 +153,21 @@ import { ToastService } from '../../../core/services/toast.service';
       }
       .managed-by {
         color: var(--slate);
+      }
+      .representative {
+        margin-top: 0.15rem;
+        color: var(--slate);
+        font-size: 0.8rem;
+      }
+      sp-verification-badge {
+        justify-self: start;
+      }
+      .profile-link {
+        justify-content: space-between;
+        padding-inline: 0;
+        border: 0;
+        border-radius: 0;
+        color: var(--teal);
       }
       button,
       a {
@@ -133,6 +201,23 @@ import { ToastService } from '../../../core/services/toast.service';
       .report {
         border: 0;
         color: #a33;
+      }
+      @media (max-width: 767px) {
+        aside {
+          gap: 0.65rem;
+          padding: 1rem;
+          border-radius: 1rem;
+        }
+        aside > .primary,
+        aside > a,
+        aside > .safety,
+        aside > .report,
+        aside > sp-verification-badge {
+          display: none;
+        }
+        .host-heading {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
       }
       .backdrop {
         position: fixed;
@@ -175,6 +260,13 @@ import { ToastService } from '../../../core/services/toast.service';
 })
 export class StayContactComponent {
   stay = input.required<StayDetail>();
+  host = computed<StayHost>(() => {
+    const stay = this.stay();
+    if (stay.host) return stay.host;
+    if (stay.agency) return this.fallbackHost('AGENCY', 'Hospitality agency');
+    if (stay.agent) return this.fallbackHost('AGENT', 'Hospitality agent');
+    return this.fallbackHost('OWNER', 'Property owner');
+  });
   dates = input<{ check_in?: string; check_out?: string }>({});
   private api = inject(StaysApiService);
   private messaging = inject(MessagingApiService);
@@ -190,6 +282,19 @@ export class StayContactComponent {
     reason: ['SCAM', Validators.required],
     details: ['', [Validators.maxLength(1000)]],
   });
+
+  private fallbackHost(kind: StayHost['kind'], role: string): StayHost {
+    return {
+      kind,
+      name: 'Stay host',
+      role,
+      image: null,
+      verification_status: null,
+      profile_slug: null,
+      representative_name: null,
+      representative_image: null,
+    };
+  }
 
   returnUrl() {
     const dates = this.dates();

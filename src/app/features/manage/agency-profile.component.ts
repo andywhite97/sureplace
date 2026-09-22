@@ -7,10 +7,11 @@ import { AgencyManagementApiService } from '../../core/api/manage-api.services';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { Agency, AgencyDashboard } from '../../core/models/manage.models';
 import { ToastService } from '../../core/services/toast.service';
+import { EswatiniPhoneInputComponent } from '../../shared/ui/eswatini-phone-input.component';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
   template: `<section class="profile-page">
     <header class="page-heading">
       <p class="eyebrow">Agency</p>
@@ -122,11 +123,12 @@ import { ToastService } from '../../core/services/toast.service';
                       >{{ fieldError('email') }}</small
                     ></label
                   ><label
-                    >Phone *<input inputmode="tel" formControlName="phone" /><small
-                      class="field-error"
-                      >{{ fieldError('phone') }}</small
-                    ></label
-                  ><label>WhatsApp<input inputmode="tel" formControlName="whatsapp_number" /></label
+                    >Phone *<sp-eswatini-phone-input
+                      formControlName="phone"
+                      [invalid]="!!fieldError('phone')"
+                    /><small class="field-error">{{ fieldError('phone') }}</small></label
+                  ><label
+                    >WhatsApp<sp-eswatini-phone-input formControlName="whatsapp_number" /></label
                   ><label
                     >Website<input type="url" formControlName="website" /><small
                       class="field-error"

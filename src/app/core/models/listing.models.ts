@@ -82,6 +82,16 @@ export interface AdvertiserAgency {
   logo: string | null;
   verification_status: string;
 }
+export interface PropertyAdvertiser {
+  kind: 'AGENCY' | 'AGENT' | 'OWNER';
+  name: string;
+  role: string;
+  image: string | null;
+  verification_status: string | null;
+  profile_slug: string | null;
+  representative_name: string | null;
+  representative_image: string | null;
+}
 export interface PropertyDetail extends Omit<PropertyCard, 'cover_image'> {
   description: string;
   address: string;
@@ -93,6 +103,7 @@ export interface PropertyDetail extends Omit<PropertyCard, 'cover_image'> {
   amenities: PropertyAmenity[];
   agent: AdvertiserAgent | null;
   agency: AdvertiserAgency | null;
+  advertiser?: PropertyAdvertiser;
   published_at: string | null;
   updated_at: string;
   expires_at: string | null;
@@ -132,6 +143,16 @@ export interface StayAmenity {
   icon: string;
   category: string;
 }
+export interface StayHost {
+  kind: 'AGENCY' | 'AGENT' | 'OWNER';
+  name: string;
+  role: string;
+  image: string | null;
+  verification_status: string | null;
+  profile_slug: string | null;
+  representative_name: string | null;
+  representative_image: string | null;
+}
 export interface StayDetail extends Omit<
   StayCard,
   'cover_image' | 'minimum_nightly_price' | 'available_room_type_count'
@@ -153,6 +174,7 @@ export interface StayDetail extends Omit<
   room_types: RoomTypeSummary[];
   agency: string | null;
   agent: string | null;
+  host?: StayHost;
 }
 export interface NightlyPrice {
   date: string;

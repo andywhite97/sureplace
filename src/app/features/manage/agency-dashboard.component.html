@@ -1,0 +1,407 @@
+<section class="management-page">
+  @if (loading() && !dashboard()) {
+    <div class="dashboard-skeleton" aria-label="Loading management dashboard">
+      <span class="skeleton hero-skeleton"></span>
+      <div class="skeleton-grid">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <span class="skeleton stat-skeleton"></span>
+        }
+      </div>
+      <span class="skeleton list-skeleton"></span>
+    </div>
+  } @else if (error() && !dashboard()) {
+    <section class="page-state" role="alert">
+      <i class="fa-solid fa-house-circle-exclamation" aria-hidden="true"></i>
+      <h1>Manage Listings</h1>
+      <p>{{ error() }}</p>
+      <button type="button" (click)="load()">Try again</button>
+    </section>
+  } @else if (dashboard(); as data) {
+    @if (data.mode === 'onboarding') {
+      <header class="page-heading onboarding-heading">
+        <h1>Manage Listings</h1>
+        <p>Choose how you'd like to manage your listings on SurePlace.</p>
+      </header>
+
+      <div class="choice-grid">
+        @if (
+          capabilities.capabilities().canCreatePropertyListing ||
+          capabilities.capabilities().canCreateStayListing
+        ) {
+          <article class="choice-card">
+          <span class="choice-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+          <h2>List independently</h2>
+          <p>Post and manage your own properties or stays as an individual.</p>
+          <ul>
+            <li><i class="fa-solid fa-circle-check"></i>Create and edit your listings</li>
+            <li><i class="fa-solid fa-circle-check"></i>Manage availability and pricing</li>
+            <li><i class="fa-solid fa-circle-check"></i>Respond to enquiries</li>
+            <li><i class="fa-solid fa-circle-check"></i>Track viewings and bookings</li>
+          </ul>
+          <a class="primary-action" routerLink="/account/manage/listings/new">
+            Create a listing <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </a>
+          </article>
+        }
+
+        @if (capabilities.capabilities().canCreateAgency) {
+          <article class="choice-card agency-choice">
+            <span class="choice-icon"
+              ><i class="fa-solid fa-building-user" aria-hidden="true"></i
+            ></span>
+            <h2>Create an agency</h2>
+            <p>Set up an agency, invite a team and manage multiple listings.</p>
+            <ul>
+              <li><i class="fa-solid fa-circle-check"></i>Manage multiple listings</li>
+              <li><i class="fa-solid fa-circle-check"></i>Invite and manage team members</li>
+              <li><i class="fa-solid fa-circle-check"></i>Assign team roles</li>
+              <li><i class="fa-solid fa-circle-check"></i>Access agency verification</li>
+            </ul>
+            <a class="primary-action" routerLink="/account/manage/agency/create">
+              Create agency <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </article>
+        }
+      </div>
+
+      <aside class="help-card">
+        <span><i class="fa-solid fa-question" aria-hidden="true"></i></span>
+        <div>
+          <strong>Not sure which option is right for you?</strong>
+          <p>You can start by listing independently and create an agency later.</p>
+        </div>
+      </aside>
+    } @else {
+      <header class="dashboard-heading">
+        <div class="page-heading">
+          <h1>Manage Listings</h1>
+          @if (data.context?.kind === 'agency') {
+            <p>Manage listings and activity for {{ data.context?.name }}.</p>
+          } @else {
+            <p>Welcome back, {{ userName() }}. Here's what's happening with your listings.</p>
+          }
+        </div>
+
+        @if ((data.contexts.individual ? 1 : 0) + data.contexts.agencies.length > 1) {
+          <div class="context-switch" role="group" aria-label="Management context">
+            @if (data.contexts.individual) {
+              <button
+                type="button"
+                [class.active]="contextKey() === 'individual'"
+                [attr.aria-pressed]="contextKey() === 'individual'"
+                (click)="switchContext('individual')"
+              >
+                Individual
+              </button>
+            }
+            @for (agency of data.contexts.agencies; track agency.id) {
+              <button
+                type="button"
+                [class.active]="contextKey() === trackContext(agency.id)"
+                [attr.aria-pressed]="contextKey() === trackContext(agency.id)"
+                (click)="switchContext(trackContext(agency.id))"
+              >
+                {{ agency.name }}
+              </button>
+            }
+          </div>
+        }
+      </header>
+
+      <section class="context-card">
+        @if (data.context?.kind === 'agency' && data.context?.agency; as agency) {
+          @if (agency.logo) {
+            <img [src]="agency.logo" [alt]="agency.name" />
+          } @else {
+            <span class="context-icon"><i class="fa-solid fa-building-user"></i></span>
+          }
+          <div>
+            <span class="context-label">Agency workspace</span>
+            <h2>{{ agency.name }}</h2>
+            <p>
+              {{ agency.suburb ? agency.suburb + ', ' : '' }}{{ agency.town
+              }}{{ agency.region ? ', ' + agency.region : '' }}
+            </p>
+          </div>
+          <sp-manage-status [status]="agency.verification_status" />
+        } @else {
+          <span class="context-icon"><i class="fa-solid fa-user"></i></span>
+          <div>
+            <span class="context-label">Current workspace</span>
+            <h2>You're listing as an individual</h2>
+            <p>Post and manage your own properties or stays.</p>
+          </div>
+          @if (data.contexts.agencies.length) {
+            <button
+              type="button"
+              class="context-link"
+              (click)="switchContext(trackContext(data.contexts.agencies[0].id))"
+            >
+              Switch to agency <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          }
+        }
+      </section>
+
+      @if (
+        capabilities.capabilities().canCreatePropertyListing ||
+        capabilities.capabilities().canCreateStayListing
+      ) {
+        <a
+          class="mobile-create primary-action"
+          routerLink="/account/manage/listings/new"
+          [queryParams]="createQuery()"
+        >
+          <i class="fa-solid fa-plus"></i> Create a listing
+        </a>
+      }
+
+      @if (data.stats; as stats) {
+        <section class="stats-grid" aria-label="Listing summary">
+          <article>
+            <span><i class="fa-solid fa-house"></i></span><strong>{{ stats.total_listings }}</strong
+            ><small>Total listings</small>
+          </article>
+          <article>
+            <span><i class="fa-regular fa-circle-check"></i></span
+            ><strong>{{ stats.published_listings }}</strong
+            ><small>Published listings</small>
+          </article>
+          <article>
+            <span><i class="fa-regular fa-message"></i></span><strong>{{ stats.enquiries }}</strong
+            ><small>Guest enquiries</small>
+          </article>
+          <article>
+            <span><i class="fa-regular fa-calendar-check"></i></span
+            ><strong>{{ stats.pending_requests }}</strong
+            ><small>Pending requests</small>
+            <em>{{ stats.pending_viewings }} viewing · {{ stats.pending_bookings }} booking</em>
+          </article>
+        </section>
+      }
+
+      <section class="quick-card">
+        <header>
+          <h2>Quick actions</h2>
+          <p>Create, manage and grow your listings.</p>
+        </header>
+        <nav aria-label="Listing quick actions">
+          @if (
+            capabilities.capabilities().canCreatePropertyListing ||
+            capabilities.capabilities().canCreateStayListing
+          ) {
+            <a
+              class="primary-action"
+              routerLink="/account/manage/listings/new"
+              [queryParams]="createQuery()"
+            >
+              <i class="fa-solid fa-plus"></i> Create a new listing
+              <i class="fa-solid fa-chevron-right"></i>
+            </a>
+          }
+          @if (capabilities.capabilities().canManageProperties) {
+            <a routerLink="/account/manage/properties" [queryParams]="managementQuery()"
+              ><i class="fa-solid fa-list"></i> Manage properties
+              <i class="fa-solid fa-chevron-right"></i
+            ></a>
+          }
+          @if (capabilities.capabilities().canManageStays) {
+            <a routerLink="/account/manage/stays" [queryParams]="managementQuery()"
+              ><i class="fa-solid fa-bed"></i> Manage stays <i class="fa-solid fa-chevron-right"></i
+            ></a>
+          }
+          <a routerLink="/account/messages"
+            ><i class="fa-regular fa-message"></i> View messages
+            <i class="fa-solid fa-chevron-right"></i
+          ></a>
+          @if (isAgency() && canManageAgency()) {
+            <a routerLink="/account/manage/agency/team"
+              ><i class="fa-solid fa-user-group"></i> Manage team
+              <i class="fa-solid fa-chevron-right"></i
+            ></a>
+            <a routerLink="/account/manage/agency/profile"
+              ><i class="fa-regular fa-building"></i> Agency profile
+              <i class="fa-solid fa-chevron-right"></i
+            ></a>
+          }
+        </nav>
+      </section>
+
+      <section class="listings-card">
+        <header class="listings-heading">
+          <div>
+            <h2>{{ isAgency() ? 'Agency listings' : 'Your listings' }}</h2>
+            <p>Search and manage properties and stays in this workspace.</p>
+          </div>
+          <strong
+            >{{ data.listings.count }} listing{{ data.listings.count === 1 ? '' : 's' }}</strong
+          >
+        </header>
+
+        <form class="listing-filters" (submit)="$event.preventDefault(); applyFilters()">
+          <label class="search-control">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input
+              type="search"
+              aria-label="Search your listings"
+              placeholder="Search your listings..."
+              [value]="query()"
+              (input)="query.set($any($event.target).value)"
+            />
+          </label>
+          <label>
+            <span class="sr-only">Status</span>
+            <select
+              [value]="status()"
+              (change)="status.set($any($event.target).value); applyFilters()"
+            >
+              @for (option of statusOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">Listing type</span>
+            <select [value]="type()" (change)="setType($any($event.target).value)">
+              <option value="all">Properties &amp; stays</option>
+              @if (capabilities.capabilities().canManageProperties) {
+                <option value="property">Properties</option>
+              }
+              @if (capabilities.capabilities().canManageStays) {
+                <option value="stay">Stays</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">Sort order</span>
+            <select
+              [value]="ordering()"
+              (change)="ordering.set($any($event.target).value); applyFilters()"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </label>
+          <button type="submit" aria-label="Search listings">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        @if (loading()) {
+          <div class="inline-loading" role="status">
+            <i class="fa-solid fa-spinner fa-spin"></i> Updating listings…
+          </div>
+        } @else if (!data.listings.results.length) {
+          <div class="empty-listings">
+            <span><i class="fa-solid fa-house-circle-check"></i></span>
+            @if (query() || status() || type() !== 'all') {
+              <h3>No listings match these filters.</h3>
+              <p>Try another search or clear one of the filters.</p>
+              <button
+                type="button"
+                (click)="query.set(''); status.set(''); type.set('all'); applyFilters()"
+              >
+                Clear filters
+              </button>
+            } @else {
+              <h3>
+                {{
+                  isAgency()
+                    ? 'Your agency has no listings yet.'
+                    : 'Ready to list your first place?'
+                }}
+              </h3>
+              <p>Create a property or stay and start reaching seekers.</p>
+              @if (
+                capabilities.capabilities().canCreatePropertyListing ||
+                capabilities.capabilities().canCreateStayListing
+              ) {
+                <a routerLink="/account/manage/listings/new" [queryParams]="createQuery()"
+                  >Create a listing</a
+                >
+              }
+            }
+          </div>
+        } @else {
+          <div class="listing-table" role="list">
+            @for (listing of data.listings.results; track listing.kind + listing.id) {
+              <article class="management-listing" role="listitem">
+                <sp-image [src]="listing.cover_image" [alt]="listing.title" ratio="4 / 3" />
+                <div class="listing-identity">
+                  <span class="listing-kind">{{
+                    listing.kind === 'property' ? 'Property' : 'Stay'
+                  }}</span>
+                  <h3>{{ listing.title }}</h3>
+                  <p>
+                    <i class="fa-solid fa-location-dot"></i>
+                    {{ location(listing) || 'Location pending' }}
+                  </p>
+                  <div class="mobile-facts">
+                    @for (fact of listing.facts; track fact) {
+                      @if (fact) {
+                        <span>{{ fact }}</span>
+                      }
+                    }
+                  </div>
+                </div>
+                <span class="listing-type">{{ listing.subtype }}</span>
+                <sp-manage-status [status]="listing.status" />
+                <time [attr.datetime]="listing.updated_at">{{
+                  listing.updated_at | date: 'mediumDate'
+                }}</time>
+                <div class="listing-actions">
+                  <a [routerLink]="listing.edit_url">Manage</a>
+                  <details>
+                    <summary [attr.aria-label]="'More actions for ' + listing.title">
+                      <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </summary>
+                    <div>
+                      <a [routerLink]="listing.edit_url">Edit listing</a>
+                      @if (listing.rooms_url) {
+                        <a [routerLink]="listing.rooms_url">Manage rooms</a>
+                      }
+                      @if (listing.availability_url) {
+                        <a [routerLink]="listing.availability_url">Availability</a>
+                      }
+                      @if (listing.public_url) {
+                        <a [routerLink]="listing.public_url">View public listing</a>
+                      }
+                    </div>
+                  </details>
+                </div>
+              </article>
+            }
+          </div>
+
+          @if (data.listings.total_pages > 1) {
+            <nav class="pagination" aria-label="Listings pagination">
+              <button
+                type="button"
+                [disabled]="!data.listings.previous_page"
+                (click)="goToPage(data.listings.previous_page)"
+              >
+                <i class="fa-solid fa-chevron-left"></i> Previous
+              </button>
+              <span>Page {{ data.listings.page }} of {{ data.listings.total_pages }}</span>
+              <button
+                type="button"
+                [disabled]="!data.listings.next_page"
+                (click)="goToPage(data.listings.next_page)"
+              >
+                Next <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </nav>
+          }
+        }
+      </section>
+
+      <aside class="tips-card">
+        <span><i class="fa-regular fa-lightbulb"></i></span>
+        <div>
+          <strong>Tips for better visibility</strong>
+          <p>Add high-quality photos, complete listing details and keep availability current.</p>
+        </div>
+      </aside>
+    }
+  }
+</section>

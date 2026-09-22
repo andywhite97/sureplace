@@ -36,7 +36,10 @@ export class SavedSearchesApiService {
   create(body: SavedSearchCreateRequest) {
     return this.api.post<SavedSearch>('/saved-searches/', body);
   }
-  patch(id: string, body: Partial<Pick<SavedSearch, 'name' | 'notifications_enabled' | 'frequency'>>) {
+  patch(
+    id: string,
+    body: Partial<Pick<SavedSearch, 'name' | 'notifications_enabled' | 'frequency'>>,
+  ) {
     return this.api.patch<SavedSearch>(`/saved-searches/${encodeURIComponent(id)}/`, body);
   }
   check(id: string) {
@@ -105,6 +108,11 @@ export class ProfileApiService {
     return this.api.get<User>('/auth/me/');
   }
   update(body: UserProfileUpdate) {
+    return this.api.patch<User>('/auth/me/', body);
+  }
+  uploadAvatar(file: File) {
+    const body = new FormData();
+    body.set('avatar', file);
     return this.api.patch<User>('/auth/me/', body);
   }
 }

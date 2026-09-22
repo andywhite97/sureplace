@@ -43,17 +43,51 @@
           [title]="item.name"
           [location]="locationLabel(item)"
         />
+        <a class="mobile-hero-action mobile-back" routerLink="/stays" aria-label="Back to stays">
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <div class="mobile-hero-actions" aria-label="Stay actions">
+          <button
+            type="button"
+            [class.saved]="item.is_favourited"
+            [disabled]="saving()"
+            [attr.aria-label]="item.is_favourited ? 'Remove from saved stays' : 'Save stay'"
+            (click)="toggleFavourite()"
+          >
+            <i
+              [class]="item.is_favourited ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"
+              aria-hidden="true"
+            ></i>
+          </button>
+          <button type="button" aria-label="Share stay" (click)="share()">
+            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+          </button>
+        </div>
         @if (item.verification_status === 'VERIFIED') {
-          <span class="verified-stay">
+          <span class="verified-stay desktop-verified-stay">
             <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verified Stay
           </span>
         }
       </div>
 
+      @if (item.verification_status === 'VERIFIED') {
+        <div class="mobile-stay-badges">
+          <span class="verified-stay">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verified Stay
+          </span>
+        </div>
+      }
+
       <header class="identity">
         <div>
           <p class="eyebrow">{{ typeLabel(item.stay_type) }}</p>
           <h1>{{ item.name }}</h1>
+          @if (minimumNightlyPrice(item); as nightlyPrice) {
+            <p class="mobile-price">
+              From <strong>{{ nightlyPrice }}</strong
+              ><span>/ night</span>
+            </p>
+          }
           <p class="location-line">
             <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
             <span>{{ locationLabel(item) }}</span>
@@ -78,6 +112,27 @@
           </button>
         </div>
       </header>
+
+      <section class="mobile-trip-summary" aria-label="Your stay details">
+        <button
+          type="button"
+          aria-label="Choose check-in and check-out dates"
+          (click)="openCriteriaEditor()"
+        >
+          <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+          <span>
+            <strong>{{ dateRangeLabel() }}</strong>
+            <small>{{ nightsLabel() }}</small>
+          </span>
+        </button>
+        <button type="button" aria-label="Choose guests and rooms" (click)="openCriteriaEditor()">
+          <i class="fa-solid fa-users" aria-hidden="true"></i>
+          <span>
+            <strong>{{ guestRoomLabel() }}</strong>
+            <small>Guests and rooms</small>
+          </span>
+        </button>
+      </section>
 
       <div class="facts" aria-label="Stay summary">
         <div>
@@ -122,6 +177,12 @@
 
       <div class="content-grid">
         <div class="main-column">
+          <sp-stay-contact
+            #mobileContact
+            class="mobile-contact"
+            [stay]="item"
+            [dates]="criteria()"
+          />
           <section class="description detail-section" id="overview">
             <p class="section-kicker">Overview</p>
             <h2>About this stay</h2>
@@ -143,14 +204,23 @@
               </div>
               <p>
                 @if (validCriteria()) {
-                  Availability for your selected dates
+                  Available for {{ dateRangeLabel() }}
                 } @else {
                   Choose dates to check availability
                 }
               </p>
             </div>
+            <button
+              type="button"
+              class="change-criteria"
+              (click)="criteriaEditorOpen.set(!criteriaEditorOpen())"
+            >
+              <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+              {{ criteriaEditorOpen() ? 'Close date and guest controls' : 'Change dates & guests' }}
+            </button>
             <form
               class="availability-search"
+              [class.open]="criteriaEditorOpen()"
               [formGroup]="searchForm"
               (ngSubmit)="applyAvailability()"
             >
@@ -185,22 +255,23 @@
             }
             @if (availabilityLoading()) {
               <div class="room-skeletons" aria-live="polite">
-                <p>Checking room availability...</p>
+                <p>Checking available rooms for your dates...</p>
                 <div></div>
                 <div></div>
               </div>
             } @else {
               <div class="room-list">
-                @for (room of item.room_types; track room.id) {
+                @for (room of availableRoomTypes(); track room.id; let first = $first) {
                   <sp-room-card
                     [room]="room"
+                    [priority]="first"
                     [availability]="availabilityFor(room.id)"
                     [selected]="selectedRoomId() === room.id"
                     (selectedRoom)="selectRoom($event)"
                   />
                 }
               </div>
-              @if (validCriteria() && !availability().length) {
+              @if (validCriteria() && !availableRoomTypes().length) {
                 <div class="no-rooms">
                   <h3>No rooms are available for those dates.</h3>
                   <p>Change dates, adjust guests, or contact the stay.</p>
@@ -259,6 +330,15 @@
                   @if (item.address) {
                     <p>{{ item.address }}</p>
                   }
+                  <a
+                    class="directions-link"
+                    [href]="googleMapsDirectionsUrl(item.latitude!, item.longitude!)"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i>
+                    Open directions in Google Maps
+                  </a>
                 </aside>
               </div>
             </section>
@@ -283,7 +363,7 @@
             </div>
           </section>
 
-          <sp-stay-contact id="host" [stay]="item" [dates]="criteria()" />
+          <sp-stay-contact class="desktop-contact" id="host" [stay]="item" [dates]="criteria()" />
         </div>
         <aside class="booking-column" id="booking">
           <sp-stay-booking
@@ -322,9 +402,10 @@
         }}</span>
         <strong>{{ selectedRoom()?.name || 'Check availability' }}</strong>
       </div>
-      <a [href]="selectedRoom() ? '#booking' : '#rooms'">{{
-        selectedRoom() ? 'Reserve' : 'Check availability'
-      }}</a>
+      <a [href]="selectedRoom() ? '#booking' : '#rooms'">Reserve</a>
+      <button type="button" (click)="mobileContact.message()">
+        <i class="fa-regular fa-message" aria-hidden="true"></i> Message host
+      </button>
     </div>
   }
 </main>

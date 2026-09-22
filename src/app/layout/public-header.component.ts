@@ -25,6 +25,7 @@ import { AgencyNavigationService } from '../core/services/agency-navigation.serv
 import { ConfigApiService } from '../core/api/config-api.service';
 import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
+import { UserCapabilityService } from '../core/services/user-capability.service';
 
 type NavItem = {
   label: string;
@@ -800,6 +801,7 @@ export class PublicHeaderComponent {
 
   auth = inject(AuthService);
   agencyNavigation = inject(AgencyNavigationService);
+  capabilities = inject(UserCapabilityService);
   expandedSection = signal<SectionId | null>(null);
   config = inject(ConfigApiService);
   private router = inject(Router);
@@ -816,16 +818,11 @@ export class PublicHeaderComponent {
   private scrollLocked = false;
   private returnFocusAfterClose = true;
   private previousAuthState = this.auth.isAuthenticated();
-  hasSupplyAccess = computed(() =>
-    (this.auth.user()?.onboarding_intents || []).some((intent) =>
-      ['PROPERTY_AGENT', 'PROPERTY_OWNER'].includes(intent),
-    ),
-  );
   primaryCta = computed<NavItem>(() =>
-    this.auth.isAuthenticated() && this.hasSupplyAccess()
+    this.auth.isAuthenticated() && this.capabilities.capabilities().canAccessManageDashboard
       ? { label: 'Manage Listings', commands: '/account/manage' }
       : this.auth.isAuthenticated()
-        ? { label: 'List a Property', commands: '/account/manage/properties/new' }
+        ? { label: 'List on SurePlace', commands: '/account/profile' }
         : { label: 'List a Property', commands: '/account' },
   );
   mobileSections = computed<NavSection[]>(() =>
@@ -895,6 +892,7 @@ export class PublicHeaderComponent {
       staff: !!this.auth.user()?.is_staff,
       agencyLinks: this.agencyNavigation.links(),
       features: this.config.config().features,
+      capabilities: this.capabilities.capabilities(),
     }),
   );
   badgeLabel = unreadBadgeLabel;
@@ -966,7 +964,6 @@ export class PublicHeaderComponent {
     if (!this.isBrowser()) return;
     if (this.menuState() !== 'closed') return;
     this.expandedSection.set(this.currentSection());
-    this.agencyNavigation.refresh();
     this.menuRendered.set(true);
     this.menuState.set('open');
     this.lockScroll();
@@ -979,7 +976,11 @@ export class PublicHeaderComponent {
     if (!this.menuRendered() || this.menuState() === 'closing') return;
     this.returnFocusAfterClose = returnFocus;
     this.menuState.set('closing');
-    if (this.prefersReducedMotion()) this.completeClose();
+    if (this.prefersReducedMotion()) {
+      queueMicrotask(() => {
+        if (this.menuState() === 'closing') this.completeClose();
+      });
+    }
   }
 
   finishClose(event: TransitionEvent) {

@@ -1,0 +1,158 @@
+<section class="account-page">
+  <header class="page-heading">
+    <h1>My Bookings</h1>
+    <p>View and manage all your bookings in one place.</p>
+  </header>
+
+  @if (loading()) {
+    <div class="desktop-summary-strip summary-skeleton" aria-label="Loading booking summary"></div>
+    <div class="booking-toolbar toolbar-skeleton" aria-hidden="true"></div>
+    <div class="list" aria-label="Loading bookings">
+      @for (_ of [1, 2, 3]; track $index) {
+        <div class="booking-skeleton">
+          <span class="skeleton-image"></span><span class="skeleton-copy"></span
+          ><span class="skeleton-actions"></span>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="state error-state">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <h2>We couldn't load your bookings</h2>
+      <p>{{ error() }}</p>
+      <button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <section class="desktop-summary-strip" aria-label="Booking summary">
+      <div>
+        <i class="fa-regular fa-calendar icon-teal" aria-hidden="true"></i>
+        <span><strong>{{ counts().upcoming }}</strong><small>Upcoming</small></span>
+      </div>
+      <div>
+        <i class="fa-regular fa-clock icon-amber" aria-hidden="true"></i>
+        <span><strong>{{ counts().pending }}</strong><small>Pending</small></span>
+      </div>
+      <div>
+        <i class="fa-solid fa-check icon-green" aria-hidden="true"></i>
+        <span><strong>{{ counts().past }}</strong><small>Past</small></span>
+      </div>
+      <div>
+        <i class="fa-regular fa-clipboard icon-blue" aria-hidden="true"></i>
+        <span><strong>{{ counts().total }}</strong><small>Total bookings</small></span>
+      </div>
+    </section>
+
+    <div class="booking-toolbar">
+      <div class="booking-tabs" role="group" aria-label="Booking filter">
+        <button type="button" [class.active]="filter() === 'upcoming'" (click)="filter.set('upcoming')">
+          Upcoming <span>({{ counts().upcoming }})</span>
+        </button>
+        <button type="button" [class.active]="filter() === 'past'" (click)="filter.set('past')">
+          Past <span>({{ counts().past }})</span>
+        </button>
+        <button type="button" [class.active]="filter() === 'cancelled'" (click)="filter.set('cancelled')">
+          Cancelled <span>({{ counts().cancelled }})</span>
+        </button>
+      </div>
+      <label class="sort-control">
+        <span>Sort by</span>
+        <select [value]="sort()" (change)="setSort($any($event.target).value)">
+          <option value="newest">Booking date (newest)</option>
+          <option value="check_in_asc">Check-in (soonest)</option>
+          <option value="check_in_desc">Check-in (latest)</option>
+        </select>
+      </label>
+    </div>
+
+    @if (!filtered().length) {
+      <div class="state empty-state">
+        <i class="fa-regular fa-calendar-check" aria-hidden="true"></i>
+        <h2>{{ emptyTitle() }}</h2>
+        <p>{{ emptyCopy() }}</p>
+        <a routerLink="/stays">Explore stays</a>
+      </div>
+    } @else {
+      <div class="list">
+        @for (booking of filtered(); track booking.id) {
+          <article [class.expanded]="expanded() === booking.id">
+            <div class="booking-image">
+              <sp-image [src]="booking.stay_image" [alt]="booking.stay_name" ratio="4 / 3" />
+              @if (location(booking)) {
+                <span class="location-pill"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>{{ location(booking) }}</span>
+              }
+            </div>
+
+            <div class="booking-info">
+              <sp-status-badge class="mobile-status" [status]="booking.status" />
+              <div class="title-row">
+                <div class="title-copy">
+                  <h2>{{ booking.stay_name }}</h2>
+                  <p class="room-name">{{ booking.room_name }}</p>
+                </div>
+                <sp-status-badge class="desktop-status" [status]="booking.status" />
+              </div>
+
+              <div class="desktop-meta">
+                <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>{{ booking.check_in | date: 'MMM d, y' }} – {{ booking.check_out | date: 'MMM d, y' }}</span>
+                <span><i class="fa-solid fa-user" aria-hidden="true"></i>{{ guestLabel(booking) }}</span>
+                <span><i class="fa-solid fa-bed" aria-hidden="true"></i>{{ booking.rooms }} room{{ booking.rooms === 1 ? '' : 's' }}</span>
+              </div>
+
+              <div class="reference-price">
+                <div>
+                  <small>Booking reference</small>
+                  <span class="reference-value">
+                    <strong>{{ booking.reference }}</strong>
+                    <button type="button" class="copy-reference" aria-label="Copy booking reference" (click)="copyReference(booking.reference)">
+                      <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    </button>
+                  </span>
+                </div>
+                <div class="total-price">
+                  <small>Total price</small>
+                  <strong>{{ money(booking.total, booking.currency) }}</strong>
+                </div>
+              </div>
+
+              <strong class="mobile-price">{{ money(booking.total, booking.currency) }} <small>total</small></strong>
+              @if (booking.status === 'EXPIRED') {
+                <p class="expired-copy">This booking request expired before confirmation.</p>
+              }
+              <div class="mobile-meta">
+                <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>{{ booking.check_in | date: 'dd MMM' }} – {{ booking.check_out | date: 'dd MMM y' }}</span>
+                <span><i class="fa-regular fa-clock" aria-hidden="true"></i>{{ nights(booking) }} night{{ nights(booking) === 1 ? '' : 's' }} · {{ guestLabel(booking) }}</span>
+              </div>
+
+              @if (expanded() === booking.id) {
+                <dl>
+                  <dt>Reference</dt><dd>{{ booking.reference }}</dd>
+                  <dt>Guest</dt><dd>{{ booking.guest_name }} · {{ booking.guest_email }}</dd>
+                  <dt>Payment</dt><dd>{{ booking.payment_status }}</dd>
+                  @if (booking.special_requests) {
+                    <dt>Requests</dt><dd>{{ booking.special_requests }}</dd>
+                  }
+                </dl>
+              }
+            </div>
+
+            <aside>
+              <button class="detail-toggle" type="button" (click)="toggleDetails(booking)">
+                {{ expanded() === booking.id ? 'Hide Details' : 'View Details' }}
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </button>
+              <a class="stay-link" [routerLink]="['/stays', booking.stay_slug]"><i class="fa-solid fa-bed" aria-hidden="true"></i>View Stay</a>
+              @if (booking.conversation) {
+                <a class="message-link" [routerLink]="['/account/messages', booking.conversation]"><i class="fa-regular fa-message" aria-hidden="true"></i>Message Host</a>
+              }
+              @if (canCancel(booking)) {
+                <button class="cancel-action" type="button" (click)="cancel(booking)" [disabled]="busy()">
+                  <i class="fa-regular fa-trash-can" aria-hidden="true"></i>Cancel Booking
+                </button>
+              }
+            </aside>
+          </article>
+        }
+      </div>
+    }
+  }
+</section>

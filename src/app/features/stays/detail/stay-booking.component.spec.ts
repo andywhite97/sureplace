@@ -6,6 +6,7 @@ import { StayBookingComponent } from './stay-booking.component';
 import { StaysApiService } from '../../../core/api/stays-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { RoomTypeSummary, StayDetail } from '../../../core/models/listing.models';
+import { ToastService } from '../../../core/services/toast.service';
 describe('StayBookingComponent', () => {
   const stay = { id: 's1', slug: 'royal-villas', name: 'Royal Villas' } as StayDetail;
   const room = { id: 'r1', name: 'Garden Room', currency: 'SZL' } as RoomTypeSummary;
@@ -31,8 +32,11 @@ describe('StayBookingComponent', () => {
   });
   const auth = { user, isAuthenticated: signal(true) };
   const api = { createBooking: vi.fn() };
+  const toast = { show: vi.fn(() => 1), dismiss: vi.fn() };
   beforeEach(() => {
     api.createBooking.mockReset();
+    toast.show.mockClear();
+    toast.dismiss.mockClear();
     auth.isAuthenticated.set(true);
     TestBed.configureTestingModule({
       imports: [StayBookingComponent],
@@ -40,6 +44,7 @@ describe('StayBookingComponent', () => {
         provideRouter([]),
         { provide: StaysApiService, useValue: api },
         { provide: AuthService, useValue: auth },
+        { provide: ToastService, useValue: toast },
       ],
     });
   });
@@ -97,6 +102,12 @@ describe('StayBookingComponent', () => {
     f.detectChanges();
     expect(f.nativeElement.textContent).toContain('Booking request sent');
     expect(f.nativeElement.textContent).not.toContain('Booking confirmed');
+    expect(toast.show).toHaveBeenCalledWith({
+      kind: 'success',
+      title: 'Booking request sent',
+      message: 'Reference SP-BKG-1',
+    });
+    expect(toast.dismiss).toHaveBeenCalledWith(1);
   });
   it('redirects anonymous guests with booking criteria preserved', async () => {
     auth.isAuthenticated.set(false);

@@ -75,11 +75,19 @@ swiper-container::part(button-next)::after {
 
 @media (max-width: 760px) {
   swiper-container {
-    border-radius: 0.75rem;
+    border-radius: 0.9rem;
+  }
+
+  .counter {
+    top: auto;
+    right: 0.8rem;
+    bottom: 0.8rem;
+    background: rgba(21, 43, 42, 0.84);
   }
 
   .thumbs button {
-    flex-basis: 92px;
+    flex-basis: 104px;
+    border-radius: 0.7rem;
   }
 
   swiper-container::part(button-prev),

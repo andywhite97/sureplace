@@ -68,6 +68,14 @@ h2 {
   gap: 0.4rem;
 }
 
+.profile-link {
+  justify-self: start;
+  color: var(--teal);
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
 .primary,
 .secondary {
   display: inline-flex;
@@ -192,6 +200,24 @@ h2 {
   .contact {
     padding: 1rem;
     border-radius: 0.75rem;
+  }
+
+  .contact > .primary,
+  .contact > button.secondary {
+    display: none;
+  }
+
+  .safety {
+    margin-top: 0.25rem;
+    padding: 0.85rem;
+    border: 1px solid #cbe8e1;
+    border-radius: 0.8rem;
+    background: #eef9f6;
+    box-shadow: 0 4px 12px rgba(21, 43, 42, 0.04);
+  }
+
+  .report {
+    margin-top: 0.1rem;
   }
 
   .backdrop {

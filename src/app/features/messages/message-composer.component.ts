@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms';
         (keydown)="keydown($event)"
       ></textarea
       ><button type="submit" [disabled]="disabled() || !body().trim()" aria-label="Send message">
-        Send
+        <span>Send</span><i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
       </button>
     </form>
     <small>Enter to send · Shift+Enter for a new line</small>`,
@@ -48,10 +48,23 @@ import { FormsModule } from '@angular/forms';
       button:disabled {
         opacity: 0.45;
       }
+      button i {
+        display: none;
+      }
       small {
         display: block;
         color: var(--slate);
         margin-top: 0.3rem;
+      }
+      @media (max-width: 767px) {
+        :host { display: block; }
+        form { align-items: center; gap: .5rem; }
+        textarea { min-height: 44px; max-height: 100px; padding: .7rem .9rem; border: 0; border-radius: 1.5rem; background: #f1f6f5; font-size: 16px; line-height: 1.35; }
+        textarea:focus { outline: 2px solid color-mix(in srgb,var(--teal) 35%,transparent); }
+        button { display: grid; flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; place-items: center; border-radius: 50%; box-shadow: 0 3px 10px rgba(0,150,136,.2); }
+        button span { display: none; }
+        button i { display: block; font-size: .9rem; transform: translateX(-1px); }
+        small { display: none; }
       }
       .sr-only {
         position: absolute;

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { OverviewVerification } from '../../core/models/account.models';
 import { AccountActivityStore } from '../../core/services/account-activity.store';
+import { UserCapabilityService } from '../../core/services/user-capability.service';
 import { ManageStatusComponent } from '../manage/manage-ui';
 import { NotificationItemComponent } from './account-ui';
 
@@ -43,6 +44,7 @@ type AttentionItem =
 export class AccountOverviewComponent {
   readonly auth = inject(AuthService);
   readonly store = inject(AccountActivityStore);
+  readonly capabilities = inject(UserCapabilityService);
 
   readonly attention = computed<AttentionItem[]>(() => {
     const summary = this.store.summary();
@@ -92,6 +94,18 @@ export class AccountOverviewComponent {
   }
   time(value: string) {
     return value?.slice(0, 5) || '';
+  }
+  profileName() {
+    const user = this.auth.user();
+    return [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'SurePlace member';
+  }
+  initials() {
+    return this.profileName()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
   }
 
   @HostListener('document:visibilitychange')

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, staffGuard } from './core/guards/auth.guard';
+import { authGuard, capabilityGuard, guestGuard, staffGuard } from './core/guards/auth.guard';
 const placeholder = () =>
   import('./features/placeholder.component').then((m) => m.PlaceholderComponent);
 export const routes: Routes = [
@@ -38,7 +38,8 @@ export const routes: Routes = [
   },
   {
     path: 'agents',
-    loadComponent: () => import('./features/agents/agents.component').then((m) => m.AgentsComponent),
+    loadComponent: () =>
+      import('./features/agents/agents.component').then((m) => m.AgentsComponent),
     title: 'Agents | SurePlace',
   },
   {
@@ -183,6 +184,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canAccessManageDashboard' },
         loadComponent: () =>
           import('./features/manage/agency-dashboard.component').then(
             (m) => m.AgencyDashboardComponent,
@@ -191,6 +194,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage/agency',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canAccessAgencyTools' },
         loadComponent: () =>
           import('./features/manage/agency-dashboard.component').then(
             (m) => m.AgencyDashboardComponent,
@@ -199,12 +204,16 @@ export const routes: Routes = [
       },
       {
         path: 'manage/agency/create',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canCreateAgency', capabilityIntent: 'PROPERTY_AGENT' },
         loadComponent: () =>
           import('./features/manage/agency-create.component').then((m) => m.AgencyCreateComponent),
         title: 'Create agency | SurePlace',
       },
       {
         path: 'manage/agency/profile',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageAgency' },
         loadComponent: () =>
           import('./features/manage/agency-profile.component').then(
             (m) => m.AgencyProfileComponent,
@@ -213,6 +222,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage/agency/team',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageAgency' },
         loadComponent: () =>
           import('./features/manage/agency-team.component').then((m) => m.AgencyTeamComponent),
         title: 'Agency team | SurePlace',
@@ -223,6 +234,8 @@ export const routes: Routes = [
       { path: 'manage/agency/settings', redirectTo: 'settings', pathMatch: 'full' },
       {
         path: 'manage/listings/new',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canAccessManageDashboard' },
         loadComponent: () =>
           import('./features/manage/listing-type-choice.component').then(
             (m) => m.ListingTypeChoiceComponent,
@@ -231,6 +244,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage/properties',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageProperties' },
         loadComponent: () =>
           import('./features/manage/property-management-list.component').then(
             (m) => m.PropertyManagementListComponent,
@@ -239,18 +254,24 @@ export const routes: Routes = [
       },
       {
         path: 'manage/properties/new',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canCreatePropertyListing', capabilityIntent: 'PROPERTY_OWNER' },
         loadComponent: () =>
           import('./features/manage/property-form.component').then((m) => m.PropertyFormComponent),
         title: 'Add property | SurePlace',
       },
       {
         path: 'manage/properties/:id/edit',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageProperties' },
         loadComponent: () =>
           import('./features/manage/property-form.component').then((m) => m.PropertyFormComponent),
         title: 'Edit property | SurePlace',
       },
       {
         path: 'manage/stays',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
         loadComponent: () =>
           import('./features/manage/stay-management-list.component').then(
             (m) => m.StayManagementListComponent,
@@ -259,12 +280,16 @@ export const routes: Routes = [
       },
       {
         path: 'manage/stays/new',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canCreateStayListing', capabilityIntent: 'HOSPITALITY_OPERATOR' },
         loadComponent: () =>
           import('./features/manage/stay-form.component').then((m) => m.StayFormComponent),
         title: 'Add stay | SurePlace',
       },
       {
         path: 'manage/stays/:id/submitted',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
         loadComponent: () =>
           import('./features/manage/stay-submitted.component').then(
             (m) => m.StaySubmittedComponent,
@@ -273,18 +298,24 @@ export const routes: Routes = [
       },
       {
         path: 'manage/stays/:id/edit',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
         loadComponent: () =>
           import('./features/manage/stay-form.component').then((m) => m.StayFormComponent),
         title: 'Edit stay | SurePlace',
       },
       {
         path: 'manage/stays/:id/rooms',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
         loadComponent: () =>
           import('./features/manage/rooms.component').then((m) => m.RoomsComponent),
         title: 'Manage rooms | SurePlace',
       },
       {
         path: 'manage/stays/:id/calendar',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
         loadComponent: () =>
           import('./features/manage/availability-calendar.component').then(
             (m) => m.AvailabilityCalendarComponent,
@@ -293,6 +324,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage/viewings',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageProperties' },
         loadComponent: () =>
           import('./features/manage/manager-viewings.component').then(
             (m) => m.ManagerViewingsComponent,
@@ -301,6 +334,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage/bookings',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
         loadComponent: () =>
           import('./features/manage/manager-bookings.component').then(
             (m) => m.ManagerBookingsComponent,
@@ -309,6 +344,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage/verification',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canAccessVerification' },
         loadComponent: () =>
           import('./features/manage/verification.component').then((m) => m.VerificationComponent),
         title: 'Verification | SurePlace',

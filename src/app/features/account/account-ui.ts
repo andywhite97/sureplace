@@ -142,6 +142,26 @@ export class StatusBadgeComponent {
         font-weight: 800;
         cursor: pointer;
       }
+      @media (max-width: 767px) {
+        article {
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 0.7rem;
+          padding: 0.85rem;
+        }
+        .icon {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+        article > div { min-width: 0; }
+        p { font-size: 0.84rem; line-height: 1.35; }
+        time { font-size: 0.72rem; }
+        button {
+          grid-column: 2;
+          justify-self: start;
+          min-height: 36px;
+          padding: 0;
+        }
+      }
     `,
   ],
 })

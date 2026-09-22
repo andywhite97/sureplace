@@ -51,6 +51,11 @@ export class PropertyDetailComponent {
   private toast = inject(ToastService);
   private seo = inject(SeoService);
   private platformId = inject(PLATFORM_ID);
+
+  googleMapsDirectionsUrl(latitude: number, longitude: number) {
+    const destination = encodeURIComponent(`${latitude},${longitude}`);
+    return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+  }
   property = signal<PropertyDetail | null>(null);
   related = signal<PropertyCard[]>([]);
   loading = signal(true);
@@ -137,6 +142,12 @@ export class PropertyDetailComponent {
     const request = before ? this.fav.remove('property', p.id) : this.fav.addProperty(p.id);
     request
       .pipe(
+        tap(() =>
+          this.toast.show(
+            before ? 'Removed from favourites.' : 'Property saved to favourites.',
+            'success',
+          ),
+        ),
         catchError(() => {
           this.property.update((x) => (x ? { ...x, is_favourited: before } : x));
           this.toast.show('Could not update saved listings.', 'error');

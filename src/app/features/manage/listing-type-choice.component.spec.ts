@@ -1,12 +1,26 @@
+import { computed } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { UserCapabilityService } from '../../core/services/user-capability.service';
 import { ListingTypeChoiceComponent } from './listing-type-choice.component';
 
 describe('ListingTypeChoiceComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ListingTypeChoiceComponent],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        {
+          provide: UserCapabilityService,
+          useValue: {
+            capabilities: computed(() => ({
+              canCreatePropertyListing: true,
+              canCreateStayListing: true,
+              canCreateAgency: true,
+            })),
+          },
+        },
+      ],
     }).compileComponents();
   });
 

@@ -6,6 +6,7 @@ import { ConfigApiService } from '../core/api/config-api.service';
 import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
 import { AgencyNavigationService } from '../core/services/agency-navigation.service';
+import { UserCapabilityService } from '../core/services/user-capability.service';
 import {
   accountNavigation,
   desktopNavigation,
@@ -21,12 +22,20 @@ import { SeoService } from '../core/services/seo.service';
   template: `<main class="account">
     @if (auth.isAuthenticated()) {
       <aside>
-        <h1>My SurePlace</h1>
-        @if (auth.user()?.first_name; as name) {
-          <p class="user-summary">
-            <i class="fa-solid fa-circle-user" aria-hidden="true"></i><span>{{ name }}</span>
-          </p>
+        @if (auth.user(); as user) {
+          <div class="user-summary">
+            @if (user.avatar) {
+              <img [src]="user.avatar" alt="" />
+            } @else {
+              <span class="user-initial" aria-hidden="true">{{ userInitial() }}</span>
+            }
+            <span
+              ><strong>{{ userName() }}</strong
+              ><small>{{ user.email }}</small></span
+            >
+          </div>
         }
+        <h1>My SurePlace</h1>
         <nav aria-label="Account navigation">
           @for (section of sections(); track section.id) {
             <section
@@ -56,18 +65,15 @@ import { SeoService } from '../core/services/seo.service';
   styles: [
     `
       .account {
-        width: min(1380px, calc(100% - 2rem));
+        width: min(1560px, calc(100% - 2rem));
         margin: 1.25rem auto 2rem;
         display: grid;
-        grid-template-columns: 230px minmax(0, 1fr);
+        grid-template-columns: 250px minmax(0, 1fr);
         gap: 1.5rem;
       }
       aside {
         position: sticky;
         top: calc(var(--app-header-height, 72px) + 1rem);
-        max-height: calc(100dvh - var(--app-header-height, 72px) - 2rem);
-        overflow-y: auto;
-        overscroll-behavior: contain;
         background: white;
         padding: 1rem;
         border-radius: var(--radius);
@@ -75,16 +81,49 @@ import { SeoService } from '../core/services/seo.service';
         align-self: start;
       }
       h1 {
-        font-size: 1.25rem;
-        margin: 0 0 0.65rem;
+        font-size: 1.15rem;
+        margin: 1.15rem 0 0.65rem;
       }
       .user-summary {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
-        margin: 0 0 0.5rem;
+        gap: 0.75rem;
+        margin: 0;
         color: var(--slate);
         font-size: 0.9rem;
+      }
+      .user-summary > span:last-child {
+        display: grid;
+        min-width: 0;
+        gap: 0.12rem;
+      }
+      .user-summary strong {
+        color: var(--midnight);
+        font-size: 0.98rem;
+      }
+      .user-summary small {
+        overflow: hidden;
+        font-size: 0.72rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .user-summary img,
+      .user-initial {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        border-radius: 50%;
+      }
+      .user-summary img {
+        object-fit: cover;
+      }
+      .user-initial {
+        display: grid;
+        place-items: center;
+        background: #e4ecec;
+        color: var(--midnight);
+        font-size: 1.1rem;
+        font-weight: 850;
       }
       .user-summary span {
         overflow-wrap: anywhere;
@@ -171,6 +210,7 @@ export class AccountShellComponent {
   store = inject(AccountActivityStore);
   private config = inject(ConfigApiService);
   private agency = inject(AgencyNavigationService);
+  private capabilities = inject(UserCapabilityService);
   private seo = inject(SeoService);
   private destroy = inject(DestroyRef);
   private router = inject(Router);
@@ -182,6 +222,7 @@ export class AccountShellComponent {
         staff: !!this.auth.user()?.is_staff,
         agencyLinks: this.agency.links(),
         features: this.config.config().features,
+        capabilities: this.capabilities.capabilities(),
       }),
     ),
   );
@@ -194,7 +235,6 @@ export class AccountShellComponent {
     );
     this.store.refresh();
     this.store.startPolling();
-    this.agency.refresh();
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -211,6 +251,13 @@ export class AccountShellComponent {
           ? this.store.unreadNotifications()
           : 0;
     return value > 99 ? '99+' : value ? String(value) : '';
+  }
+  userName() {
+    const user = this.auth.user();
+    return user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email : '';
+  }
+  userInitial() {
+    return this.userName().trim().charAt(0).toUpperCase() || 'S';
   }
   @HostListener('document:visibilitychange')
   visible() {

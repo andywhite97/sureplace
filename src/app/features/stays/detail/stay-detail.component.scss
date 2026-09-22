@@ -70,6 +70,10 @@
   font-weight: 900;
 }
 
+.mobile-stay-badges {
+  display: none;
+}
+
 .identity {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -469,11 +473,27 @@
   gap: 2rem;
 }
 
+.room-skeletons {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.room-skeletons p {
+  margin: 0;
+  color: var(--slate);
+  font-weight: 800;
+}
+
 .content-skeleton div,
 .room-skeletons div {
   height: 220px;
 }
 
+.mobile-hero-action,
+.mobile-hero-actions,
+.mobile-trip-summary,
+.mobile-contact,
+.change-criteria,
 .mobile-booking {
   display: none;
 }
@@ -502,7 +522,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .detail-shell,
   .related,
   .state,
@@ -512,9 +532,9 @@
   }
 
   .detail-shell {
-    gap: 1.15rem;
-    padding-top: 0.6rem;
-    padding-bottom: 2.5rem;
+    gap: 1rem;
+    padding-top: 0;
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
   }
 
   .breadcrumbs,
@@ -522,9 +542,64 @@
     display: none;
   }
 
-  .verified-stay {
-    left: 0.75rem;
-    top: 0.75rem;
+  .desktop-verified-stay {
+    display: none;
+  }
+
+  .mobile-stay-badges {
+    display: flex;
+    padding: 0 0.5rem;
+  }
+
+  .mobile-stay-badges .verified-stay {
+    position: static;
+    padding: 0.46rem 0.7rem;
+    background: var(--teal);
+  }
+
+  .gallery-wrap {
+    margin-inline: -0.5rem;
+  }
+
+  .mobile-hero-action,
+  .mobile-hero-actions {
+    position: absolute;
+    z-index: 5;
+    top: 0.9rem;
+  }
+
+  .mobile-hero-action,
+  .mobile-hero-actions button {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--teal);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
+    text-decoration: none;
+  }
+
+  .mobile-back {
+    left: 0.9rem;
+  }
+
+  .mobile-hero-actions {
+    right: 0.9rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .mobile-hero-actions button:not(.saved) {
+    background: #fff;
+    color: var(--midnight);
+  }
+
+  .identity {
+    gap: 0.55rem;
+    padding: 0 0.5rem;
   }
 
   .identity {
@@ -533,11 +608,34 @@
   }
 
   .identity h1 {
-    font-size: clamp(2rem, 12vw, 2.8rem);
+    margin: 0.25rem 0 0.35rem;
+    font-size: clamp(1.7rem, 8vw, 2.1rem);
+    line-height: 1.12;
+  }
+
+  .mobile-price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    margin: 0 0 0.6rem;
+    color: var(--slate);
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .mobile-price strong {
+    color: var(--teal);
+    font-size: clamp(1.75rem, 8vw, 2.2rem);
+    line-height: 1;
+  }
+
+  .mobile-price span {
+    color: var(--slate);
+    font-size: 0.95rem;
   }
 
   .identity-actions {
-    justify-content: stretch;
+    display: none;
   }
 
   .identity-actions button {
@@ -545,18 +643,153 @@
   }
 
   .summary-copy {
-    font-size: 0.98rem;
+    display: none;
+  }
+
+  .mobile-trip-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+    margin: 0 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(21, 43, 42, 0.06);
+  }
+
+  .mobile-trip-summary button {
+    display: flex;
+    align-items: center;
+    gap: 0.62rem;
+    min-width: 0;
+    padding: 0.9rem 0.8rem;
+    border: 0;
+    background: #fff;
+    color: var(--midnight);
+    font: inherit;
+    text-decoration: none;
+    text-align: left;
+  }
+
+  .mobile-trip-summary button + button {
+    border-left: 1px solid var(--line);
+  }
+
+  .mobile-trip-summary i {
+    color: var(--teal);
+    font-size: 1.25rem;
+  }
+
+  .mobile-trip-summary span {
+    display: grid;
+    min-width: 0;
+    gap: 0.16rem;
+  }
+
+  .mobile-trip-summary strong,
+  .mobile-trip-summary small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-trip-summary strong {
+    font-size: 0.82rem;
+  }
+  .mobile-trip-summary small {
+    color: var(--slate);
+    font-size: 0.7rem;
+  }
+
+  .facts {
+    display: none;
   }
 
   .main-column {
-    gap: 2rem;
+    gap: 1.5rem;
+  }
+
+  .content-grid,
+  .main-column {
+    display: contents;
+  }
+
+  .mobile-contact {
+    order: 1;
+  }
+  .description {
+    order: 2;
+  }
+  #amenities {
+    order: 3;
+  }
+  .rooms {
+    order: 4;
+  }
+  .booking-column {
+    position: static;
+    order: 5;
+    padding-inline: 0.5rem;
+  }
+  .policies {
+    order: 6;
+  }
+  .location-section {
+    order: 7;
+  }
+
+  .mobile-contact {
+    display: block;
+    margin: 0 0.5rem;
+  }
+
+  .desktop-contact {
+    display: none;
   }
 
   .facts,
   .amenities,
-  .policies > div,
   .location-layout {
     grid-template-columns: 1fr;
+  }
+
+  .amenities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .amenities > div {
+    min-height: 54px;
+    padding: 0.68rem;
+    font-size: 0.86rem;
+  }
+
+  .policies > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: #fff;
+  }
+
+  .policies p {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0.9rem;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .policies p + p {
+    border-top: 1px solid var(--line);
+  }
+
+  .policies strong {
+    grid-column: auto;
+    color: var(--slate);
+    font-size: 0.83rem;
+    text-align: right;
   }
 
   .facts div {
@@ -573,6 +806,52 @@
     border-radius: 0.9rem;
   }
 
+  .availability-search:not(.open) {
+    display: none;
+  }
+
+  .change-criteria {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.8rem;
+    border: 1px solid var(--teal);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--teal);
+    padding: 0.62rem 0.85rem;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 900;
+  }
+
+  .rooms,
+  .description,
+  .detail-section:not(.location-section) {
+    padding-inline: 0.5rem;
+  }
+
+  .detail-section h2 {
+    margin-bottom: 0.65rem;
+  }
+
+  .rooms .section-heading {
+    gap: 0.2rem;
+  }
+
+  .rooms .section-heading > p {
+    margin: 0;
+    font-size: 0.78rem;
+  }
+
+  .room-list {
+    gap: 0.8rem;
+  }
+
+  .location-section {
+    padding-inline: 0.5rem;
+  }
+
   .availability-search label:first-child,
   .availability-search label:nth-child(2),
   .availability-search button {
@@ -580,7 +859,8 @@
   }
 
   .location-map {
-    min-height: 320px;
+    min-height: 240px;
+    border-radius: 1rem;
   }
 
   .mobile-booking {
@@ -589,17 +869,18 @@
     left: 0;
     right: 0;
     bottom: 0;
-    justify-content: space-between;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
     padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 -16px 36px rgba(21, 43, 42, 0.12);
+    isolation: isolate;
   }
 
   .mobile-booking div {
-    display: grid;
-    min-width: 0;
+    display: none;
   }
 
   .mobile-booking span {
@@ -616,8 +897,11 @@
   }
 
   .mobile-booking a {
-    flex: 0 0 auto;
-    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    border-radius: 0.8rem;
     background: var(--teal);
     color: #fff;
     padding: 0.78rem 1rem;
@@ -625,7 +909,45 @@
     font-weight: 900;
   }
 
+  .mobile-booking button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 48px;
+    border: 1px solid var(--teal);
+    border-radius: 0.8rem;
+    background: #fff;
+    color: var(--teal);
+    font: inherit;
+    font-weight: 900;
+  }
+
   .related {
     margin-bottom: 7.5rem;
+    width: min(100% - 1rem, 1280px);
+  }
+}
+
+@media (max-width: 767px) {
+  .gallery-skeleton {
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 0 0 1.2rem 1.2rem;
+  }
+
+  .content-skeleton {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .content-skeleton div,
+  .room-skeletons div {
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  .room-skeletons {
+    gap: 0.7rem;
   }
 }

@@ -67,6 +67,14 @@ export class AccountActivityStore {
     );
   }
 
+  markAllNotificationsRead() {
+    const readAt = new Date().toISOString();
+    this.notifications.update((items) =>
+      items.map((item) => ({ ...item, is_read: true, read_at: item.read_at || readAt })),
+    );
+    this.summary.update((summary) => (summary ? { ...summary, unread_notifications: 0 } : summary));
+  }
+
   stopPolling() {
     this.poll.unsubscribe();
     this.poll = new Subscription();

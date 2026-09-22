@@ -1,22 +1,157 @@
-import { Component, inject, signal } from '@angular/core';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { finalize, of, switchMap } from 'rxjs';
+import { finalize } from 'rxjs';
 import { AgencyManagementApiService } from '../../core/api/manage-api.services';
-import { AgencyDashboard } from '../../core/models/manage.models';
-import { StatCardComponent } from '../account/account-ui';
+import { AuthService } from '../../core/auth/auth.service';
+import { ManagementDashboardResponse, ManagementListing } from '../../core/models/manage.models';
+import { SeoService } from '../../core/services/seo.service';
+import { UserCapabilityService } from '../../core/services/user-capability.service';
+import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { ManageStatusComponent } from './manage-ui';
+
+type ListingTypeFilter = 'all' | 'property' | 'stay';
 
 @Component({
   standalone: true,
-  imports: [RouterLink, StatCardComponent, ManageStatusComponent],
-  template: `<section class="page">@if(loading()){<div class="skeleton"></div>}@else if(!dashboard()){<div class="choice"><h1>Manage Listings</h1><p>What would you like to do?</p><div><article><i class="fa-solid fa-user"></i><h2>List independently</h2><p>Post and manage your own properties or stays as an individual.</p><a routerLink="/account/manage/listings/new">Create a listing</a></article><article><i class="fa-solid fa-building-user"></i><h2>Create an agency</h2><p>Set up an agency, invite a team and manage multiple listings.</p><a routerLink="/account/manage/agency/create">Create agency</a></article></div></div>}@else{<header class="agency-head"><div>@if(dashboard()!.agency.logo){<img [src]="dashboard()!.agency.logo" alt="" />}<span><p class="eyebrow">Agency dashboard</p><h1>{{dashboard()!.agency.name}}</h1><p>{{dashboard()!.agency.suburb}} {{dashboard()!.agency.town}}, {{dashboard()!.agency.region}}</p></span></div><sp-manage-status [status]="dashboard()!.verification_status" /></header><div class="stats"><sp-stat-card label="Active listings" [value]="dashboard()!.active_properties + dashboard()!.active_stays" link="/account/manage/agency/listings" /><sp-stat-card label="Team members" [value]="dashboard()!.team_members" link="/account/manage/agency/team" /><sp-stat-card label="Pending invites" [value]="dashboard()!.pending_invitations" link="/account/manage/agency/team" /><a class="status-card" routerLink="/account/manage/agency/verification"><span>Verification</span><strong>{{dashboard()!.verification_status}}</strong></a></div><nav class="actions"><a routerLink="/account/manage/listings/new">Add Listing</a><a routerLink="/account/manage/agency/team">Manage Team</a><a routerLink="/account/manage/agency/profile">Edit Agency Profile</a><a routerLink="/account/manage/verification">Start Verification</a></nav>}</section>`,
-  styles: [` .page{display:grid;gap:1rem}.agency-head{display:flex;justify-content:space-between;gap:1rem;align-items:center}.agency-head>div{display:flex;gap:1rem;align-items:center}.agency-head img{width:64px;height:64px;border-radius:var(--radius-sm);object-fit:cover}.eyebrow{color:var(--teal);font-weight:850;text-transform:uppercase;font-size:.75rem}h1,h2,p{margin:.1rem 0}.stats,.choice>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}.choice article,.status-card{border:1px solid var(--line);border-radius:var(--radius-sm);padding:1rem;display:grid;gap:.55rem;background:#fff}.status-card{text-decoration:none;color:var(--midnight)}.status-card span{color:var(--slate);font-weight:750}.status-card strong{font-size:1rem}.choice i{font-size:1.6rem;color:var(--teal)}.choice a,.actions a{padding:.7rem .85rem;border-radius:var(--radius-sm);background:var(--teal);color:#fff;text-decoration:none;font-weight:850;text-align:center}.actions{display:flex;flex-wrap:wrap;gap:.6rem}.skeleton{height:180px;background:var(--mist);border-radius:var(--radius-sm)}@media(max-width:760px){.stats,.choice>div{grid-template-columns:1fr}.agency-head{display:grid}}`],
+  imports: [DatePipe, RouterLink, SmartImageComponent, ManageStatusComponent],
+  templateUrl: './agency-dashboard.component.html',
+  styleUrl: './agency-dashboard.component.scss',
 })
 export class AgencyDashboardComponent {
   private api = inject(AgencyManagementApiService);
+  private auth = inject(AuthService);
+  private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
+  readonly capabilities = inject(UserCapabilityService);
+  private readonly storageKey = 'sureplace.management-context';
+  private retriedContext = false;
+
   loading = signal(true);
-  dashboard = signal<AgencyDashboard | null>(null);
+  error = signal('');
+  dashboard = signal<ManagementDashboardResponse | null>(null);
+  contextKey = signal('');
+  query = signal('');
+  status = signal('');
+  type = signal<ListingTypeFilter>('all');
+  ordering = signal<'newest' | 'oldest'>('newest');
+  page = signal(1);
+
+  readonly statusOptions = [
+    { value: '', label: 'All statuses' },
+    { value: 'DRAFT', label: 'Draft' },
+    { value: 'SUBMITTED', label: 'Submitted' },
+    { value: 'UNDER_REVIEW', label: 'Under review' },
+    { value: 'PUBLISHED', label: 'Published' },
+    { value: 'CHANGES_REQUESTED', label: 'Changes requested' },
+    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'PAUSED', label: 'Paused' },
+    { value: 'SUSPENDED', label: 'Suspended' },
+  ];
+
+  userName = computed(() => this.auth.user()?.first_name || 'there');
+  isAgency = computed(() => this.dashboard()?.context?.kind === 'agency');
+  canManageAgency = computed(() =>
+    ['OWNER', 'ADMIN'].includes(this.dashboard()?.context?.role || ''),
+  );
+  createQuery = computed(() => {
+    const context = this.dashboard()?.context;
+    return context?.kind === 'agency' && context.id ? { agency: context.id } : {};
+  });
+  managementQuery = computed(() => {
+    const context = this.dashboard()?.context;
+    return context?.kind === 'agency' && context.id
+      ? { agency: context.id }
+      : { context: 'individual' };
+  });
+
   constructor() {
-    this.api.mine().pipe(switchMap((agencies) => agencies[0] ? this.api.dashboard(agencies[0].id) : of(null)), finalize(() => this.loading.set(false))).subscribe((value) => this.dashboard.set(value));
+    this.seo.privatePage(
+      'Manage Listings',
+      'Manage your properties, stays, enquiries and booking activity.',
+    );
+    const stored = isPlatformBrowser(this.platformId)
+      ? sessionStorage.getItem(this.storageKey) || ''
+      : '';
+    this.contextKey.set(stored);
+    this.load();
+  }
+
+  load() {
+    this.loading.set(true);
+    this.error.set('');
+    const params: Record<string, string> = {
+      page: String(this.page()),
+      page_size: '6',
+      type: this.type(),
+      ordering: this.ordering(),
+    };
+    if (this.contextKey()) params['context'] = this.contextKey();
+    if (this.query().trim()) params['search'] = this.query().trim();
+    if (this.status()) params['status'] = this.status();
+
+    this.api
+      .managementDashboard(params)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (dashboard) => {
+          this.dashboard.set(dashboard);
+          const context = dashboard.context;
+          if (context) {
+            const key = context.kind === 'agency' ? `agency:${context.id}` : 'individual';
+            this.contextKey.set(key);
+            if (isPlatformBrowser(this.platformId)) sessionStorage.setItem(this.storageKey, key);
+          }
+        },
+        error: (error) => {
+          if (
+            this.contextKey() &&
+            !this.retriedContext &&
+            [400, 403, 404].includes(Number(error?.status))
+          ) {
+            this.retriedContext = true;
+            this.contextKey.set('');
+            if (isPlatformBrowser(this.platformId)) sessionStorage.removeItem(this.storageKey);
+            this.load();
+            return;
+          }
+          this.error.set("We couldn't load your management dashboard.");
+        },
+      });
+  }
+
+  switchContext(key: string) {
+    if (key === this.contextKey() || this.loading()) return;
+    this.contextKey.set(key);
+    this.page.set(1);
+    this.query.set('');
+    this.status.set('');
+    this.type.set('all');
+    this.ordering.set('newest');
+    this.load();
+  }
+
+  applyFilters() {
+    this.page.set(1);
+    this.load();
+  }
+
+  goToPage(page: number | null) {
+    if (!page || page === this.page() || this.loading()) return;
+    this.page.set(page);
+    this.load();
+  }
+
+  setType(value: string) {
+    this.type.set((['property', 'stay'].includes(value) ? value : 'all') as ListingTypeFilter);
+    this.applyFilters();
+  }
+
+  location(listing: ManagementListing) {
+    return [listing.suburb, listing.town].filter(Boolean).join(', ');
+  }
+
+  trackContext(agencyId: string) {
+    return `agency:${agencyId}`;
   }
 }

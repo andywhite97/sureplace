@@ -44,6 +44,16 @@ describe('PropertyDetailComponent', () => {
     availability_confirmed_at: new Date().toISOString(),
     agent: null,
     agency: null,
+    advertiser: {
+      kind: 'OWNER',
+      name: 'Owner One',
+      role: 'Property owner',
+      image: null,
+      verification_status: null,
+      profile_slug: null,
+      representative_name: null,
+      representative_image: null,
+    },
     is_favourited: false,
     featured: false,
     created_at: '',
@@ -82,7 +92,15 @@ describe('PropertyDetailComponent', () => {
         },
         { provide: AuthService, useValue: { isAuthenticated: authenticated } },
         { provide: ToastService, useValue: { show: vi.fn() } },
-        { provide: SeoService, useValue: { set: vi.fn(), apply: vi.fn(), canonical: vi.fn(), absoluteUrl: (path: string) => `http://localhost:4200${path}` } },
+        {
+          provide: SeoService,
+          useValue: {
+            set: vi.fn(),
+            apply: vi.fn(),
+            canonical: vi.fn(),
+            absoluteUrl: (path: string) => `http://localhost:4200${path}`,
+          },
+        },
       ],
     });
   });
@@ -98,6 +116,13 @@ describe('PropertyDetailComponent', () => {
     expect(text).toContain('Garden');
     expect(text).toContain('Verified Property');
     expect(text).toContain('Availability confirmed today');
+    expect(f.nativeElement.querySelector('.mobile-contact')?.textContent).toContain('Message');
+    expect(f.nativeElement.querySelector('.mobile-contact')?.textContent).toContain(
+      'Request Viewing',
+    );
+    expect(f.componentInstance.googleMapsDirectionsUrl(-26.5, 31.3)).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=-26.5%2C31.3',
+    );
   });
   it('reloads when the route slug changes', () => {
     TestBed.createComponent(PropertyDetailComponent).detectChanges();
@@ -130,4 +155,3 @@ describe('PropertyDetailComponent', () => {
     expect(f.nativeElement.textContent).not.toContain('You may also like');
   });
 });
-

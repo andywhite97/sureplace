@@ -13,6 +13,7 @@ import { formatMoney } from '../../../shared/listing/price-format';
         [src]="room().images[0]?.image || null"
         [alt]="room().name"
         ratio="4 / 3"
+        [priority]="priority()"
         [width]="420"
         [height]="315"
       />
@@ -171,21 +172,90 @@ import { formatMoney } from '../../../shared/listing/price-format';
         color: var(--teal);
         font-weight: 800;
       }
-      @media (max-width: 760px) {
-        article {
-          grid-template-columns: 1fr;
+      @media (max-width: 767px) {
+        :host {
+          display: block;
+          height: auto;
+          min-height: 0;
         }
-        .body,
-        .choose {
-          padding: 0 1rem;
+        article {
+          display: flex;
+          flex-direction: column;
+          height: auto;
+          min-height: 0;
+          gap: 0;
+          border-radius: 1rem;
+        }
+        .photo {
+          flex: none;
+          width: 100%;
+          height: auto;
+          min-height: auto;
+          aspect-ratio: 16 / 9;
+          overflow: hidden;
+        }
+        .photo sp-image,
+        :host ::ng-deep .photo sp-image > div {
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          aspect-ratio: auto !important;
         }
         .body {
+          flex: none;
+          gap: 0.55rem;
+          padding: 0.8rem 0.9rem 0;
           align-content: start;
         }
+        h3 {
+          font-size: 1.08rem;
+        }
+        .body p {
+          display: none;
+        }
+        ul {
+          gap: 0.35rem 0.8rem;
+        }
+        li {
+          font-size: 0.82rem;
+        }
+        li:nth-child(n + 3) {
+          display: none;
+        }
         .choose {
-          justify-items: stretch;
-          padding-bottom: 1rem;
+          flex: none;
+          grid-template-columns: 1fr auto;
+          align-items: end;
+          gap: 0.45rem;
+          padding: 0.7rem 0.9rem 0.85rem;
           text-align: left;
+        }
+        .choose strong {
+          font-size: 1rem;
+          color: var(--teal);
+        }
+        .choose > span {
+          display: none;
+        }
+        .choose button {
+          min-width: 84px;
+          padding: 0.55rem 0.7rem;
+          border: 1px solid var(--teal);
+          background: #fff;
+          color: var(--teal);
+        }
+        article.selected .choose button {
+          background: var(--teal);
+          color: #fff;
+        }
+      }
+      @media (max-width: 340px) {
+        .choose {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+        .choose button {
+          width: 100%;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -201,6 +271,7 @@ import { formatMoney } from '../../../shared/listing/price-format';
 })
 export class RoomCardComponent {
   room = input.required<RoomTypeSummary>();
+  priority = input(false);
   availability = input<RoomAvailabilityResult | null>(null);
   selected = input(false);
   selectedRoom = output<string>();

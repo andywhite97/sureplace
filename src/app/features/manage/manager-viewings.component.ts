@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ManagerViewingsApiService } from '../../core/api/manage-api.services';
 import { ViewingRequest } from '../../core/models/account.models';
+import { ToastService } from '../../core/services/toast.service';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { ManageStatusComponent } from './manage-ui';
 
@@ -17,11 +18,12 @@ import { ManageStatusComponent } from './manage-ui';
 })
 export class ManagerViewingsComponent {
   private api = inject(ManagerViewingsApiService);
+  private toast = inject(ToastService);
   rows = signal<ViewingRequest[]>([]);
   loading = signal(true);
   busy = signal(false);
   error = signal('');
   constructor() { this.load(); }
   load() { this.loading.set(true); this.api.list().pipe(finalize(() => this.loading.set(false))).subscribe({ next: (p) => this.rows.set(p.results), error: () => this.error.set('Manager viewings could not be loaded.') }); }
-  go(v: ViewingRequest, action: 'confirm' | 'decline') { this.busy.set(true); this.api[action](v.id).pipe(finalize(() => this.busy.set(false))).subscribe(() => this.load()); }
+  go(v: ViewingRequest, action: 'confirm' | 'decline') { this.busy.set(true); this.api[action](v.id).pipe(finalize(() => this.busy.set(false))).subscribe({ next: () => { this.toast.show(action === 'confirm' ? 'Viewing confirmed.' : 'Viewing declined.', 'success'); this.load(); }, error: () => this.toast.show('Viewing request could not be updated.', 'error') }); }
 }

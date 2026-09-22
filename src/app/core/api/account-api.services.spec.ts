@@ -13,7 +13,9 @@ import {
 describe('account api services', () => {
   let http: HttpTestingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
@@ -31,7 +33,14 @@ describe('account api services', () => {
 
   it('supports saved-search actions', () => {
     const api = TestBed.inject(SavedSearchesApiService);
-    api.create({ name: 'Mbabane stays', search_type: 'STAY', criteria: { town: 'Mbabane' }, notifications_enabled: true }).subscribe();
+    api
+      .create({
+        name: 'Mbabane stays',
+        search_type: 'STAY',
+        criteria: { town: 'Mbabane' },
+        notifications_enabled: true,
+      })
+      .subscribe();
     http.expectOne('/api/v1/saved-searches/').flush({});
     api.patch('s1', { notifications_enabled: false }).subscribe();
     http.expectOne('/api/v1/saved-searches/s1/').flush({});
@@ -49,7 +58,16 @@ describe('account api services', () => {
     http.expectOne('/api/v1/notifications/mark-all-read/').flush({ updated: 1 });
     notifications.updatePreferences({ new_message_email: false }).subscribe();
     http.expectOne('/api/v1/notification-preferences/me/').flush({});
-    TestBed.inject(ProfileApiService).update({ first_name: 'A', last_name: '', phone_number: '', onboarding_intents: [] }).subscribe();
+    TestBed.inject(ProfileApiService)
+      .update({ first_name: 'A', last_name: '', phone_number: '', onboarding_intents: [] })
+      .subscribe();
     http.expectOne('/api/v1/auth/me/').flush({});
+    const avatar = new File(['avatar'], 'avatar.webp', { type: 'image/webp' });
+    TestBed.inject(ProfileApiService).uploadAvatar(avatar).subscribe();
+    const upload = http.expectOne('/api/v1/auth/me/');
+    expect(upload.request.method).toBe('PATCH');
+    expect(upload.request.body).toBeInstanceOf(FormData);
+    expect((upload.request.body as FormData).get('avatar')).toBe(avatar);
+    upload.flush({ avatar: '/media/avatar.webp' });
   });
 });

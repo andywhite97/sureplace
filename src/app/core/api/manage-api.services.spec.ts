@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import {
   ManagerBookingsApiService,
   ManagerViewingsApiService,
+  AgencyManagementApiService,
   PropertyManagementApiService,
   RoomManagementApiService,
   StayManagementApiService,
@@ -13,7 +14,9 @@ import {
 describe('management api services', () => {
   let http: HttpTestingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
@@ -54,7 +57,13 @@ describe('management api services', () => {
     const calendar = http.expectOne((r) => r.url === '/api/v1/rooms/r1/calendar/');
     expect(calendar.request.params.get('start')).toBe('2026-09-01');
     calendar.flush([]);
-    rooms.bulkAvailability('r1', { start_date: '2026-09-01', end_date: '2026-09-02', is_blocked: true }).subscribe();
+    rooms
+      .bulkAvailability('r1', {
+        start_date: '2026-09-01',
+        end_date: '2026-09-02',
+        is_blocked: true,
+      })
+      .subscribe();
     http.expectOne('/api/v1/rooms/r1/availability/bulk/').flush({ updated: 2 });
     rooms.updateImage('r1', 'img3', { is_cover: true }).subscribe();
     const roomImage = http.expectOne('/api/v1/rooms/r1/images/');
@@ -80,5 +89,26 @@ describe('management api services', () => {
     create.flush({});
     verification.types().subscribe();
     http.expectOne('/api/v1/verification/types/').flush([]);
+  });
+
+  it('loads the context-aware management dashboard with server-side filters', () => {
+    const agencies = TestBed.inject(AgencyManagementApiService);
+    agencies
+      .managementDashboard({
+        context: 'agency:a1',
+        search: 'Mbabane',
+        type: 'property',
+        page: '2',
+      })
+      .subscribe();
+
+    const request = http.expectOne(
+      (candidate) => candidate.url === '/api/v1/management-dashboard/',
+    );
+    expect(request.request.params.get('context')).toBe('agency:a1');
+    expect(request.request.params.get('search')).toBe('Mbabane');
+    expect(request.request.params.get('type')).toBe('property');
+    expect(request.request.params.get('page')).toBe('2');
+    request.flush({ mode: 'dashboard' });
   });
 });
