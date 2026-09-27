@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 
 import { AgentsApiService, AgentDetail } from '../../core/api/agents-api.service';
+import { MessagingApiService } from '../../core/api/messaging-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -31,6 +32,11 @@ import { ToastService } from '../../core/services/toast.service';
       </section>
     } @else if (agent(); as profile) {
       <section class="page">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a routerLink="/agents"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Agents</a>
+          <span aria-hidden="true">/</span>
+          <span>{{ profile.name }}</span>
+        </nav>
         <header class="hero card">
           <div class="identity-block">
             <div class="avatar-wrap">
@@ -59,44 +65,47 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="actions-wrap">
-            <button type="button" class="primary" (click)="message()">Message</button>
+            <button type="button" class="primary" (click)="message()"><i class="fa-regular fa-message" aria-hidden="true"></i> Message</button>
             @if (profile.phone) {
-              <a class="secondary" [href]="'tel:' + profile.phone">Call</a>
+              <a class="secondary" [href]="'tel:' + profile.phone"><i class="fa-solid fa-phone" aria-hidden="true"></i> Call</a>
             }
-            <button type="button" class="secondary" (click)="share()">Share</button>
+            <button type="button" class="secondary" (click)="share()"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i> Share</button>
           </div>
         </header>
 
+        <nav class="profile-nav" aria-label="Profile sections">
+          <a [routerLink]="['/agents', profile.id]" fragment="overview">Overview</a>
+          <a [href]="'/agents/' + profile.id + '#listings'" (click)="scrollToListings($event)">Listings <span>{{ activeListings().length }}</span></a>
+        </nav>
+
         <div class="content-grid">
-          <section class="card overview">
-            <h2>Overview</h2>
-            <div class="stats-grid">
-              <div><span>Active listings</span><strong>{{ profile.active_listings_count }}</strong></div>
-              <div><span>Published properties</span><strong>{{ activeListings().length }}</strong></div>
-            </div>
-
+          <section id="overview" class="card overview">
+            <p class="section-kicker">About</p>
+            <h2>Local property expertise, made clear.</h2>
             @if (profile.bio) {
-              <div class="block">
-                <h3>About</h3>
-                <p>{{ profile.bio }}</p>
-              </div>
+              <p class="about-copy">{{ profile.bio }}</p>
+            } @else {
+              <p class="about-copy muted">This agent has not added a public biography yet.</p>
             }
-
-            @if (serviceAreas(profile)) {
-              <div class="block">
-                <h3>Areas served</h3>
-                <ul class="list">
-                  @for (area of profile.service_areas; track area) {
-                    <li>{{ area }}</li>
-                  }
-                </ul>
-              </div>
-            }
+            <div class="stats-grid">
+              <div><i class="fa-solid fa-building" aria-hidden="true"></i><span>Active listings</span><strong>{{ profile.active_listings_count }}</strong></div>
+            </div>
           </section>
 
-          @if (profile.agency) {
-            <aside class="card agency-card">
-              <h2>Agency</h2>
+          <aside class="side-stack">
+            @if (profile.service_areas.length) {
+              <section class="card details-card">
+                <h2>Areas served</h2>
+                <ul class="area-list">
+                  @for (area of profile.service_areas; track area) {
+                    <li><i class="fa-solid fa-location-dot" aria-hidden="true"></i>{{ area }}</li>
+                  }
+                </ul>
+              </section>
+            }
+            @if (profile.agency) {
+              <section class="card agency-card">
+                <p class="section-kicker">Agency</p>
               <div class="mini-header">
                 @if (profile.agency.logo) {
                   <img [src]="profile.agency.logo" [alt]="profile.agency.name" />
@@ -113,14 +122,20 @@ import { ToastService } from '../../core/services/toast.service';
               @if (profile.agency_description) {
                 <p>{{ profile.agency_description }}</p>
               }
-              <a class="text-link" [routerLink]="['/agencies', profile.agency.slug || profile.agency.id]">View agency profile</a>
-            </aside>
-          }
+              </section>
+            }
+            @if (profile.phone) {
+              <section class="card details-card contact-card">
+                <h2>Contact</h2>
+                <a [href]="'tel:' + profile.phone"><i class="fa-solid fa-phone" aria-hidden="true"></i>{{ profile.phone }}</a>
+              </section>
+            }
+          </aside>
         </div>
 
-        <section class="card listings-panel">
+        <section id="listings" class="card listings-panel" tabindex="-1">
           <div class="section-header">
-            <h2>Active listings ({{ activeListings().length }})</h2>
+            <div><p class="section-kicker">On the market</p><h2>Active listings <span>({{ activeListings().length }})</span></h2></div>
           </div>
 
           @if (activeListings().length) {
@@ -162,45 +177,59 @@ import { ToastService } from '../../core/services/toast.service';
   `,
   styles: `
     :host { display:block; }
-    .page { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 4rem; color: var(--midnight); }
-    .card { background: rgba(255,255,255,.9); border: 1px solid rgba(21,43,42,.08); border-radius: 1rem; box-shadow: 0 10px 30px rgba(21,43,42,.04); }
-    .hero { display:flex; justify-content:space-between; gap:1rem; padding:1.5rem; margin-bottom:1.25rem; }
+    .page { max-width: 1240px; margin: 0 auto; padding: 1.2rem 1rem 4.5rem; color: var(--midnight); }
+    .breadcrumb { display:flex; align-items:center; gap:.55rem; margin:0 0 .85rem; color:var(--slate); font-size:.82rem; }
+    .breadcrumb a { color:var(--teal); font-weight:750; text-decoration:none; }
+    .card { background: #fff; border: 1px solid rgba(21,43,42,.08); border-radius: 1rem; box-shadow: 0 12px 30px rgba(21,43,42,.055); }
+    .hero { min-height:0; display:flex; align-items:flex-start; justify-content:space-between; gap:1.5rem; padding:1.5rem; margin-bottom:.85rem; border-top:4px solid var(--teal); }
     .identity-block { display:flex; gap:1rem; align-items:flex-start; }
     .avatar-wrap { flex-shrink:0; }
     .avatar-fallback, .avatar-wrap img { width: 5.5rem; height:5.5rem; border-radius: 50%; display:grid; place-items:center; background: linear-gradient(135deg, rgba(15,157,131,.16), rgba(40,120,208,.14)); font-weight:800; font-size:1.5rem; color:var(--midnight); }
     .avatar-wrap img { object-fit: cover; }
-    .identity-copy { display:flex; flex-direction:column; gap:.4rem; }
-    h1 { margin:0; font-size: clamp(2rem, 4vw, 3rem); }
-    .agency-line { margin:0; font-weight:700; }
+    .identity-copy { display:flex; flex-direction:column; gap:.42rem; min-width:0; }
+    h1 { margin:0; color:var(--midnight); letter-spacing:-.035em; font-size: clamp(2rem, 4vw, 3rem); }
+    .agency-line { margin:0; color:var(--midnight); font-weight:750; }
     .areas, .tagline { margin:0; color:var(--slate); }
     .badge { display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; width:max-content; }
     .verified-agent { background: rgba(40,120,208,.12); color:var(--verification); }
     .verified-agency { background: rgba(15,157,131,.12); color: var(--teal); }
-    .actions-wrap { display:flex; align-items:flex-start; gap:.6rem; flex-wrap:wrap; }
-    button.primary, a.primary, a.secondary, button.secondary { padding:.8rem 1rem; border-radius:.8rem; font-weight:700; text-decoration:none; border:1px solid transparent; }
-    button.primary, a.primary { background: var(--teal); color:#fff; }
+    .actions-wrap { min-width:10rem; display:grid; align-content:start; gap:.55rem; }
+    button.primary, a.primary, a.secondary, button.secondary { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; padding:.8rem 1rem; border-radius:.7rem; font-weight:750; text-decoration:none; border:1px solid transparent; }
+    button.primary, a.primary { background: linear-gradient(135deg, var(--teal), #078e82); color:#fff; box-shadow:0 8px 16px rgba(15,157,131,.18); }
     a.secondary, button.secondary { background:#fff; border-color: rgba(21,43,42,.12); color: var(--midnight); }
-    .content-grid { display:grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom:1rem; }
-    .overview, .agency-card, .listings-panel { padding:1.25rem; }
-    h2 { margin-top:0; }
-    .stats-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.75rem; margin-bottom:1rem; }
-    .stats-grid div { background: var(--mist); border-radius:.8rem; padding:.8rem; border:1px solid rgba(21,43,42,.08); }
+    .profile-nav { display:flex; gap:1.35rem; padding:0 .35rem; border-bottom:1px solid var(--line); margin-bottom:1rem; }
+    .profile-nav a { padding:.8rem .1rem; border-bottom:2px solid transparent; color:var(--slate); font-size:.88rem; font-weight:750; text-decoration:none; }
+    .profile-nav a:first-child { border-color:var(--teal); color:var(--teal); }
+    .profile-nav span { color:var(--slate); font-size:.75rem; }
+    .content-grid { display:grid; grid-template-columns:minmax(0, 1.7fr) minmax(280px, .85fr); gap: 1rem; margin-bottom:1rem; }
+    .overview, .agency-card, .details-card, .listings-panel { padding:1.35rem; }
+    .listings-panel { scroll-margin-top: 1rem; }
+    h2 { margin:0; color:var(--midnight); font-size:1.25rem; }
+    .section-kicker { margin:0 0 .35rem; color:var(--teal); font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .about-copy { max-width:56ch; margin:1rem 0 1.25rem; color:var(--slate); line-height:1.6; }
+    .muted { font-style:italic; }
+    .stats-grid { display:grid; grid-template-columns:minmax(0, 13rem); gap:.75rem; }
+    .stats-grid div { display:grid; grid-template-columns:auto 1fr; align-items:center; column-gap:.7rem; background:var(--mist); border-radius:.8rem; padding:.8rem; border:1px solid rgba(21,43,42,.08); }
+    .stats-grid i { grid-row:span 2; color:var(--teal); font-size:1.1rem; }
     .stats-grid span { display:block; color:var(--slate); font-size:.8rem; }
     .stats-grid strong { font-size:1.4rem; }
-    .block { margin-top:1rem; }
-    .block h3 { margin:0 0 .6rem; }
-    .list { margin:0; padding-left:1.1rem; color:var(--slate); }
+    .side-stack { display:grid; align-content:start; gap:1rem; }
+    .area-list { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.55rem; margin:.9rem 0 0; padding:0; list-style:none; color:var(--slate); font-size:.85rem; }
+    .area-list li { display:flex; gap:.4rem; align-items:center; }
+    .area-list i { color:var(--teal); font-size:.72rem; }
     .mini-header { display:flex; gap:.75rem; align-items:center; border-bottom:1px solid rgba(21,43,42,.08); padding-bottom:.8rem; margin-bottom:.75rem; }
     .mini-fallback, .mini-header img { width:3rem; height:3rem; border-radius:50%; display:grid; place-items:center; background: rgba(15,157,131,.12); color:var(--midnight); font-weight:700; }
     .mini-header img { object-fit: cover; }
-    .text-link { color: var(--teal); font-weight:700; text-decoration: none; }
+    .agency-card > p:last-child { color:var(--slate); line-height:1.55; font-size:.88rem; }
+    .contact-card a { display:flex; align-items:center; gap:.55rem; margin-top:.85rem; color:var(--teal); font-size:.88rem; font-weight:750; text-decoration:none; }
     .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-    .listing-row { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:1rem; }
-    .listing-card { background: #fff; border:1px solid rgba(21,43,42,.08); border-radius:.9rem; overflow:hidden; cursor:pointer; }
+    .listing-row { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:.8rem; }
+    .listing-card { background: #fff; border:1px solid rgba(21,43,42,.08); border-radius:.8rem; overflow:hidden; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
+    .listing-card:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(21,43,42,.1); }
     .cover-wrap { aspect-ratio: 4/3; background: var(--mist); }
     .cover-wrap img, .cover-placeholder { width:100%; height:100%; object-fit:cover; }
     .cover-placeholder { display:grid; place-items:center; font-size:2rem; color: var(--slate); }
-    .listing-body { padding:.8rem; }
+    .listing-body { padding:.75rem; }
     .listing-type { display:inline-block; font-size:.7rem; text-transform: uppercase; letter-spacing:.08em; color:var(--teal); font-weight:700; }
     .listing-body h3 { margin:.35rem 0 .2rem; font-size:1rem; }
     .listing-meta, .listing-price { margin:0; color: var(--slate); }
@@ -216,8 +245,8 @@ import { ToastService } from '../../core/services/toast.service';
     .skeleton.line { height:1rem; width: 14rem; }
     .skeleton.line.short { width: 9rem; }
     @keyframes shimmer { 100% { transform:translateX(100%); } }
-    @media (max-width: 860px) { .content-grid { grid-template-columns: 1fr; } .listing-row { grid-template-columns: repeat(2, minmax(0,1fr)); } .hero { flex-direction:column; } .actions-wrap { justify-content:flex-start; } }
-    @media (max-width: 480px) { .listing-row { grid-template-columns: 1fr; } .identity-block { flex-direction:column; } .actions-wrap { width:100%; } .actions-wrap > * { flex:1; text-align:center; } }
+    @media (max-width: 860px) { .content-grid { grid-template-columns:1fr; } .listing-row { grid-template-columns:repeat(2, minmax(0,1fr)); } .hero { flex-direction:column; } .actions-wrap { grid-template-columns:repeat(3, minmax(0,1fr)); width:100%; } }
+    @media (max-width: 560px) { .page { padding:.9rem .7rem 3rem; } .hero { padding:1.1rem; } .identity-block { flex-direction:column; } .actions-wrap { grid-template-columns:repeat(2, minmax(0,1fr)); } .actions-wrap .primary { grid-column:1 / -1; } .listing-row { display:flex; overflow-x:auto; padding-bottom:.3rem; scroll-snap-type:x proximity; } .listing-card { flex:0 0 min(78vw, 18rem); scroll-snap-align:start; } .area-list { grid-template-columns:1fr; } }
   `,
 })
 export class AgentProfileComponent {
@@ -225,6 +254,7 @@ export class AgentProfileComponent {
   private router = inject(Router);
   private api = inject(AgentsApiService);
   private auth = inject(AuthService);
+  private messaging = inject(MessagingApiService);
   private seo = inject(SeoService);
   private toast = inject(ToastService);
 
@@ -259,7 +289,7 @@ export class AgentProfileComponent {
             this.seo.apply({
               title,
               description: `${agent.name} is a ${agent.verified_agent ? 'verified' : 'trusted'} property professional${agent.agency ? ` at ${agent.agency.name}` : ''}.`,
-              path: `/agents/${agent.slug || agent.id}`,
+              path: `/agents/${agent.id}`,
               type: 'article',
             });
           }
@@ -284,21 +314,37 @@ export class AgentProfileComponent {
     void this.router.navigate(['/properties', slug]);
   }
 
+  scrollToListings(event: Event) {
+    event.preventDefault();
+    const profile = this.agent();
+    if (!profile) return;
+
+    void this.router.navigate(['/agents', profile.id], { fragment: 'listings' }).then(() => {
+      requestAnimationFrame(() => {
+        const listings = document.getElementById('listings');
+        listings?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        listings?.focus({ preventScroll: true });
+      });
+    });
+  }
+
   message() {
     const profile = this.agent();
     if (!profile) return;
     if (!this.auth.isAuthenticated()) {
-      void this.router.navigate(['/login'], { queryParams: { returnUrl: `/agents/${profile.slug || profile.id}` } });
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: `/agents/${profile.id}` } });
       return;
     }
-    void this.router.navigate(['/account/messages']);
-    this.toast.show('Open the message centre to continue the conversation.', 'info');
+    this.messaging.createForAgent(profile.id, `Hi ${profile.name}, I'd like to discuss a property opportunity.`).subscribe({
+      next: (conversation) => void this.router.navigate(['/account/messages', conversation.id]),
+      error: () => this.toast.show('Could not start the conversation.', 'error'),
+    });
   }
 
   share() {
     const profile = this.agent();
     if (!profile) return;
-    const url = `${window.location.origin}/agents/${profile.slug || profile.id}`;
+    const url = `${window.location.origin}/agents/${profile.id}`;
     if (navigator.share) {
       void navigator.share({ title: profile.name, text: `View ${profile.name}'s profile on SurePlace`, url });
     } else if (navigator.clipboard) {

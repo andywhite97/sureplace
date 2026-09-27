@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, capabilityGuard, guestGuard, staffGuard } from './core/guards/auth.guard';
+import { authGuard, capabilityGuard, guestGuard, staffAccessGuard, staffGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
@@ -52,6 +52,12 @@ export const routes: Routes = [
       import('./features/verification-info.component').then((m) => m.VerificationInfoComponent),
     title: 'SurePlace verification | Safer property decisions',
   },
+  ...(['about', 'help', 'pricing', 'terms', 'privacy', 'cookies'] as const).map((publicPage) => ({
+    path: publicPage,
+    data: { publicPage },
+    loadComponent: () =>
+      import('./features/public-pages.component').then((m) => m.PublicPagesComponent),
+  })),
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -356,6 +362,8 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        canActivate: [staffAccessGuard],
+        data: { staffPermissions: ['properties.review_propertylisting'] },
         loadComponent: () =>
           import('./features/staff/staff-dashboard.component').then(
             (m) => m.StaffDashboardComponent,
@@ -364,12 +372,16 @@ export const routes: Routes = [
       },
       {
         path: 'listings',
+        canActivate: [staffAccessGuard],
+        data: { staffPermissions: ['properties.review_propertylisting'] },
         loadComponent: () =>
           import('./features/staff/staff-listings.component').then((m) => m.StaffListingsComponent),
         title: 'Listing moderation | SurePlace',
       },
       {
         path: 'listings/:id',
+        canActivate: [staffAccessGuard],
+        data: { staffPermissions: ['properties.review_propertylisting'] },
         loadComponent: () =>
           import('./features/staff/staff-listing-detail.component').then(
             (m) => m.StaffListingDetailComponent,
@@ -378,42 +390,77 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
+        canActivate: [staffAccessGuard],
+        data: { staffPermissions: ['moderation.view_listingreport'] },
         loadComponent: () =>
           import('./features/staff/staff-reports.component').then((m) => m.StaffReportsComponent),
         title: 'Listing reports | SurePlace staff',
       },
       {
-        path: 'agencies',
+        path: 'agencies/:id',
+        canActivate: [staffAccessGuard],
+        data: { workspace: 'agencies', staffPermissions: ['verification.review_verificationrequest'] },
         loadComponent: () =>
-          import('./features/staff/staff-placeholder.component').then(
-            (m) => m.StaffPlaceholderComponent,
+          import('./features/staff/staff-operation-detail.component').then(
+            (m) => m.StaffOperationDetailComponent,
           ),
-        data: {
-          title: 'Agencies',
-          message: 'Agency moderation is prepared for a focused follow-up build.',
-        },
+        title: 'Agency review | SurePlace staff',
+      },
+      {
+        path: 'agencies',
+        canActivate: [staffAccessGuard],
+        data: { workspace: 'agencies', staffPermissions: ['verification.review_verificationrequest'] },
+        loadComponent: () =>
+          import('./features/staff/staff-operations.component').then((m) => m.StaffOperationsComponent),
+        title: 'Agency reviews | SurePlace staff',
+      },
+      {
+        path: 'verification/:id',
+        canActivate: [staffAccessGuard],
+        data: { workspace: 'verification', staffPermissions: ['verification.review_verificationrequest'] },
+        loadComponent: () =>
+          import('./features/staff/staff-operation-detail.component').then(
+            (m) => m.StaffOperationDetailComponent,
+          ),
+        title: 'Verification review | SurePlace staff',
       },
       {
         path: 'verification',
+        canActivate: [staffAccessGuard],
+        data: { workspace: 'verification', staffPermissions: ['verification.review_verificationrequest'] },
         loadComponent: () =>
-          import('./features/staff/staff-placeholder.component').then(
-            (m) => m.StaffPlaceholderComponent,
+          import('./features/staff/staff-operations.component').then((m) => m.StaffOperationsComponent),
+        title: 'Verification queue | SurePlace staff',
+      },
+      {
+        path: 'users/:id',
+        canActivate: [staffAccessGuard],
+        data: { workspace: 'users', staffPermissions: ['accounts.moderate_user'] },
+        loadComponent: () =>
+          import('./features/staff/staff-operation-detail.component').then(
+            (m) => m.StaffOperationDetailComponent,
           ),
-        data: {
-          title: 'Verification',
-          message: 'Verification reviews remain in the existing verification workflow.',
-        },
+        title: 'User detail | SurePlace staff',
       },
       {
         path: 'users',
+        canActivate: [staffAccessGuard],
+        data: { workspace: 'users', staffPermissions: ['accounts.moderate_user'] },
         loadComponent: () =>
-          import('./features/staff/staff-placeholder.component').then(
-            (m) => m.StaffPlaceholderComponent,
-          ),
-        data: {
-          title: 'Users',
-          message: 'User moderation tools can be added here without changing the listing console.',
-        },
+          import('./features/staff/staff-operations.component').then((m) => m.StaffOperationsComponent),
+        title: 'User review | SurePlace staff',
+      },
+      {
+        path: 'access',
+        canActivate: [staffAccessGuard],
+        data: { staffSuperuser: true },
+        loadComponent: () => import('./features/staff/staff-access.component').then((m) => m.StaffAccessComponent),
+        title: 'Staff access & roles | SurePlace',
+      },
+      {
+        path: 'no-access',
+        loadComponent: () => import('./features/staff/staff-access.component').then((m) => m.StaffAccessDeniedComponent),
+        title: 'Limited staff access | SurePlace',
       },
     ],
   },

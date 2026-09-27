@@ -5,6 +5,7 @@ import { PublicHeaderComponent } from './layout/public-header.component';
 import { FooterComponent } from './layout/footer.component';
 import { MobileNavigationComponent } from './layout/mobile-navigation.component';
 import { ToastRegionComponent } from './layout/toast-region.component';
+import { CookieConsentComponent } from './layout/cookie-consent.component';
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -14,12 +15,13 @@ import { ToastRegionComponent } from './layout/toast-region.component';
     FooterComponent,
     MobileNavigationComponent,
     ToastRegionComponent,
+    CookieConsentComponent,
   ],
   template: `<sp-header [staffWorkspace]="staffWorkspace()" /><router-outlet />
     @if (!staffWorkspace()) {
       <sp-footer /><sp-mobile-nav />
     }
-    <sp-toast-region />`,
+    <sp-toast-region /><sp-cookie-consent />`,
 })
 export class App {
   private router = inject(Router);

@@ -11,6 +11,17 @@ describe('management ui helpers', () => {
     expect(f.nativeElement.textContent).toContain('Pending review');
   });
 
+  it('renders an unverified agency status without falling back to an unavailable label', () => {
+    const f = TestBed.configureTestingModule({ imports: [ManageStatusComponent] }).createComponent(
+      ManageStatusComponent,
+    );
+    f.componentRef.setInput('status', 'UNVERIFIED');
+    f.detectChanges();
+
+    expect(f.nativeElement.textContent).toContain('Unverified');
+    expect(f.nativeElement.textContent).not.toContain('Status unavailable');
+  });
+
   it('renders listing quality suggestions', () => {
     const f = TestBed.configureTestingModule({ imports: [QualityScoreComponent] }).createComponent(
       QualityScoreComponent,

@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { SavedSearchesApiService } from '../../core/api/account-api.services';
 import { AuthService } from '../../core/auth/auth.service';
 import { SavedSearchCriteria, SavedSearchType } from '../../core/models/account.models';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'sp-save-search-button',
@@ -21,7 +22,7 @@ import { SavedSearchCriteria, SavedSearchType } from '../../core/models/account.
             <label class="check"><input type="checkbox" formControlName="notifications_enabled" /> Email me new matches</label>
             @if (error()) { <p role="alert">{{ error() }}</p> }
             @if (success()) { <p class="ok" role="status">Search saved.</p> }
-            <button type="submit" [disabled]="form.invalid || busy()">Save</button>
+            <button type="submit" [disabled]="form.invalid || busy()">{{ busy() ? 'Saving…' : 'Save' }}</button>
           </form>
         </section>
       </div>
@@ -35,6 +36,7 @@ export class SaveSearchButtonComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
   searchType = input.required<SavedSearchType>();
   criteria = input.required<SavedSearchCriteria>();
   defaultName = input.required<string>();
@@ -69,10 +71,14 @@ export class SaveSearchButtonComponent {
       .subscribe({
         next: () => {
           this.success.set(true);
+          this.toast.show({ kind: 'success', title: 'Search saved', message: 'We’ll keep this search ready for you.' });
           setTimeout(() => this.close(), 650);
         },
-        error: (e) =>
-          this.error.set(e?.error?.message || e?.error?.detail || 'Could not save this search.'),
+        error: (e) => {
+          const message = e?.error?.message || e?.error?.detail || 'Could not save this search.';
+          this.error.set(message);
+          this.toast.show({ kind: 'error', title: 'Search not saved', message });
+        },
       });
   }
   close() {

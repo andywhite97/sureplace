@@ -4,6 +4,9 @@ import { of } from 'rxjs';
 
 import { AgentsComponent } from './agents.component';
 import { AgentsApiService } from '../../core/api/agents-api.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { MessagingApiService } from '../../core/api/messaging-api.service';
+import { ReferenceApiService } from '../../core/api/reference-api.service';
 
 describe('AgentsComponent', () => {
   let fixture: ComponentFixture<AgentsComponent>;
@@ -43,6 +46,9 @@ describe('AgentsComponent', () => {
       providers: [
         provideRouter([]),
         { provide: AgentsApiService, useValue: api },
+        { provide: AuthService, useValue: { isAuthenticated: () => false } },
+        { provide: MessagingApiService, useValue: { createForAgent: vi.fn() } },
+        { provide: ReferenceApiService, useValue: { data: () => ({ regions: [] }), load: () => of({}) } },
       ],
     }).compileComponents();
 

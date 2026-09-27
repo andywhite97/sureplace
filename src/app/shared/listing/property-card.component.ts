@@ -30,7 +30,7 @@ import { formatMoney } from './price-format';
   >
     <div class="visual">
       <a [routerLink]="['/properties', item().slug]" [attr.aria-label]="'View ' + item().title"
-        ><sp-image [src]="item().cover_image" [alt]="imageAlt()" /></a
+        ><sp-image [src]="item().cover_image" [alt]="imageAlt()" [priority]="priority()" /></a
       ><span class="type">{{ item().listing_type === 'RENT' ? 'For rent' : 'For sale' }}</span
       ><button
         type="button"
@@ -79,6 +79,7 @@ import { formatMoney } from './price-format';
 })
 export class PropertyCardComponent implements OnInit {
   item = input.required<PropertyCard>();
+  priority = input(false);
   private auth = inject(AuthService);
   private fav = inject(FavouritesApiService);
   private router = inject(Router);

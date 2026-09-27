@@ -110,6 +110,9 @@ export const STAFF_NAVIGATION: AccountNavSection = {
     { label: 'Dashboard', commands: '/staff', exact: true, icon: 'fa-solid fa-gauge-high' },
     { label: 'Property Listings', commands: '/staff/listings', icon: 'fa-solid fa-building-user' },
     { label: 'Reports', commands: '/staff/reports', icon: 'fa-solid fa-flag' },
+    { label: 'Agency Reviews', commands: '/staff/agencies', icon: 'fa-solid fa-building-shield' },
+    { label: 'Verification Queue', commands: '/staff/verification', icon: 'fa-solid fa-shield-halved' },
+    { label: 'User Review', commands: '/staff/users', icon: 'fa-solid fa-user-shield' },
   ],
 };
 

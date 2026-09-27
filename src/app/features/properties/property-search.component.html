@@ -62,7 +62,7 @@
       <div class="mobile-secondary-row">
         <button type="button" class="more-filter" (click)="filtersOpen.set(true)">
           <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-          More filters
+          Filters
         </button>
         <div class="mobile-view-toggle" role="group" aria-label="View mode">
           <button
@@ -369,9 +369,10 @@
               <div class="skeleton"></div>
             }
           } @else {
-            @for (property of results(); track property.id) {
+            @for (property of results(); track property.id; let isFirst = $first) {
               <sp-property-card
                 [item]="property"
+                [priority]="isFirst"
                 [class.selected]="selectedId() === property.id"
                 (mouseenter)="selectedId.set(property.id)"
                 (focusin)="selectedId.set(property.id)"

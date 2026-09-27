@@ -30,6 +30,23 @@ export const staffGuard: CanActivateFn = (_, state) => {
   );
 };
 
+export const staffAccessGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.initialize().pipe(
+    take(1),
+    map(() => {
+      const user = auth.user();
+      if (!user?.is_staff) return router.createUrlTree(['/account']);
+      if (route.data['staffSuperuser'] && !user.is_superuser) return router.createUrlTree(['/staff/no-access']);
+      const required = (route.data['staffPermissions'] as string[] | undefined) ?? [];
+      if (required.some((permission) => !(user.staff_permissions ?? []).includes(permission)))
+        return router.createUrlTree(['/staff/no-access']);
+      return true;
+    }),
+  );
+};
+
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);

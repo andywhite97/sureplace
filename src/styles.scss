@@ -65,6 +65,24 @@ select,
 textarea {
   font: inherit;
 }
+button:not(:disabled) {
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    filter var(--transition),
+    background-color var(--transition),
+    border-color var(--transition);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+@media (hover: hover) {
+  button:not(:disabled):hover {
+    transform: translateY(-1px);
+    filter: brightness(0.985);
+  }
+}
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {

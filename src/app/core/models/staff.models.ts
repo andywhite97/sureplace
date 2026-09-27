@@ -135,3 +135,67 @@ export interface StaffDashboard extends StaffSummary {
   recent_activity: StaffDashboardActivity[];
   activity_unavailable?: boolean;
 }
+
+export interface StaffVerificationRequest {
+  id: string;
+  verification_type: string;
+  status: string;
+  applicant_name: string;
+  applicant_email: string;
+  applicant_phone?: string;
+  entity_name: string;
+  submitted_at: string | null;
+  created_at: string;
+  reviewer_notes?: string;
+  rejection_reason?: string;
+  requirements?: Array<{
+    key: string;
+    label: string;
+    description?: string;
+    required?: boolean;
+    mode?: string;
+    alternatives?: string[];
+    uploaded: boolean;
+    document_types?: string[];
+    review_status?: 'ACCEPTED' | 'PENDING' | 'NEEDS_REPLACEMENT' | 'MISSING';
+    reviewer_note?: string;
+  }>;
+  audit_events?: Array<{
+    id: string;
+    event_type: string;
+    previous_status: string;
+    new_status: string;
+    notes: string;
+    actor_name: string;
+    created_at: string;
+  }>;
+  documents?: Array<{
+    id: string;
+    document_type?: string;
+    status: string;
+    file_name?: string;
+    file_size?: number;
+    uploaded_at?: string;
+    rejection_reason?: string;
+  }>;
+}
+
+export interface StaffUserReview {
+  id: string;
+  display_name: string;
+  email: string;
+  is_active: boolean;
+  is_email_verified: boolean;
+  is_phone_verified: boolean;
+  date_joined: string;
+  last_login: string | null;
+  moderation_events: StaffUserModerationEvent[];
+}
+
+export interface StaffUserModerationEvent {
+  id: string;
+  action: 'RESTRICTED' | 'REINSTATED';
+  reason: string;
+  actor_name: string;
+  created_at: string;
+}

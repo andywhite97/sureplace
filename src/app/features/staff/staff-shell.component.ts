@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { STAFF_NAVIGATION } from '../../core/services/account-navigation.config';
 @Component({
   standalone: true,
@@ -12,7 +13,7 @@ import { STAFF_NAVIGATION } from '../../core/services/account-navigation.config'
           <div>Trust & safety<small>SurePlace operations</small></div>
         </div>
         <nav aria-label="Staff moderation">
-          @for (group of groups; track group.title) {
+          @for (group of groups(); track group.title) {
             <section>
               <h2>{{ group.title }}</h2>
               @for (item of group.items; track item.commands) {
@@ -163,8 +164,23 @@ import { STAFF_NAVIGATION } from '../../core/services/account-navigation.config'
   ],
 })
 export class StaffShellComponent {
-  groups = [
-    { title: 'Staff Console', items: [{ ...STAFF_NAVIGATION.items[0], label: 'Overview' }] },
-    { title: 'Moderation', items: STAFF_NAVIGATION.items.slice(1) },
-  ];
+  private auth = inject(AuthService);
+  groups = computed(() => {
+    const user = this.auth.user();
+    const permissions = new Set(user?.staff_permissions ?? []);
+    const allowed = (permission: string) => !!user?.is_superuser || permissions.has(permission);
+    const visible = STAFF_NAVIGATION.items.filter((item) => {
+      if (item.commands === '/staff' || item.commands === '/staff/listings') return allowed('properties.review_propertylisting');
+      if (item.commands === '/staff/reports') return allowed('moderation.view_listingreport');
+      if (item.commands === '/staff/agencies' || item.commands === '/staff/verification') return allowed('verification.review_verificationrequest');
+      if (item.commands === '/staff/users') return allowed('accounts.moderate_user');
+      return false;
+    });
+    const groups = [
+      { title: 'Staff Console', items: visible.filter((item) => item.commands === '/staff').map((item) => ({ ...item, label: 'Overview' })) },
+      { title: 'Moderation', items: visible.filter((item) => item.commands !== '/staff') },
+    ].filter((group) => group.items.length);
+    if (user?.is_superuser) groups.push({ title: 'Administration', items: [{ label: 'Access & Roles', commands: '/staff/access', icon: 'fa-solid fa-user-lock' }] });
+    return groups;
+  });
 }

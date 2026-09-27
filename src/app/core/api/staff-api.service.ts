@@ -1,6 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
-import { StaffDashboard, StaffDashboardActivity, StaffReportReview } from '../models/staff.models';
+import {
+  StaffDashboard,
+  StaffDashboardActivity,
+  StaffReportReview,
+  StaffUserReview,
+  StaffVerificationRequest,
+} from '../models/staff.models';
 import { PaginatedResponse } from '../models/api.models';
 import { ApiClient } from './api-client';
 import {
@@ -18,9 +24,26 @@ export interface StaffListingQuery {
   page_size?: string;
 }
 
+export interface StaffRolePermission { key: string; label: string; description: string; }
+export interface StaffRole { id: number; name: string; permissions: string[]; }
+export interface StaffAccessUser { id: string; name: string; email: string; role_ids: number[]; is_active?: boolean; }
+export interface StaffAccessState { permissions: StaffRolePermission[]; roles: StaffRole[]; staff: StaffAccessUser[]; }
+
 @Injectable({ providedIn: 'root' })
 export class StaffApiService {
   private api = inject(ApiClient);
+
+  staffAccess() { return this.api.get<StaffAccessState>('/auth/staff/access/'); }
+  createStaffRole(body: { name: string; permissions: string[] }) {
+    return this.api.post<StaffRole>('/auth/staff/access/', body);
+  }
+  updateStaffRole(id: number, body: { name: string; permissions: string[] }) {
+    return this.api.patch<StaffRole>(`/auth/staff/access/roles/${id}/`, body);
+  }
+  deleteStaffRole(id: number) { return this.api.delete<void>(`/auth/staff/access/roles/${id}/`); }
+  updateStaffUserRoles(id: string, role_ids: number[]) {
+    return this.api.put<StaffAccessUser>(`/auth/staff/users/${encodeURIComponent(id)}/roles/`, { role_ids });
+  }
 
   summary() {
     return this.api.get<StaffSummary>('/staff/properties/summary/');
@@ -149,5 +172,74 @@ export class StaffApiService {
       `/moderation/reports/${encodeURIComponent(id)}/dismiss/`,
       { notes },
     );
+  }
+
+  verificationRequests() {
+    return this.api.get<PaginatedResponse<StaffVerificationRequest>>('/moderation/verifications/');
+  }
+
+  startVerificationReview(id: string) {
+    return this.api.post<StaffVerificationRequest>(
+      `/moderation/verifications/${encodeURIComponent(id)}/start-review/`,
+      {},
+    );
+  }
+
+  approveVerification(id: string, notes = '') {
+    return this.api.post<StaffVerificationRequest>(
+      `/moderation/verifications/${encodeURIComponent(id)}/approve/`,
+      { notes },
+    );
+  }
+
+  rejectVerification(id: string, notes: string) {
+    return this.api.post<StaffVerificationRequest>(
+      `/moderation/verifications/${encodeURIComponent(id)}/reject/`,
+      { notes },
+    );
+  }
+
+  requestVerificationChanges(id: string, requirementKeys: string[], notes: string) {
+    return this.api.post<StaffVerificationRequest>(
+      `/moderation/verifications/${encodeURIComponent(id)}/request-changes/`,
+      { requirement_keys: requirementKeys, notes },
+    );
+  }
+
+  rejectVerificationDocument(requestId: string, documentId: string, notes: string) {
+    return this.api.post<StaffVerificationRequest>(
+      `/moderation/verifications/${encodeURIComponent(requestId)}/documents/${encodeURIComponent(documentId)}/reject/`,
+      { notes },
+    );
+  }
+
+  staffUsers(search = '') {
+    return this.api.get<PaginatedResponse<StaffUserReview>>('/auth/staff/users/', search ? { search } : {});
+  }
+
+  staffUser(id: string) {
+    return this.api.get<StaffUserReview>(`/auth/staff/users/${encodeURIComponent(id)}/`);
+  }
+
+  restrictUser(id: string, reason: string) {
+    return this.api.post<StaffUserReview>(`/auth/staff/users/${encodeURIComponent(id)}/restrict/`, {
+      reason,
+    });
+  }
+
+  reinstateUser(id: string, reason: string) {
+    return this.api.post<StaffUserReview>(`/auth/staff/users/${encodeURIComponent(id)}/reinstate/`, {
+      reason,
+    });
+  }
+
+  verificationRequest(id: string) {
+    return this.api.get<StaffVerificationRequest>(
+      `/moderation/verifications/${encodeURIComponent(id)}/`,
+    );
+  }
+
+  verificationDocument(id: string) {
+    return this.api.getBlob(`/verification/documents/${encodeURIComponent(id)}/download/`);
   }
 }

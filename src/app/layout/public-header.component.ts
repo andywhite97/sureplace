@@ -26,6 +26,7 @@ import { ConfigApiService } from '../core/api/config-api.service';
 import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
 import { UserCapabilityService } from '../core/services/user-capability.service';
+import { ListingEntryService } from '../core/services/listing-entry.service';
 
 type NavItem = {
   label: string;
@@ -802,6 +803,7 @@ export class PublicHeaderComponent {
   auth = inject(AuthService);
   agencyNavigation = inject(AgencyNavigationService);
   capabilities = inject(UserCapabilityService);
+  listingEntry = inject(ListingEntryService);
   expandedSection = signal<SectionId | null>(null);
   config = inject(ConfigApiService);
   private router = inject(Router);
@@ -820,10 +822,10 @@ export class PublicHeaderComponent {
   private previousAuthState = this.auth.isAuthenticated();
   primaryCta = computed<NavItem>(() =>
     this.auth.isAuthenticated() && this.capabilities.capabilities().canAccessManageDashboard
-      ? { label: 'Manage Listings', commands: '/account/manage' }
+      ? { label: 'Manage Listings', commands: this.listingEntry.propertyRoute }
       : this.auth.isAuthenticated()
-        ? { label: 'List on SurePlace', commands: '/account/profile' }
-        : { label: 'List a Property', commands: '/account' },
+        ? { label: 'List on SurePlace', commands: this.listingEntry.propertyRoute }
+        : { label: 'List a Property', commands: this.listingEntry.propertyRoute },
   );
   mobileSections = computed<NavSection[]>(() =>
     this.auth.status() === 'initializing'
@@ -877,7 +879,7 @@ export class PublicHeaderComponent {
           },
           {
             label: 'List a Property',
-            commands: '/account',
+            commands: this.listingEntry.propertyRoute,
             icon: 'fa-solid fa-plus',
             cta: 'primary',
           },

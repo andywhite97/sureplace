@@ -5,6 +5,8 @@ import { Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, finalize, of, startWith } from 'rxjs';
 
 import { AgentsApiService, AgentListItem } from '../../core/api/agents-api.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { MessagingApiService } from '../../core/api/messaging-api.service';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -23,6 +25,13 @@ import { ToastService } from '../../core/services/toast.service';
       </header>
 
       <div class="toolbar panel">
+        <div class="toolbar-heading">
+          <div>
+            <span class="toolbar-kicker"><i class="fa-solid fa-compass" aria-hidden="true"></i> Agent directory</span>
+            <p>Search by person, agency or the area you want to call home.</p>
+          </div>
+          <span class="directory-mark"><i class="fa-solid fa-user-check" aria-hidden="true"></i></span>
+        </div>
         <label class="search-field">
           <span class="sr-only">Search agents</span>
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
@@ -147,7 +156,7 @@ import { ToastService } from '../../core/services/toast.service';
               }
 
               <div class="actions">
-                <a class="primary" [routerLink]="['/agents', agent.slug || agent.id]">View profile</a>
+                <a class="primary" [routerLink]="['/agents', agent.id]">View profile</a>
                 <button type="button" class="secondary" (click)="message(agent)">
                   <i class="fa-solid fa-message"></i> Message
                 </button>
@@ -167,28 +176,39 @@ import { ToastService } from '../../core/services/toast.service';
   `,
   styles: `
     :host { display: block; }
-    .agents-page { max-width: 1280px; margin: 0 auto; padding: 2rem 1rem 4rem; color: var(--midnight); }
-    .page-header { margin-bottom: 1.5rem; }
-    .eyebrow { letter-spacing: .12em; font-size: .72rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin: 0 0 .5rem; }
-    h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.25rem); }
-    .subtitle { margin: .6rem 0 0; color: var(--slate); font-size: 1.05rem; }
-    .panel { background: rgba(255,255,255,.85); border: 1px solid rgba(21,43,42,.08); border-radius: 1rem; box-shadow: 0 10px 30px rgba(21,43,42,.04); }
-    .toolbar { padding: 1rem; display: grid; gap: 1rem; }
-    .search-field { display: flex; align-items: center; gap: .75rem; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .9rem; padding: .8rem 1rem; }
+    .agents-page { max-width: 1280px; margin: 0 auto; padding: 2.4rem 1rem 4.5rem; color: var(--midnight); }
+    .page-header { position:relative; overflow:hidden; margin:0 0 1.15rem; padding:2.25rem 2rem; border-radius:1.35rem; background:linear-gradient(90deg, rgba(9,41,39,.88) 0%, rgba(9,41,39,.68) 53%, rgba(9,41,39,.18) 100%), url('/hero-eswatini-home.jpg') center/cover; border:1px solid rgba(15,157,131,.2); }
+    .page-header::after { content:'Local expertise. Stronger communities.'; position:absolute; right:2rem; bottom:1.55rem; color:rgba(255,255,255,.9); font-size:.92rem; font-style:italic; transform:rotate(-4deg); }
+    .page-header > div { position:relative; z-index:1; }
+    .eyebrow { letter-spacing: .13em; font-size: .72rem; text-transform: uppercase; color:#6ce5d2; font-weight: 800; margin: 0 0 .55rem; }
+    h1 { margin: 0; color:#fff; letter-spacing:-.04em; font-size: clamp(2.2rem, 4vw, 3.5rem); }
+    .subtitle { max-width:37rem; margin: .65rem 0 0; color:rgba(255,255,255,.9); font-size: 1.06rem; line-height:1.55; }
+    .panel { background: rgba(255,255,255,.9); border: 1px solid rgba(21,43,42,.08); border-radius: 1.15rem; box-shadow: 0 16px 38px rgba(21,43,42,.07); }
+    .toolbar { padding: 1.15rem; display: grid; gap: 1rem; }
+    .toolbar-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+    .toolbar-kicker { display:inline-flex; align-items:center; gap:.45rem; color:var(--teal); font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+    .toolbar-heading p { margin:.28rem 0 0; color:var(--slate); font-size:.9rem; }
+    .directory-mark { width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:.8rem; color:var(--teal); background:rgba(15,157,131,.1); }
+    .search-field { display: flex; align-items: center; gap: .75rem; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .9rem; padding: .9rem 1rem; box-shadow:inset 0 1px 0 rgba(21,43,42,.03); }
+    .search-field:focus-within { border-color:rgba(15,157,131,.75); box-shadow:0 0 0 3px rgba(15,157,131,.12); }
     .search-field input { flex: 1; border: 0; background: transparent; font: inherit; color: var(--midnight); }
     .search-field i { color: var(--slate); }
     .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .75rem; }
     .filters label { display: grid; gap: .35rem; font-size: .78rem; color: var(--slate); }
     .filters select, .filters input { background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .75rem; padding: .7rem .8rem; font: inherit; color: var(--midnight); }
+    .filters select:focus, .filters input:focus { outline:2px solid rgba(15,157,131,.25); outline-offset:1px; border-color:var(--teal); }
     .check { align-self: end; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .75rem; padding: .78rem .8rem; display: flex; align-items: center; gap: .5rem; }
     .check input { accent-color: var(--teal); }
-    .meta-row { display: flex; justify-content: flex-end; margin: 1rem 0 .5rem; }
-    .result-count { margin: 0; color: var(--slate); font-weight: 600; }
+    .meta-row { display: flex; justify-content: flex-end; margin: 1rem 0 .7rem; }
+    .result-count { margin:0; padding:.38rem .7rem; border-radius:999px; background:rgba(15,157,131,.09); color:var(--teal); font-size:.82rem; font-weight:800; }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-    .agent-card { background: #fff; border: 1px solid rgba(21,43,42,.08); border-radius: 1rem; padding: 1rem; display: flex; flex-direction: column; gap: .75rem; min-height: 100%; }
+    .agent-card { position:relative; overflow:hidden; background: #fff; border: 1px solid rgba(21,43,42,.08); border-radius: 1rem; padding: 1.1rem; display: flex; flex-direction: column; gap: .78rem; min-height: 100%; box-shadow:0 8px 20px rgba(21,43,42,.035); transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .agent-card::before { content:''; position:absolute; top:0; left:1.1rem; right:1.1rem; height:3px; border-radius:0 0 99px 99px; background:linear-gradient(90deg, var(--teal), #6ad9c9); opacity:0; transition:opacity .2s ease; }
+    .agent-card:hover { transform:translateY(-3px); border-color:rgba(15,157,131,.25); box-shadow:0 16px 30px rgba(21,43,42,.1); }
+    .agent-card:hover::before { opacity:1; }
     .card-top { display: flex; gap: .8rem; align-items: center; }
     .avatar-wrap { flex-shrink: 0; }
-    .avatar-fallback, .avatar-wrap img { width: 3.2rem; height: 3.2rem; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, rgba(15,157,131,.18), rgba(40,120,208,.16)); color: var(--midnight); font-weight: 800; }
+    .avatar-fallback, .avatar-wrap img { width: 3.35rem; height: 3.35rem; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, rgba(15,157,131,.18), rgba(40,120,208,.16)); color: var(--midnight); font-weight: 800; box-shadow:0 0 0 4px rgba(15,157,131,.07); }
     .avatar-wrap img { object-fit: cover; }
     .identity { min-width: 0; }
     .identity h2 { margin: 0; font-size: 1.05rem; }
@@ -196,14 +216,14 @@ import { ToastService } from '../../core/services/toast.service';
     .verified-agent { background: rgba(40,120,208,.12); color: var(--verification); }
     .verified-agency { background: rgba(15,157,131,.12); color: var(--teal); }
     .agency-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
-    .agency-name { font-weight: 700; }
+    .agency-name { font-weight: 750; }
     .service-areas, .bio, .stats-row { color: var(--slate); }
     .service-areas { margin: 0; line-height: 1.4; }
     .stats-row { font-size: .86rem; }
     .bio { margin: 0; line-height: 1.5; }
     .actions { display: flex; gap: .5rem; margin-top: auto; }
-    a.primary, button.primary, button.secondary { border-radius: .8rem; border: 1px solid transparent; padding: .7rem .9rem; font-weight: 700; cursor: pointer; }
-    a.primary, button.primary { background: var(--teal); color: #fff; text-decoration: none; }
+    a.primary, button.primary, button.secondary { border-radius: .8rem; border: 1px solid transparent; padding: .72rem .9rem; font-weight: 750; cursor: pointer; }
+    a.primary, button.primary { background: linear-gradient(135deg, var(--teal), #078e82); color: #fff; text-decoration: none; box-shadow:0 7px 14px rgba(15,157,131,.18); }
     button.secondary { background: #fff; border-color: rgba(21,43,42,.12); color: var(--midnight); }
     .pagination { display: flex; justify-content: center; gap: .75rem; margin-top: 1.25rem; }
     .empty-state { padding: 2rem; text-align: center; }
@@ -218,12 +238,14 @@ import { ToastService } from '../../core/services/toast.service';
     .skeleton.line.tiny { width: 35%; }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
     @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actions { flex-direction: column; } .page-header { margin-bottom: 1rem; } }
-    @media (max-width: 430px) { .grid { grid-template-columns: 1fr; } .filters { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .page-header { padding:1.65rem 1.25rem; border-radius:1rem; } .toolbar-heading p { font-size:.82rem; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actions { flex-direction: column; } .page-header { margin-bottom: 1rem; } }
+    @media (max-width: 430px) { .agents-page { padding-inline:.7rem; } .grid { gap:.6rem; } .agent-card { padding:.7rem; gap:.55rem; } .avatar-fallback, .avatar-wrap img { width:2.65rem; height:2.65rem; } .identity h2 { font-size:.88rem; } .badge { font-size:.61rem; padding:.16rem .35rem; } .agency-name, .service-areas, .stats-row { font-size:.72rem; } .bio { display:none; } .actions { flex-direction:row; gap:.35rem; } a.primary, button.primary, button.secondary { padding:.55rem .35rem; font-size:.7rem; flex:1; } .filters { grid-template-columns: 1fr; } }
   `,
 })
 export class AgentsComponent {
   private api = inject(AgentsApiService);
+  private auth = inject(AuthService);
+  private messaging = inject(MessagingApiService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private toast = inject(ToastService);
@@ -355,11 +377,13 @@ export class AgentsComponent {
   }
 
   message(agent: AgentListItem) {
-    if (!this.router.navigated) {
-      void this.router.navigate(['/login'], { queryParams: { returnUrl: `/agents/${agent.slug || agent.id}` } });
+    if (!this.auth.isAuthenticated()) {
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: `/agents/${agent.id}` } });
       return;
     }
-    void this.router.navigate(['/account/messages']);
-    this.toast.show('Open the message centre to continue the conversation.', 'info');
+    this.messaging.createForAgent(agent.id, `Hi ${agent.name}, I'd like to discuss a property opportunity.`).subscribe({
+      next: (conversation) => void this.router.navigate(['/account/messages', conversation.id]),
+      error: () => this.toast.show('Could not start the conversation.', 'error'),
+    });
   }
 }

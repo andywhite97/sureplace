@@ -45,4 +45,11 @@ export class MessagingApiService {
       subject: 'Stay enquiry',
     });
   }
+  createForAgent(agent: string, message: string) {
+    return this.api.post<ConversationSummary>('/conversations/', {
+      assigned_agent: agent,
+      message,
+      subject: 'Agent enquiry',
+    });
+  }
 }

@@ -1,0 +1,213 @@
+
+> sure-place@0.0.0 start
+> ng serve --host 127.0.0.1
+
+> Building...
+√ Building...
+Browser bundles     
+Initial chunk files  | Names                      |  Raw size
+main.js              | main                       | 170.47 kB | 
+styles.css           | styles                     | 165.31 kB | 
+chunk-XLVQYRC7.js    | -                          |   8.43 kB | 
+chunk-OLGXNKBO.js    | -                          |   5.80 kB | 
+chunk-OFJYC6D7.js    | -                          |   5.65 kB | 
+chunk-YHX6X5IB.js    | -                          |   5.56 kB | 
+chunk-ISPQ5ELL.js    | -                          |   4.54 kB | 
+chunk-NNEGLQKP.js    | -                          |   4.33 kB | 
+chunk-EQU4IPSV.js    | -                          |   2.25 kB | 
+chunk-XRTKZORP.js    | -                          |   2.03 kB | 
+chunk-OERBZHCX.js    | -                          |   1.97 kB | 
+chunk-LWBNRRGW.js    | -                          |   1.74 kB | 
+chunk-KSS6FMBL.js    | -                          |   1.64 kB | 
+chunk-GOMI4DH3.js    | -                          |   1.42 kB | 
+chunk-SUV57DPA.js    | -                          |   1.16 kB | 
+chunk-W5Z76EU2.js    | -                          | 367 bytes | 
+
+                     | Initial total              | 382.68 kB
+
+Lazy chunk files     | Names                      |  Raw size
+chunk-EUU7MBHN.js    | stay-detail-component      | 227.53 kB | 
+chunk-WNAPSFR3.js    | property-form-component    | 152.25 kB | 
+chunk-VQ65YEV2.js    | property-detail-component  | 132.11 kB | 
+chunk-YJQPI6M4.js    | messages-page-component    | 127.28 kB | 
+chunk-LGB6VIQ7.js    | property-search-component  | 122.74 kB | 
+chunk-OINMYZJY.js    | stay-form-component        | 119.27 kB | 
+chunk-NKJUZTP7.js    | agency-dashboard-component | 108.64 kB | 
+chunk-GQERDWZ5.js    | -                          | 100.71 kB | 
+chunk-K4OQYYWX.js    | verification-component     |  97.34 kB | 
+chunk-FG3LQUXF.js    | home-component             |  94.94 kB | 
+chunk-4QGLEDCW.js    | stay-search-component      |  74.25 kB | 
+chunk-UOLEE7O3.js    | staff-dashboard-component  |  72.19 kB | 
+chunk-MMRLJ4UQ.js    | bookings-component         |  70.10 kB | 
+chunk-GJAJFUNQ.js    | agency-create-component    |  69.20 kB | 
+chunk-QXECZFUQ.js    | account-overview-component |  65.55 kB | 
+...and 56 more lazy chunks files. Use "--verbose" to show all the files.
+
+
+Server bundles      
+Initial chunk files  | Names                      |  Raw size
+main.server.mjs      | main.server                | 174.12 kB | 
+chunk-6SI4UAJ4.mjs   | -                          |   8.42 kB | 
+chunk-BYBUZWDN.mjs   | -                          |   5.79 kB | 
+chunk-66WYC2HT.mjs   | -                          |   5.64 kB | 
+chunk-Q7OP64K3.mjs   | -                          |   5.55 kB | 
+chunk-XAO5FOMR.mjs   | -                          |   4.53 kB | 
+chunk-5VW6KYQU.mjs   | -                          |   4.32 kB | 
+chunk-NXLPNHYY.mjs   | -                          |   2.24 kB | 
+chunk-KNY4RIZY.mjs   | -                          |   2.01 kB | 
+chunk-XBJOBSYH.mjs   | -                          |   1.95 kB | 
+chunk-6JUDAR36.mjs   | -                          |   1.73 kB | 
+chunk-3ZNMMBN3.mjs   | -                          |   1.62 kB | 
+chunk-VYNEO3Q5.mjs   | -                          |   1.41 kB | 
+chunk-6M3SSFKB.mjs   | -                          |   1.14 kB | 
+chunk-QHI74W63.mjs   | -                          | 353 bytes | 
+polyfills.server.mjs | polyfills.server           | 268 bytes | 
+
+Lazy chunk files     | Names                      |  Raw size
+chunk-ACBNP3QU.mjs   | stay-detail-component      | 227.54 kB | 
+chunk-I4NAWKIQ.mjs   | property-form-component    | 152.25 kB | 
+chunk-6ITDOIVH.mjs   | property-detail-component  | 132.11 kB | 
+chunk-UIEFX666.mjs   | messages-page-component    | 127.27 kB | 
+chunk-QIUJ37LM.mjs   | property-search-component  | 122.74 kB | 
+chunk-PV26QLGB.mjs   | stay-form-component        | 119.27 kB | 
+chunk-46XZPUPP.mjs   | agency-dashboard-component | 108.63 kB | 
+chunk-67EZLTKA.mjs   | -                          | 100.71 kB | 
+chunk-IT6AZ33B.mjs   | verification-component     |  97.33 kB | 
+chunk-T67SGBZK.mjs   | home-component             |  94.94 kB | 
+chunk-VXFDWFEB.mjs   | stay-search-component      |  74.25 kB | 
+chunk-ES3GO3TZ.mjs   | staff-dashboard-component  |  72.18 kB | 
+chunk-2BFSMGIM.mjs   | bookings-component         |  70.10 kB | 
+chunk-JBID4RI6.mjs   | agency-create-component    |  69.19 kB | 
+chunk-7VFJXIQB.mjs   | account-overview-component |  65.55 kB | 
+...and 56 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete. [25.991 seconds] - 2026-09-26T20:02:46.757Z
+
+Watch mode enabled. Watching for file changes...
+NOTE: Raw file sizes do not reflect development server per-request transformations.
+10:02:47 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+10:02:47 PM [vite] (ssr) Re-optimizing dependencies because vite config has changed
+  ➜  Local:   http://127.0.0.1:4200/
+  ➜  press h + enter to show help
+10:02:48 PM [vite] (client) [optimizer] bundling dependencies...
+10:02:48 PM [vite] (ssr) [optimizer] bundling dependencies...
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Browser bundles    
+Initial chunk files | Names                   |  Raw size
+main.js             | main                    | 170.47 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-NVOINQ2T.js   | agent-profile-component |  56.42 kB | 
+
+
+Server bundles     
+Initial chunk files | Names                   |  Raw size
+main.server.mjs     | main.server             | 174.12 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-GFOPEOWK.mjs  | agent-profile-component |  56.41 kB | 
+
+Application bundle generation complete. [24.638 seconds] - 2026-09-26T20:08:28.348Z
+
+Component update sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Browser bundles    
+Initial chunk files | Names            |  Raw size
+main.js             | main             | 170.47 kB | 
+
+Lazy chunk files    | Names            |  Raw size
+chunk-4SYRT5D2.js   | agents-component |  52.84 kB | 
+
+
+Server bundles     
+Initial chunk files | Names            |  Raw size
+main.server.mjs     | main.server      | 174.12 kB | 
+
+Lazy chunk files    | Names            |  Raw size
+chunk-36LGX2OH.mjs  | agents-component |  52.83 kB | 
+
+Application bundle generation complete. [3.924 seconds] - 2026-09-26T20:08:32.998Z
+
+Component update sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Browser bundles    
+Initial chunk files | Names                   |  Raw size
+main.js             | main                    | 170.47 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-HXOBDOU3.js   | agent-profile-component |  56.51 kB | 
+
+
+Server bundles     
+Initial chunk files | Names                   |  Raw size
+main.server.mjs     | main.server             | 174.12 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-T6QUEULV.mjs  | agent-profile-component |  56.51 kB | 
+
+Application bundle generation complete. [5.033 seconds] - 2026-09-26T20:09:35.164Z
+
+Component update sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Browser bundles    
+Initial chunk files | Names                   |  Raw size
+main.js             | main                    | 170.47 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-QOVR2QIH.js   | agent-profile-component |  56.92 kB | 
+
+
+Server bundles     
+Initial chunk files | Names                   |  Raw size
+main.server.mjs     | main.server             | 174.12 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-YIGEBS6A.mjs  | agent-profile-component |  56.92 kB | 
+
+Application bundle generation complete. [6.230 seconds] - 2026-09-26T20:12:59.776Z
+
+Component update sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Browser bundles    
+Initial chunk files | Names                   |  Raw size
+main.js             | main                    | 170.47 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-N5D3D2LV.js   | agent-profile-component |  57.48 kB | 
+
+
+Server bundles     
+Initial chunk files | Names                   |  Raw size
+main.server.mjs     | main.server             | 174.12 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-MFUNH4D7.mjs  | agent-profile-component |  57.48 kB | 
+
+Application bundle generation complete. [8.592 seconds] - 2026-09-26T20:19:15.515Z
+
+Page reload sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Browser bundles    
+Initial chunk files | Names                   |  Raw size
+main.js             | main                    | 170.47 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-QSPTCFTJ.js   | agent-profile-component |  57.84 kB | 
+
+
+Server bundles     
+Initial chunk files | Names                   |  Raw size
+main.server.mjs     | main.server             | 174.12 kB | 
+
+Lazy chunk files    | Names                   |  Raw size
+chunk-BMUP2B56.mjs  | agent-profile-component |  57.83 kB | 
+
+Application bundle generation complete. [6.036 seconds] - 2026-09-26T20:21:50.318Z
+
+Page reload sent to client(s).

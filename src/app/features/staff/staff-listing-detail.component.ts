@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { finalize } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 import { StaffApiService } from '../../core/api/staff-api.service';
 import { StaffProperty } from '../../core/models/staff.models';
 import { ToastService } from '../../core/services/toast.service';
@@ -39,20 +40,22 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
       </header>
 
       <div class="actions">
-        @if (listing()!.status === 'SUBMITTED') {
+        @if (listing()!.status === 'SUBMITTED' && can('properties.review_propertylisting')) {
           <button type="button" (click)="run('start')">
             <i class="fa-solid fa-eye" aria-hidden="true"></i> Start review
           </button>
         }
-        @if (['SUBMITTED', 'UNDER_REVIEW'].includes(listing()!.status)) {
+        @if (['SUBMITTED', 'UNDER_REVIEW'].includes(listing()!.status) && can('properties.approve_propertylisting')) {
           <button class="primary" type="button" (click)="run('approve')">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve
           </button>
+        }
+        @if (['SUBMITTED', 'UNDER_REVIEW'].includes(listing()!.status) && can('properties.request_changes_propertylisting')) {
           <button type="button" (click)="run('changes')">
             <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Request changes
           </button>
         }
-        @if (['SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED'].includes(listing()!.status)) {
+        @if (['SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED'].includes(listing()!.status) && can('properties.reject_propertylisting')) {
           <button class="danger" type="button" (click)="run('reject')">
             <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Reject
           </button>
@@ -61,14 +64,14 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
           <a [routerLink]="['/properties', listing()!.slug]" target="_blank">
             <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Public listing
           </a>
-          <button class="danger" type="button" (click)="run('suspend')">
+          @if (can('properties.suspend_propertylisting')) { <button class="danger" type="button" (click)="run('suspend')">
             <i class="fa-solid fa-ban" aria-hidden="true"></i> Suspend
-          </button>
+          </button> }
         }
         @if (listing()!.status === 'SUSPENDED') {
-          <button class="primary" type="button" (click)="run('restore')">
+          @if (can('properties.restore_propertylisting')) { <button class="primary" type="button" (click)="run('restore')">
             <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restore
-          </button>
+          </button> }
         }
       </div>
 
@@ -213,14 +216,14 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 
       <section class="panel note-form">
         <h2>Internal note</h2>
-        <textarea
+        @if (can('properties.add_note_propertylisting')) { <textarea
           rows="3"
           [(ngModel)]="note"
           placeholder="Add a staff-only moderation note"
         ></textarea>
         <button type="button" [disabled]="busy() || !note.trim()" (click)="addNote()">
           Save note
-        </button>
+        </button> }
       </section>
 
       <section class="panel">
@@ -412,6 +415,7 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 })
 export class StaffListingDetailComponent {
   private api = inject(StaffApiService);
+  private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private sanitizer = inject(DomSanitizer);
   private toast = inject(ToastService);
@@ -435,6 +439,11 @@ export class StaffListingDetailComponent {
 
   constructor() {
     this.load();
+  }
+
+  can(permission: string) {
+    const user = this.auth.user();
+    return !!user?.is_superuser || (user?.staff_permissions ?? []).includes(permission);
   }
 
   load() {

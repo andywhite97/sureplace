@@ -15,6 +15,7 @@ type Metric = {
   hint: string;
   tone: string;
   status?: string;
+  link?: string;
 };
 @Component({
   standalone: true,
@@ -91,6 +92,7 @@ export class StaffDashboardComponent {
         icon: 'fa-solid fa-building-shield',
         hint: 'Pending agency verifications',
         tone: 'slate',
+        link: '/staff/agencies',
       },
       {
         label: 'Verification Requests',
@@ -98,6 +100,7 @@ export class StaffDashboardComponent {
         icon: 'fa-solid fa-shield-halved',
         hint: 'All pending verification requests',
         tone: 'slate',
+        link: '/staff/verification',
       },
     ];
   });

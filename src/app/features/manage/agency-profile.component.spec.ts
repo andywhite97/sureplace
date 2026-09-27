@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { AgencyManagementApiService } from '../../core/api/manage-api.services';
+import { AgencyManagementApiService, VerificationApiService } from '../../core/api/manage-api.services';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AgencyDashboard } from '../../core/models/manage.models';
@@ -46,6 +46,7 @@ describe('AgencyProfileComponent', () => {
     update: ReturnType<typeof vi.fn>;
   };
   let toast: { show: ReturnType<typeof vi.fn> };
+  let verificationApi: { list: ReturnType<typeof vi.fn> };
   beforeEach(() => {
     api = {
       mine: vi.fn(() => of([dashboard.agency])),
@@ -53,11 +54,13 @@ describe('AgencyProfileComponent', () => {
       update: vi.fn(() => of(dashboard.agency)),
     };
     toast = { show: vi.fn() };
+    verificationApi = { list: vi.fn(() => of({ count: 0, next: null, previous: null, results: [] })) };
     TestBed.configureTestingModule({
       imports: [AgencyProfileComponent],
       providers: [
         provideRouter([]),
         { provide: AgencyManagementApiService, useValue: api },
+        { provide: VerificationApiService, useValue: verificationApi },
         { provide: ToastService, useValue: toast },
         {
           provide: ReferenceApiService,
@@ -127,5 +130,19 @@ describe('AgencyProfileComponent', () => {
     const fixture = create();
     expect(fixture.nativeElement.textContent).toContain('view this profile, but not edit it');
     expect(fixture.nativeElement.querySelector('.logo-action')).toBeNull();
+  });
+  it('keeps agency activity separate from verification and derives profile completeness', () => {
+    const fixture = create();
+    expect(fixture.nativeElement.querySelector('.identity-card .badge').textContent).toContain('Active');
+    expect(fixture.nativeElement.querySelector('.identity-card .verification').textContent).toContain('Pending');
+    expect(fixture.nativeElement.textContent).toContain('Start verification');
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('83');
+    expect(verificationApi.list).toHaveBeenCalled();
+  });
+  it('keeps the profile usable if the verification sidebar API fails', () => {
+    verificationApi.list.mockReturnValue(throwError(() => new Error('Unavailable')));
+    const fixture = create();
+    expect(fixture.nativeElement.textContent).toContain('Andile Realty');
+    expect(fixture.nativeElement.textContent).toContain("Couldn't load verification details.");
   });
 });

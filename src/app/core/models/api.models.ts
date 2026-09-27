@@ -21,6 +21,8 @@ export interface User {
   email_verified_at?: string | null;
   is_phone_verified: boolean;
   is_staff: boolean;
+  is_superuser?: boolean;
+  staff_permissions?: string[];
   onboarding_intents: string[];
 }
 export interface AuthTokens {
@@ -80,4 +82,38 @@ export interface FrontendConfig {
     registration: boolean;
   };
   map: { default_latitude: number; default_longitude: number; default_zoom: number };
+  footer: FooterConfig;
+}
+
+export interface FooterConfig {
+  navigation_groups: FooterNavGroup[];
+  social_links: FooterSocialLink[];
+  newsletter: FooterNewsletterConfig;
+}
+
+export interface FooterNavGroup {
+  key: string;
+  title: string;
+  order: number;
+  items: FooterNavItem[];
+}
+
+export interface FooterNavItem {
+  label: string;
+  route: string | null;
+  external_url: string | null;
+  order: number;
+  is_active: boolean;
+  opens_in_new_tab: boolean;
+}
+
+export interface FooterSocialLink {
+  platform: string;
+  url: string;
+  is_active: boolean;
+  opens_in_new_tab: boolean;
+}
+
+export interface FooterNewsletterConfig {
+  enabled: boolean;
 }

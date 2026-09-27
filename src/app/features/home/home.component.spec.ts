@@ -136,8 +136,7 @@ describe('HomeComponent', () => {
     const el = f.nativeElement as HTMLElement;
     expect(el.querySelector('.mobile-search-panel')).toBeTruthy();
     expect(el.querySelector('.mobile-intents')).toBeTruthy();
-    expect(el.querySelector('.mobile-intents')?.textContent).toContain('Properties');
-    expect(el.querySelector('.mobile-intents')?.textContent).toContain('List a place');
+    expect(el.querySelector('.mobile-intents')?.textContent).toContain('Property type');
   });
   it('switches Rent, Buy and Stay without navigating', () => {
     const f = TestBed.createComponent(HomeComponent);
@@ -147,6 +146,17 @@ describe('HomeComponent', () => {
     expect(c.mode()).toBe('BUY');
     c.setMode('STAY');
     expect(c.mode()).toBe('STAY');
+  });
+  it('routes owner CTAs directly to the matching listing flow', () => {
+    const f = TestBed.createComponent(HomeComponent);
+    f.detectChanges();
+    const nav = vi.spyOn(TestBed.inject(Router), 'navigate');
+
+    f.componentInstance.supply('property');
+    f.componentInstance.supply('stay');
+
+    expect(nav).toHaveBeenNthCalledWith(1, ['/account/manage/properties/new']);
+    expect(nav).toHaveBeenNthCalledWith(2, ['/account/manage/stays/new']);
   });
   it.each([
     ['RENT', 'RENT'],

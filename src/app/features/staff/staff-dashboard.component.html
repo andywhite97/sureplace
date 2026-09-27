@@ -81,11 +81,11 @@
     </section>
     <section class="metrics secondary" aria-label="Other moderation workload">
       @for (card of secondary(); track card.label) {
-        @if (card.status) {
+        @if (card.status || card.link) {
           <a
             [class]="'metric ' + card.tone"
-            routerLink="/staff/listings"
-            [queryParams]="{ status: card.status }"
+            [routerLink]="card.link || '/staff/listings'"
+            [queryParams]="card.status ? { status: card.status } : {}"
             ><ng-container
               [ngTemplateOutlet]="metricContent"
               [ngTemplateOutletContext]="{ $implicit: card }"

@@ -4,6 +4,8 @@ import { finalize } from 'rxjs';
 import { StaffApiService } from '../../core/api/staff-api.service';
 import { StaffReportReview } from '../../core/models/staff.models';
 import { normalizeApiError } from '../../core/api/error-normalizer';
+import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   standalone: true,
@@ -75,31 +77,31 @@ import { normalizeApiError } from '../../core/api/error-normalizer';
               </div>
               @if (report.status === 'OPEN' || report.status === 'UNDER_REVIEW') {
                 <div class="actions">
-                  @if (report.status === 'OPEN') {
+                  @if (canReviewReports() && report.status === 'OPEN') {
                     <button
                       type="button"
                       (click)="act(report, 'assign')"
                       [disabled]="busy() === report.id"
                     >
-                      Start review
+                      {{ busy() === report.id ? 'Starting…' : 'Start review' }}
                     </button>
                   }
-                  <button
+                  @if (canReviewReports()) { <button
                     class="resolve"
                     type="button"
                     (click)="act(report, 'resolve')"
                     [disabled]="busy() === report.id"
                   >
-                    Resolve
-                  </button>
-                  <button
+                    {{ busy() === report.id ? 'Saving…' : 'Resolve' }}
+                  </button> }
+                  @if (canReviewReports()) { <button
                     class="dismiss"
                     type="button"
                     (click)="act(report, 'dismiss')"
                     [disabled]="busy() === report.id"
                   >
-                    Dismiss
-                  </button>
+                    {{ busy() === report.id ? 'Saving…' : 'Dismiss' }}
+                  </button> }
                 </div>
               }
             </article>
@@ -309,6 +311,8 @@ import { normalizeApiError } from '../../core/api/error-normalizer';
 })
 export class StaffReportsComponent {
   private api = inject(StaffApiService);
+  private auth = inject(AuthService);
+  private toast = inject(ToastService);
   reports = signal<StaffReportReview[]>([]);
   loading = signal(true);
   error = signal('');
@@ -320,6 +324,11 @@ export class StaffReportsComponent {
     { label: 'Dismissed', value: 'DISMISSED' },
     { label: 'All', value: 'ALL' },
   ];
+
+  canReviewReports() {
+    const user = this.auth.user();
+    return !!user?.is_superuser || (user?.staff_permissions ?? []).includes('moderation.add_listingreport');
+  }
   visible = computed(() =>
     this.reports().filter(
       (r) =>
@@ -366,9 +375,19 @@ export class StaffReportsComponent {
           ? this.api.resolveReport(report.id, notes)
           : this.api.dismissReport(report.id, notes);
     request.pipe(finalize(() => this.busy.set(null))).subscribe({
-      next: (updated) =>
-        this.reports.update((rows) => rows.map((row) => (row.id === updated.id ? updated : row))),
-      error: (e) => this.error.set(normalizeApiError(e).message),
+      next: (updated) => {
+        this.reports.update((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
+        this.toast.show({
+          kind: 'success',
+          title: action === 'assign' ? 'Review started' : action === 'resolve' ? 'Report resolved' : 'Report dismissed',
+          message: 'The report status has been updated.',
+        });
+      },
+      error: (e) => {
+        const message = normalizeApiError(e).message;
+        this.error.set(message);
+        this.toast.show({ kind: 'error', title: 'Report not updated', message });
+      },
     });
   }
   target(report: StaffReportReview) {

@@ -56,15 +56,21 @@ export class ManageStatusComponent {
       UNAVAILABLE: 'Unavailable',
       UNKNOWN: 'Availability not confirmed',
       APPROVED: 'Verified',
+      VERIFIED: 'Verified',
       PENDING: 'Pending review',
       CANCELLED: 'Cancelled',
       EXPIRED: 'Expired',
       NOT_STARTED: 'Not started',
+      UNVERIFIED: 'Unverified',
     };
     return labels[this.status()] || 'Status unavailable';
   }
   tone() {
-    if (['PUBLISHED', 'CONFIRMED', 'APPROVED', 'COMPLETED', 'AVAILABLE'].includes(this.status()))
+    if (
+      ['PUBLISHED', 'CONFIRMED', 'APPROVED', 'VERIFIED', 'COMPLETED', 'AVAILABLE'].includes(
+        this.status(),
+      )
+    )
       return 'good';
     if (['CHANGES_REQUESTED', 'UNDER_REVIEW'].includes(this.status())) return 'info';
     if (['PAUSED', 'INACTIVE', 'NOT_STARTED'].includes(this.status())) return 'muted';

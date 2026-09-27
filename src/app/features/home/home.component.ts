@@ -25,6 +25,7 @@ import { ConfigApiService } from '../../core/api/config-api.service';
 import { SearchParamsService } from '../../core/services/search-params.service';
 import { StayQueryService } from '../../core/services/stay-query.service';
 import { SeoService } from '../../core/services/seo.service';
+import { ListingEntryService } from '../../core/services/listing-entry.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ReferenceOption } from '../../core/models/api.models';
 import { PropertyCard, StayCard } from '../../core/models/listing.models';
@@ -163,6 +164,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   references = inject(ReferenceApiService);
   config = inject(ConfigApiService);
   auth = inject(AuthService);
+  listingEntry = inject(ListingEntryService);
   @ViewChildren('homepageSwiper') private homepageSwipers?: QueryList<ElementRef<SwiperElement>>;
   private swiperChanges?: Subscription;
   private swiperFrame: number | null = null;
@@ -381,9 +383,11 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
   supply(path: 'property' | 'stay') {
-    void this.router.navigate([this.auth.isAuthenticated() ? '/account' : '/register'], {
-      queryParams: { intent: path, returnUrl: '/account' },
-    });
+    if (path === 'property') {
+      void this.listingEntry.startPropertyListing();
+      return;
+    }
+    void this.listingEntry.startStayListing();
   }
   ngAfterViewInit() {
     this.viewReady = true;

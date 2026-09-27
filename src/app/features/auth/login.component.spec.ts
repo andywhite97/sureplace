@@ -26,6 +26,7 @@ describe('LoginComponent', () => {
   };
   const auth = {
     login: vi.fn(),
+    resendVerification: vi.fn(),
     user: signal<User | null>(null),
     isAuthenticated: computed(() => false),
   };
@@ -34,6 +35,7 @@ describe('LoginComponent', () => {
 
   beforeEach(async () => {
     auth.login.mockReset();
+    auth.resendVerification.mockReset();
     auth.user.set(null);
     toast.show.mockReset();
     queryParamMap.set(convertToParamMap({}));
@@ -74,11 +76,17 @@ describe('LoginComponent', () => {
     component.form.patchValue({ email: 'ava@example.com', password: 'secret123', remember: true });
   }
 
-  it('renders the polished single-step login form and auth links', () => {
+  it('renders the Suri welcome panel, accessible login form, and existing auth links', () => {
     const fixture = create();
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Welcome back');
+    expect(text).toContain('Suri is here to help you find your SurePlace.');
     expect(text).toContain('Log in to your SurePlace account.');
+    expect(fixture.nativeElement.querySelector('.suri-crop img')?.getAttribute('alt')).toBe('');
+    expect(fixture.nativeElement.querySelector('#email[autocomplete="email"]')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('#password[autocomplete="current-password"]'),
+    ).toBeTruthy();
     expect(fixture.nativeElement.querySelector('a[href="/forgot-password"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('a[href="/register"]')).toBeTruthy();
     expect(fixture.nativeElement.textContent).not.toContain('What brings you to SurePlace?');
@@ -118,6 +126,9 @@ describe('LoginComponent', () => {
     const component = fixture.componentInstance;
     fillValid(component);
     component.busy.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button[type="submit"]')?.disabled).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Logging in...');
     component.submit();
     expect(auth.login).not.toHaveBeenCalled();
 
@@ -150,6 +161,27 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       "We couldn't sign you in right now. Please try again.",
     );
+  });
+
+  it('offers the existing email verification and resend flow for an unverified account', () => {
+    auth.login.mockReturnValueOnce(
+      throwError(
+        () => new HttpErrorResponse({ status: 403, error: { code: 'email_not_verified' } }),
+      ),
+    );
+    const fixture = create();
+    const component = fixture.componentInstance;
+    fillValid(component);
+    component.submit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Verify your email before logging in.');
+    expect(fixture.nativeElement.querySelector('a[href^="/verify-email/pending"]')).toBeTruthy();
+
+    auth.resendVerification.mockReturnValue(of({ detail: 'Verification email sent.' }));
+    component.resendVerification();
+    fixture.detectChanges();
+    expect(auth.resendVerification).toHaveBeenCalledWith('ava@example.com');
+    expect(fixture.nativeElement.textContent).toContain('Verification email sent.');
   });
 
   it('restores a safe return URL on successful login', () => {
@@ -196,6 +228,16 @@ describe('LoginComponent', () => {
     fillValid(fixture.componentInstance);
     fixture.componentInstance.submit();
 
+    expect(navigate).toHaveBeenCalledWith('/account');
+  });
+
+  it('rejects backslash-based return URL redirection', () => {
+    queryParamMap.set(convertToParamMap({ returnUrl: '/\\evil.example' }));
+    auth.login.mockReturnValue(of({ id: 'u1' }));
+    const fixture = create();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    fillValid(fixture.componentInstance);
+    fixture.componentInstance.submit();
     expect(navigate).toHaveBeenCalledWith('/account');
   });
 
