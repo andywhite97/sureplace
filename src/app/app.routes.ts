@@ -47,12 +47,24 @@ export const routes: Routes = [
     title: 'Agent profile | SurePlace',
   },
   {
+    path: 'agencies/:slug',
+    loadComponent: () =>
+      import('./features/agencies/public-agency.component').then((m) => m.PublicAgencyComponent),
+    title: 'Agency profile | SurePlace',
+  },
+  {
     path: 'verification',
     loadComponent: () =>
       import('./features/verification-info.component').then((m) => m.VerificationInfoComponent),
     title: 'SurePlace verification | Safer property decisions',
   },
-  ...(['about', 'help', 'pricing', 'terms', 'privacy', 'cookies'] as const).map((publicPage) => ({
+  {
+    path: 'help',
+    loadComponent: () =>
+      import('./features/help/help-centre.component').then((module) => module.HelpCentreComponent),
+    title: 'Help Centre | SurePlace',
+  },
+  ...(['about', 'pricing', 'terms', 'privacy', 'cookies'] as const).map((publicPage) => ({
     path: publicPage,
     data: { publicPage },
     loadComponent: () =>

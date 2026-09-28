@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
@@ -42,7 +42,7 @@ type DetailWorkspace = 'agencies' | 'verification' | 'users';
           <section class="panel action-card"><h2>Moderation actions</h2>@if (canModerate(review)) { @if (review.status === 'SUBMITTED') { <button type="button" (click)="startReview()" [disabled]="busy()">@if (busy()) { Starting… } @else { Start review }</button> }<button class="approve" type="button" (click)="setDecision('approve')" [disabled]="busy() || !canApprove(review)">@if (busy() && decision() === 'approve') { Approving… } @else { Approve verification }</button>@if (!canApprove(review)) { <small>Complete all required evidence and prerequisites before approval.</small> }<button type="button" (click)="setDecision('request_changes')" [disabled]="busy()">Request changes</button><button class="reject" type="button" (click)="setDecision('reject')" [disabled]="busy()">Reject verification</button> } @else { <p class="muted">This request is read-only in its current status.</p> }</section>
           <section class="panel help-card"><h2>Need help?</h2><p>Check verification requirements and evidence guidance before making a decision.</p><a routerLink="/help">Open Help Centre <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></section></aside></div>
         @if (decision()) { <div class="modal-backdrop"><section class="panel decision" role="alertdialog" aria-modal="true" aria-labelledby="decision-title" tabindex="-1" (keydown)="trapDialogFocus($event)"><h2 id="decision-title">{{ decision() === 'approve' ? 'Approve verification' : decision() === 'reject' ? 'Reject verification' : 'Request changes' }}</h2>@if (decision() === 'approve') { <p>Approve {{ review.applicant_name }}’s {{ typeLabel(review.verification_type).toLowerCase() }} verification? This decision will be recorded in the audit history.</p> } @else if (decision() === 'request_changes') { <p>Select the affected requirement(s) and explain exactly what the applicant needs to fix.</p><fieldset class="requirement-select"><legend>Affected requirements</legend>@for (requirement of review.requirements || []; track requirement.key) { <label><input type="checkbox" [checked]="selectedRequirementKeys().includes(requirement.key)" (change)="toggleRequirement(requirement.key, $any($event.target).checked)">{{ requirement.label }}</label> }</fieldset><label for="moderation-notes">Change request reason</label><textarea id="moderation-notes" [(ngModel)]="notes" rows="4" placeholder="Explain exactly what the applicant needs to fix."></textarea> } @else { <p>This verification request will not be approved. Provide a reason for the applicant and audit record.</p><label for="moderation-notes">Rejection reason</label><textarea id="moderation-notes" [(ngModel)]="notes" rows="4" placeholder="Explain why this verification cannot be approved."></textarea> }<div><button type="button" class="secondary" (click)="cancelDecision()">Cancel</button><button [class]="decision() === 'reject' ? 'reject' : 'approve'" type="button" [disabled]="busy() || ((decision() === 'reject' || decision() === 'request_changes') && !notes.trim()) || (decision() === 'request_changes' && !selectedRequirementKeys().length)" (click)="submitDecision()">@if (busy()) { <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Saving… } @else { {{ decision() === 'approve' ? 'Approve verification' : decision() === 'reject' ? 'Reject verification' : 'Send change request' }} }</button></div></section></div> }
-        @if (documentLoading() || documentViewer() || documentImage() || documentError()) { <section class="panel document-viewer"><div class="viewer-heading"><div><h2>Protected document</h2><p class="muted">{{ documentName() }}</p></div><button type="button" (click)="closeDocument()" aria-label="Close document viewer"><i class="fa-solid fa-xmark"></i></button></div>@if (documentLoading()) { <div class="viewer-state" role="status"><i class="fa-solid fa-spinner fa-spin"></i> Opening protected document…</div> } @else if (documentImage(); as source) { <div class="image-preview"><img [src]="source" [alt]="'Protected document: ' + documentName()"></div> } @else if (documentViewer(); as source) { <iframe [src]="source" [title]="'Protected document: ' + documentName()"></iframe> } @else { <p class="viewer-error" role="alert">{{ documentError() }}</p><button type="button" (click)="retryDocument()">Retry secure preview</button> }</section> }
+        @if (documentLoading() || documentViewer() || documentImage() || documentError()) { <section #documentPreview class="panel document-viewer" tabindex="-1"><div class="viewer-heading"><div><h2>Protected document</h2><p class="muted">{{ documentName() }}</p></div><button type="button" (click)="closeDocument()" aria-label="Close document viewer"><i class="fa-solid fa-xmark"></i></button></div>@if (documentLoading()) { <div class="viewer-state" role="status"><i class="fa-solid fa-spinner fa-spin"></i> Opening protected document…</div> } @else if (documentImage(); as source) { <div class="image-preview"><img [src]="source" [alt]="'Protected document: ' + documentName()"></div> } @else if (documentViewer(); as source) { <iframe [src]="source" [title]="'Protected document: ' + documentName()"></iframe> } @else { <p class="viewer-error" role="alert">{{ documentError() }}</p><button type="button" (click)="retryDocument()">Retry secure preview</button> }</section> }
       }
     </section>
   `,
@@ -166,6 +166,7 @@ export class StaffOperationDetailComponent {
   documentImage = signal<SafeUrl | null>(null);
   documentDecision = signal<string | null>(null); documentDecisionError = signal(''); documentReason = '';
   private documentObjectUrl: string | null = null;
+  private documentPreview = viewChild<ElementRef<HTMLElement>>('documentPreview');
   private lastDocument: NonNullable<StaffVerificationRequest['documents']>[number] | null = null;
   constructor() { this.load(); }
   load() {
@@ -234,6 +235,11 @@ export class StaffOperationDetailComponent {
     this.lastDocument = document;
     this.documentLoading.set(true);
     this.documentName.set(document.file_name || 'Verification evidence');
+    setTimeout(() => {
+      const viewer = this.documentPreview()?.nativeElement;
+      viewer?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      viewer?.focus({ preventScroll: true });
+    });
     this.api.verificationDocument(document.id).pipe(finalize(() => this.documentLoading.set(false))).subscribe({
       next: (file) => {
         this.documentObjectUrl = URL.createObjectURL(file);

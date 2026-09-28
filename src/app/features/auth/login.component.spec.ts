@@ -108,7 +108,7 @@ describe('LoginComponent', () => {
 
   it('toggles password visibility with an accessible button', () => {
     const fixture = create();
-    const button = fixture.nativeElement.querySelector('label button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.password-toggle') as HTMLButtonElement;
     const input = fixture.nativeElement.querySelector('#password') as HTMLInputElement;
     expect(input.type).toBe('password');
     expect(button.getAttribute('aria-label')).toBe('Show password');
@@ -159,7 +159,7 @@ describe('LoginComponent', () => {
     component.submit();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain(
-      "We couldn't sign you in right now. Please try again.",
+      'Unable to log in right now. Please check your connection and try again.',
     );
   });
 

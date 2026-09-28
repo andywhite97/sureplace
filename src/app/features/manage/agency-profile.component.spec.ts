@@ -135,8 +135,8 @@ describe('AgencyProfileComponent', () => {
     const fixture = create();
     expect(fixture.nativeElement.querySelector('.identity-card .badge').textContent).toContain('Active');
     expect(fixture.nativeElement.querySelector('.identity-card .verification').textContent).toContain('Pending');
-    expect(fixture.nativeElement.textContent).toContain('Start verification');
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('83');
+    expect(fixture.nativeElement.textContent).toContain('View verification');
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('67');
     expect(verificationApi.list).toHaveBeenCalled();
   });
   it('keeps the profile usable if the verification sidebar API fails', () => {

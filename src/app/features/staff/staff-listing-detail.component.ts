@@ -81,12 +81,13 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
           <textarea
             rows="4"
             [(ngModel)]="feedback"
+            aria-label="Moderation reason"
             placeholder="Write clear internal and advertiser-facing feedback"
           ></textarea>
           <div>
             <button type="button" (click)="cancelFeedback()">Cancel</button>
-            <button class="primary" type="button" [disabled]="busy()" (click)="confirmFeedback()">
-              Confirm
+            <button class="primary" type="button" [disabled]="busy() || !feedback.trim()" (click)="confirmFeedback()">
+              {{ busy() ? 'Saving…' : 'Confirm' }}
             </button>
           </div>
         </section>
@@ -249,6 +250,7 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
       .staff-page {
         display: grid;
         gap: 1rem;
+        min-width: 0;
       }
       .back,
       .actions a,
@@ -299,7 +301,7 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
       }
       .grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
       }
       .panel,
@@ -313,7 +315,9 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
         display: grid;
         gap: 0.85rem;
         padding: 1rem;
+        min-width: 0;
       }
+      dd, .events article, header { overflow-wrap: anywhere; }
       dl {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));

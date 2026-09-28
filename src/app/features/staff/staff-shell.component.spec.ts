@@ -14,9 +14,9 @@ import { StaffShellComponent } from './staff-shell.component';
 class EmptyComponent {}
 
 describe('Staff Console workspace', () => {
-  const user = signal<any>({ first_name: 'Andy', last_name: 'Smith', is_staff: true });
+  const user = signal<any>({ first_name: 'Andy', last_name: 'Smith', is_staff: true, staff_permissions: ['properties.review_propertylisting'] });
   beforeEach(() => {
-    user.set({ first_name: 'Andy', last_name: 'Smith', is_staff: true });
+    user.set({ first_name: 'Andy', last_name: 'Smith', is_staff: true, staff_permissions: ['properties.review_propertylisting'] });
     TestBed.configureTestingModule({
       imports: [App],
       providers: [
@@ -48,7 +48,9 @@ describe('Staff Console workspace', () => {
         {
           provide: ConfigApiService,
           useValue: {
+            load: () => of({}),
             config: signal({
+              footer: { navigation_groups: [], social_links: [], newsletter: { enabled: false } },
               features: {
                 stays: true,
                 bookings: true,

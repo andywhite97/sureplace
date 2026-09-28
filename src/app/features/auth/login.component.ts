@@ -14,9 +14,6 @@ import { SeoService } from '../../core/services/seo.service';
   template: `<main class="login-page">
     <section class="login-shell" aria-label="Log in to SurePlace">
       <aside class="welcome-panel" aria-labelledby="welcome-brand-title">
-        <a class="brand" routerLink="/" aria-label="SurePlace home">
-          <img src="/logo_dark.png" alt="SurePlace" width="210" height="70" />
-        </a>
         <div class="welcome-copy">
           <p class="eyebrow">A brighter way to property</p>
           <h1 id="welcome-brand-title">Suri is here to help you find your SurePlace.</h1>
@@ -170,6 +167,7 @@ import { SeoService } from '../../core/services/seo.service';
         border-radius: 20px;
         background: white;
         box-shadow: var(--shadow);
+        transform: translateY(-clamp(8px, 2vh, 18px));
       }
       .welcome-panel {
         position: relative;
@@ -180,17 +178,6 @@ import { SeoService } from '../../core/services/seo.service';
         overflow: hidden;
         padding: clamp(1.5rem, 4vw, 3rem);
         background: linear-gradient(145deg, #e9faf6 0%, #f4fbf9 58%, #e2f6f1 100%);
-      }
-      .brand {
-        display: inline-flex;
-        align-self: flex-start;
-        width: min(210px, 60%);
-      }
-      .brand img {
-        display: block;
-        width: 100%;
-        height: auto;
-        object-fit: contain;
       }
       .welcome-copy {
         position: relative;
@@ -496,13 +483,14 @@ import { SeoService } from '../../core/services/seo.service';
         .login-page {
           display: block;
           min-height: 0;
-          padding: 1rem 0.85rem 1.5rem;
+          padding: 0.75rem 0.85rem 1.5rem;
         }
         .login-shell {
           display: flex;
           flex-direction: column;
           min-height: 0;
           border-radius: 18px;
+          transform: none;
         }
         .welcome-panel {
           display: flex;
@@ -511,11 +499,6 @@ import { SeoService } from '../../core/services/seo.service';
           gap: 0.25rem;
           padding: 1.1rem 1rem 0.7rem;
           text-align: center;
-        }
-        .brand {
-          align-self: flex-start;
-          width: 142px;
-          margin-bottom: 0.05rem;
         }
         .mascot-stage {
           order: 1;
@@ -591,9 +574,6 @@ import { SeoService } from '../../core/services/seo.service';
         }
         .welcome-panel {
           padding: 0.9rem 0.85rem 0.55rem;
-        }
-        .brand {
-          width: 132px;
         }
         .mascot-stage {
           width: 180px;

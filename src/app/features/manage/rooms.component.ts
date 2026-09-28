@@ -1009,7 +1009,14 @@ export class RoomsComponent implements OnInit, OnDestroy {
           : data.currencies || [];
     const current = this.editing()?.[field];
     return current && !options.some((option) => option.value === current)
-      ? [...options, { value: current, label: `${current} (saved value)` }]
+      ? [...options, {
+          value: current,
+          label: options.find((option) => option.label.toLowerCase() === current.toLowerCase())?.label
+            || (field === 'bathroom_type'
+              ? options.find((option) => option.label.toLowerCase().startsWith(`${current.toLowerCase()} `))?.label
+              : undefined)
+            || current,
+        }]
       : options;
   }
 

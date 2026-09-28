@@ -38,7 +38,7 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
         (change)="status.set($any($event.target).value); load()"
       >
         @for (option of statusOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
+          <option [value]="option.value" [selected]="status() === option.value">{{ option.label }}</option>
         }
       </select>
       <select

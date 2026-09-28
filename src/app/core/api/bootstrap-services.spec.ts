@@ -45,7 +45,7 @@ describe('bootstrap API services', () => {
 
     service.load().subscribe();
     service.load().subscribe();
-    http.expectOne('/api/v1/reference/').flush({
+    http.expectOne('/api/v1/reference/?schema=room-options-v1').flush({
       property_types: [],
       property_amenities: [],
       listing_types: [],
@@ -59,6 +59,6 @@ describe('bootstrap API services', () => {
 
     expect(service.data().regions[0].areas).toContain('Mbabane');
     service.load().subscribe();
-    http.expectNone('/api/v1/reference/');
+    http.expectNone('/api/v1/reference/?schema=room-options-v1');
   });
 });

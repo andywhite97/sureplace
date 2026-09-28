@@ -68,7 +68,7 @@ type MenuState = 'closed' | 'open' | 'closing';
         </form>
         <div class="staff-identity">
           <span class="staff-avatar" aria-hidden="true">{{ staffInitials() }}</span
-          ><span>{{ auth.user()?.first_name || 'Staff' }}<small>Staff member</small></span>
+          ><span>{{ auth.user()?.first_name || 'Staff' }}<small>{{ auth.user()?.is_superuser ? 'Superuser' : 'Staff member' }}</small></span>
         </div>
         <a class="exit-console" aria-label="Exit Console" routerLink="/account"
           ><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i

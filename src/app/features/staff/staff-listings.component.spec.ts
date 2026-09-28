@@ -27,5 +27,6 @@ describe('Staff listing search navigation', () => {
       expect.objectContaining({ search: 'Mbabane', status: 'CHANGES_REQUESTED' }),
     );
     expect(f.componentInstance.search()).toBe('Mbabane');
+    expect((f.nativeElement.querySelector('[aria-label="Filter by status"]') as HTMLSelectElement).value).toBe('CHANGES_REQUESTED');
   });
 });

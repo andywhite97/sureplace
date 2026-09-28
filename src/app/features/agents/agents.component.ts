@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, finalize, of, startWith } from 'rxjs';
 
 import { AgentsApiService, AgentListItem } from '../../core/api/agents-api.service';
@@ -248,6 +248,7 @@ export class AgentsComponent {
   private messaging = inject(MessagingApiService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
   private refs = inject(ReferenceApiService);
 
@@ -288,6 +289,10 @@ export class AgentsComponent {
   });
 
   constructor() {
+    this.route.queryParamMap.subscribe((params) => {
+      const agency = params.get('agency') || '';
+      if (agency !== this.form.controls.agency.value) this.form.controls.agency.setValue(agency);
+    });
     effect(() => {
       const region = this.form.controls.region.value;
       if (!region) return;
