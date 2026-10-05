@@ -35,6 +35,9 @@ describe('MobileNavigationComponent', () => {
       providers: [
         provideRouter([
           { path: '', component: EmptyComponent },
+          { path: 'properties/:slug', component: EmptyComponent },
+          { path: 'stays/:slug', component: EmptyComponent },
+          { path: 'login', component: EmptyComponent },
           { path: 'account/saved', component: EmptyComponent },
           { path: 'account/messages', component: EmptyComponent },
           { path: 'account/messages/:id', component: EmptyComponent },
@@ -106,5 +109,18 @@ describe('MobileNavigationComponent', () => {
     await router.navigateByUrl('/account/manage/properties/p1/edit');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+  });
+
+  it('hides tabs where detail actions or authentication own the screen', async () => {
+    const router = TestBed.inject(Router);
+    const fixture = TestBed.createComponent(MobileNavigationComponent);
+    for (const url of ['/properties/guesthouse', '/stays/lodge', '/login']) {
+      await router.navigateByUrl(url);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+    }
+    await router.navigateByUrl('/');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('nav')).toBeTruthy();
   });
 });

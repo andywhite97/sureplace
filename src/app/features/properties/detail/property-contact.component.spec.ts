@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -8,6 +8,8 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PropertyActionsApiService } from '../../../core/api/property-actions-api.service';
 import { MessagingApiService } from '../../../core/api/messaging-api.service';
 import { ToastService } from '../../../core/services/toast.service';
+@Component({ standalone: true, template: '' })
+class DestinationComponent {}
 describe('PropertyContactComponent', () => {
   const property: any = {
     id: 'p1',
@@ -40,7 +42,10 @@ describe('PropertyContactComponent', () => {
     TestBed.configureTestingModule({
       imports: [PropertyContactComponent],
       providers: [
-        provideRouter([]),
+        provideRouter([
+          { path: 'account/messages', component: DestinationComponent },
+          { path: 'account/viewings', component: DestinationComponent },
+        ]),
         { provide: AuthService, useValue: { isAuthenticated: authenticated } },
         { provide: PropertyActionsApiService, useValue: api },
         { provide: MessagingApiService, useValue: messaging },
@@ -126,6 +131,41 @@ describe('PropertyContactComponent', () => {
     );
     expect(overlay).toBeTruthy();
     expect(overlay?.textContent).toContain('Report this listing');
+  });
+  it('removes the portalled confirmation and unlocks scrolling on destruction', () => {
+    const f = create();
+    document.body.style.overflow = 'auto';
+    f.componentInstance.openViewing();
+    f.componentInstance.success.set(true);
+    f.detectChanges();
+    expect(document.body.querySelector('.property-contact-overlay')?.textContent).toContain('Viewing request sent');
+
+    f.destroy();
+    expect(document.body.querySelector('.property-contact-overlay')).toBeNull();
+    expect(document.getElementById('sureplace-overlay-root')).toBeNull();
+    expect(document.body.style.overflow).toBe('auto');
+  });
+  it('closes the confirmation when navigating to messages', async () => {
+    const f = create();
+    f.componentInstance.openViewing();
+    f.componentInstance.success.set(true);
+    f.detectChanges();
+    await TestBed.inject(Router).navigateByUrl('/account/messages');
+    f.detectChanges();
+    expect(f.componentInstance.modal()).toBeNull();
+    expect(document.body.querySelector('.property-contact-overlay')).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+  });
+  it('creates a fresh overlay after closing and reopening', () => {
+    const f = create();
+    f.componentInstance.openViewing();
+    f.detectChanges();
+    f.componentInstance.close();
+    f.detectChanges();
+    f.componentInstance.openReport();
+    f.detectChanges();
+    expect(document.body.querySelector('.property-contact-overlay')?.textContent).toContain('Report this listing');
+    expect(document.body.style.overflow).toBe('hidden');
   });
   it('shows viewing domain errors', () => {
     api.viewing.mockReturnValueOnce(

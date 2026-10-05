@@ -7,6 +7,8 @@ import { MobileNavigationComponent } from './layout/mobile-navigation.component'
 import { ToastRegionComponent } from './layout/toast-region.component';
 import { CookieConsentComponent } from './layout/cookie-consent.component';
 import { BackendKeepAliveService } from './core/services/backend-keep-alive.service';
+import { Capacitor } from '@capacitor/core';
+import { NativeAppService } from './core/services/native-app.service';
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -18,18 +20,23 @@ import { BackendKeepAliveService } from './core/services/backend-keep-alive.serv
     ToastRegionComponent,
     CookieConsentComponent,
   ],
-  template: `<sp-header [staffWorkspace]="staffWorkspace()" /><router-outlet />
+  template: `<sp-header [staffWorkspace]="staffWorkspace()" />
+    <div class="route-viewport"><router-outlet /></div>
     @if (!staffWorkspace()) {
-      <sp-footer /><sp-mobile-nav />
+      @if (!nativeApp) { <sp-footer /> }
+      <sp-mobile-nav />
     }
     <sp-toast-region /><sp-cookie-consent />`,
 })
 export class App {
+  readonly nativeApp = Capacitor.isNativePlatform();
   private router = inject(Router);
   private keepAlive = inject(BackendKeepAliveService);
+  private native = inject(NativeAppService);
   private url = signal(this.router.url);
   staffWorkspace = computed(() => /^\/staff(?:\/|[?#]|$)/.test(this.url()));
   constructor() {
+    void this.native.start();
     this.keepAlive.start();
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event instanceof NavigationEnd) this.url.set(event.urlAfterRedirects);

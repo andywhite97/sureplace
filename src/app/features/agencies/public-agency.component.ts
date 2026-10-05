@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, finalize, of, switchMap } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
 import { formatMoney } from '../../shared/listing/price-format';
+import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 
 interface PublicAgency {
   id: string;
@@ -31,7 +32,7 @@ interface PublicAgencyDetail {
 @Component({
   selector: 'sp-public-agency',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, SmartImageComponent],
   template: `
     <main class="agency-page">
       <nav class="crumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span aria-hidden="true">/</span> Agency</nav>
@@ -60,13 +61,13 @@ interface PublicAgencyDetail {
             <section class="card about"><p class="eyebrow">About the agency</p><h2>Local expertise, clearly presented.</h2><p>{{ profile.agency.description || 'This agency has not added a public description yet.' }}</p></section>
             <section class="card listings"><div class="section-heading"><div><p class="eyebrow">On the market</p><h2>Properties <span>({{ profile.property_count }})</span></h2></div></div>
               @if (profile.properties.length) { <div class="tiles">@for (property of profile.properties; track property.slug) { <a class="tile" [routerLink]="['/properties', property.slug]">
-                @if (property.cover_image) { <img [src]="property.cover_image" [alt]="property.title"> }
+                <sp-image [src]="property.cover_image" [alt]="property.title" />
                 <div><strong>{{ property.title }}</strong><small>{{ property.town }}</small><span>{{ formatMoney(property.price, property.currency) }}</span></div>
               </a> }</div> } @else { <p class="muted">No active properties right now.</p> }
             </section>
             <section class="card listings"><div class="section-heading"><div><p class="eyebrow">Accommodation</p><h2>Stays <span>({{ profile.stay_count }})</span></h2></div></div>
               @if (profile.stays.length) { <div class="tiles">@for (stay of profile.stays; track stay.slug) { <a class="tile" [routerLink]="['/stays', stay.slug]">
-                @if (stay.cover_image) { <img [src]="stay.cover_image" [alt]="stay.name"> }
+                <sp-image [src]="stay.cover_image" [alt]="stay.name" />
                 <div><strong>{{ stay.name }}</strong><small>{{ stay.town }}</small></div>
               </a> }</div> } @else { <p class="muted">No active stays right now.</p> }
             </section>
@@ -100,7 +101,7 @@ interface PublicAgencyDetail {
     .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:.75rem; }
     .tile { display:block; min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:.7rem; color:var(--midnight); transition:transform .15s ease,box-shadow .15s ease; }
     .tile:hover { transform:translateY(-2px); box-shadow:0 9px 18px rgba(4,43,40,.12); text-decoration:none; }
-    .tile img { display:block; width:100%; height:130px; object-fit:cover; } .tile div { display:grid; gap:.3rem; padding:.8rem; } .tile strong { overflow-wrap:anywhere; } .tile small { color:var(--slate); }
+    .tile sp-image { display:block; } .tile div { display:grid; gap:.3rem; padding:.8rem; } .tile strong { overflow-wrap:anywhere; } .tile small { color:var(--slate); }
     .side { display:grid; gap:1rem; } .side dl { display:grid; gap:.7rem; } .side dl div { display:flex; justify-content:space-between; gap:.5rem; border-top:1px solid var(--line); padding-top:.7rem; } .side dt { color:var(--slate); } .side dd { font-weight:800; }
     @media(max-width:800px) { .agency-hero { align-items:flex-start; flex-direction:column; } .body-grid { grid-template-columns:1fr; } }
     @media(max-width:480px) { .identity { align-items:flex-start; } .logo { width:4rem; height:4rem; } }

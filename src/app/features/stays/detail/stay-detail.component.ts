@@ -1,4 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
+import { environment } from '../../../../environments/environment';
 import {
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
@@ -301,7 +302,7 @@ export class StayDetailComponent {
     if (!isPlatformBrowser(this.platformId)) return;
     const s = this.stay();
     if (!s) return;
-    const url = new URL(`/stays/${s.slug}`, location.origin).href,
+    const url = new URL(`/stays/${s.slug}`, environment.frontendOrigin).href,
       data = { title: s.name, url };
     if (navigator.share) void navigator.share(data);
     else if (navigator.clipboard)

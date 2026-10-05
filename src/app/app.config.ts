@@ -8,7 +8,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import { provideRouter, withInMemoryScrolling, withViewTransitions } from '@angular/router';
 import { forkJoin, switchMap, take } from 'rxjs';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -16,16 +16,21 @@ import { ConfigApiService } from './core/api/config-api.service';
 import { ReferenceApiService } from './core/api/reference-api.service';
 import { AuthService } from './core/auth/auth.service';
 import { UserCapabilityService } from './core/services/user-capability.service';
+import { PageMotionService } from './core/services/page-motion.service';
 
-export const appConfig: ApplicationConfig = {
+export const createAppConfig = (hydrate = true): ApplicationConfig => ({
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideClientHydration(
+    ...(hydrate ? [provideClientHydration(
       withHttpTransferCacheOptions({
         includePostRequests: false,
       }),
-    ),
-    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
+    )] : []),
+    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
+      ...(!hydrate ? [withViewTransitions({
+        skipInitialTransition: true,
+        onViewTransitionCreated: (info) => inject(PageMotionService).created(info),
+      })] : [])),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAppInitializer(() => {
       const platformId = inject(PLATFORM_ID);
@@ -44,4 +49,6 @@ export const appConfig: ApplicationConfig = {
       return capabilityInitialization;
     }),
   ],
-};
+});
+
+export const appConfig = createAppConfig();

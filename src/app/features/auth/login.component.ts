@@ -493,7 +493,7 @@ import { SeoService } from '../../core/services/seo.service';
           transform: none;
         }
         .welcome-panel {
-          display: flex;
+          display: none;
           flex-direction: column;
           align-items: center;
           gap: 0.25rem;

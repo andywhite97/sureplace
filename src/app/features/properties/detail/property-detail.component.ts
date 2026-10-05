@@ -24,6 +24,7 @@ import { AvailabilityStatusComponent } from '../../../shared/ui/availability-sta
 import { ListingMapComponent } from '../../../shared/map/listing-map.component';
 import { IconComponent } from '../../../shared/ui/icon.component';
 import { formatMoney } from '../../../shared/listing/price-format';
+import { environment } from '../../../../environments/environment';
 @Component({
   standalone: true,
   imports: [
@@ -159,7 +160,7 @@ export class PropertyDetailComponent {
   }
   share() {
     if (!isPlatformBrowser(this.platformId)) return;
-    const data = { title: this.property()?.title || 'SurePlace property', url: location.href };
+    const data = { title: this.property()?.title || 'SurePlace property', url: new URL(`/properties/${this.property()?.slug || ''}`, environment.frontendOrigin).href };
     if (navigator.share) void navigator.share(data);
     else if (navigator.clipboard)
       void navigator.clipboard

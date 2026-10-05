@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "https://sureplace-back-e1u4.onrender.com",
+    "secure": true,
+    "changeOrigin": true
+  }
+}

@@ -273,3 +273,56 @@ swiper-container[pagination-type='progressbar'] {
   text-align: center;
   text-decoration: none;
 }
+
+/* Animate captured page surfaces, so fixed controls keep their DOM positioning.
+   The persistent header and tab bar stay outside this named surface. */
+.route-viewport {
+  min-width: 0;
+  view-transition-name: sp-page;
+}
+html[data-page-motion]::view-transition-old(root),
+html[data-page-motion]::view-transition-new(root),
+html[data-page-motion]::view-transition-group(sp-page) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-page-motion]::view-transition-old(sp-page),
+html[data-page-motion]::view-transition-new(sp-page) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-sureplace);
+  animation-fill-mode: both;
+  mix-blend-mode: normal;
+  object-fit: none;
+  object-position: top left;
+}
+html[data-page-motion='forward']::view-transition-old(sp-page) {
+  animation-name: page-exit-left;
+}
+html[data-page-motion='forward']::view-transition-new(sp-page) {
+  animation-name: page-enter-right;
+}
+html[data-page-motion='back']::view-transition-old(sp-page) {
+  animation-name: page-exit-right;
+}
+html[data-page-motion='back']::view-transition-new(sp-page) {
+  animation-name: page-enter-left;
+}
+html[data-page-motion='tab']::view-transition-old(sp-page) {
+  animation: page-fade-out 140ms ease-out both;
+}
+html[data-page-motion='tab']::view-transition-new(sp-page) {
+  animation: page-fade-in 180ms ease-out both;
+}
+@keyframes page-enter-right { from { opacity: 0; transform: translateX(24px); } }
+@keyframes page-enter-left { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes page-exit-left { to { opacity: 0; transform: translateX(-12px); } }
+@keyframes page-exit-right { to { opacity: 0; transform: translateX(12px); } }
+@keyframes page-fade-in { from { opacity: 0; } }
+@keyframes page-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

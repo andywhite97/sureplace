@@ -33,6 +33,8 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
               [src]="image.image"
               [alt]="image.caption || title()"
               ratio="16 / 10"
+              [width]="1200"
+              [height]="750"
               [priority]="first"
           /></swiper-slide>
         }</swiper-container
@@ -52,7 +54,7 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
         </div>
       }
     } @else {
-      <sp-image [src]="null" [alt]="title()" ratio="16 / 9" [priority]="true" />
+      <sp-image [src]="null" [alt]="title()" ratio="16 / 10" [priority]="true" />
     }
   </section>`,
   styleUrl: './property-gallery.component.scss',

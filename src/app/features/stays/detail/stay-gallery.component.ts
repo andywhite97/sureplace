@@ -29,6 +29,7 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
                 [src]="image.image"
                 [alt]="image.caption || title() + ' in ' + location()"
                 ratio="16 / 10"
+                [fill]="true"
                 [priority]="i === 0"
                 [width]="i === 0 ? 960 : 520"
                 [height]="i === 0 ? 620 : 360"
@@ -116,6 +117,7 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
             [src]="activeImage()?.image || null"
             [alt]="activeImage()?.caption || title() + ' in ' + location()"
             ratio="16 / 10"
+            fit="contain"
             [priority]="true"
             [width]="1200"
             [height]="750"
@@ -131,6 +133,8 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
     `
       :host {
         display: block;
+        min-width: 0;
+        max-width: 100%;
       }
       .gallery {
         position: relative;
@@ -197,6 +201,8 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
       .mobile-swiper {
         display: none;
         position: relative;
+        min-width: 0;
+        max-width: 100%;
       }
       .mobile-track {
         display: flex;
@@ -235,6 +241,8 @@ import { SmartImageComponent } from '../../../shared/ui/smart-image.component';
       }
       .thumbnails {
         display: flex;
+        min-width: 0;
+        max-width: 100%;
         gap: 0.55rem;
         overflow-x: auto;
         padding: 0.7rem 0.1rem 0.1rem;

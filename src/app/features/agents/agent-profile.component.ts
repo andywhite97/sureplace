@@ -8,11 +8,12 @@ import { MessagingApiService } from '../../core/api/messaging-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
+import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 
 @Component({
   selector: 'sp-agent-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SmartImageComponent],
   template: `
     @if (loading()) {
       <section class="page state">
@@ -143,11 +144,7 @@ import { ToastService } from '../../core/services/toast.service';
               @for (listing of activeListings(); track listing.id) {
                 <article class="listing-card" [routerLink]="['/properties', listing.slug]" tabindex="0" (keydown.enter)="goListing(listing.slug)" (keydown.space)="$event.preventDefault(); goListing(listing.slug)">
                   <div class="cover-wrap">
-                    @if (listing.cover_image) {
-                      <img [src]="listing.cover_image" [alt]="listing.title" />
-                    } @else {
-                      <div class="cover-placeholder"><i class="fa-solid fa-house"></i></div>
-                    }
+                    <sp-image [src]="listing.cover_image" [alt]="listing.title" />
                   </div>
                   <div class="listing-body">
                     <span class="listing-type">{{ listing.listing_type === 'RENT' ? 'For rent' : 'For sale' }}</span>
@@ -226,9 +223,7 @@ import { ToastService } from '../../core/services/toast.service';
     .listing-row { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:.8rem; }
     .listing-card { background: #fff; border:1px solid rgba(21,43,42,.08); border-radius:.8rem; overflow:hidden; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
     .listing-card:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(21,43,42,.1); }
-    .cover-wrap { aspect-ratio: 4/3; background: var(--mist); }
-    .cover-wrap img, .cover-placeholder { width:100%; height:100%; object-fit:cover; }
-    .cover-placeholder { display:grid; place-items:center; font-size:2rem; color: var(--slate); }
+    .cover-wrap { overflow:hidden; background: var(--mist); }
     .listing-body { padding:.75rem; }
     .listing-type { display:inline-block; font-size:.7rem; text-transform: uppercase; letter-spacing:.08em; color:var(--teal); font-weight:700; }
     .listing-body h3 { margin:.35rem 0 .2rem; font-size:1rem; }

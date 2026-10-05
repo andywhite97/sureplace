@@ -8,6 +8,7 @@ import { StaysApiService } from '../../core/api/stays-api.service';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ConfigApiService } from '../../core/api/config-api.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { StayQueryService } from '../../core/services/stay-query.service';
 describe('HomeComponent', () => {
   const page = { count: 0, next: null, previous: null, results: [] };
   const properties = { featured: vi.fn(() => of(page)) };
@@ -178,6 +179,8 @@ describe('HomeComponent', () => {
     });
   });
   it('navigates stay searches with occupancy and dates', () => {
+    // Keep the example stay future-dated regardless of the machine's calendar.
+    vi.spyOn(TestBed.inject(StayQueryService), 'today').mockReturnValue('2026-09-30');
     const f = TestBed.createComponent(HomeComponent);
     f.detectChanges();
     const nav = vi.spyOn(TestBed.inject(Router), 'navigate');

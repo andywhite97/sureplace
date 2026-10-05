@@ -12,8 +12,9 @@ import {
   signal,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationStart, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
 import { PropertyAdvertiser, PropertyDetail } from '../../../core/models/listing.models';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -101,8 +102,8 @@ import { ProfileImageComponent } from '../../../shared/ui/profile-image.componen
               <div role="status">
                 <h3>Viewing request sent</h3>
                 <p>The advertiser still needs to confirm it.</p>
-                <a routerLink="/account/viewings">View request</a> ·
-                <a routerLink="/account/messages">Open messages</a>
+                <a routerLink="/account/viewings" (click)="close()">View request</a> ·
+                <a routerLink="/account/messages" (click)="close()">Open messages</a>
               </div>
             } @else {
               <form [formGroup]="viewingForm" (ngSubmit)="submitViewing()">
@@ -237,6 +238,9 @@ export class PropertyContactComponent {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.teardownOverlay());
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
+      if (event instanceof NavigationStart && this.modal()) this.close();
+    });
   }
 
   whatsapp() {
@@ -298,6 +302,7 @@ export class PropertyContactComponent {
     this.error.set('');
     request
       .pipe(
+        takeUntilDestroyed(this.destroyRef),
         catchError((e) => {
           this.error.set(e?.error?.message || 'Please check the details and try again.');
           return of(null);
@@ -379,6 +384,11 @@ export class PropertyContactComponent {
   private teardownOverlay() {
     if (!this.isBrowser) return;
     if (this.overlayAttached) {
+      // This node was moved outside Angular's view tree. Remove it explicitly
+      // before route destruction removes the component's scoped styles.
+      this.overlay?.nativeElement.remove();
+      if (this.overlayRoot && !this.overlayRoot.hasChildNodes()) this.overlayRoot.remove();
+      this.overlayRoot = undefined;
       this.document.body.style.overflow = this.previousBodyOverflow;
       this.overlayAttached = false;
     }

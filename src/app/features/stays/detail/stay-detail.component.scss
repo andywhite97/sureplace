@@ -12,8 +12,13 @@
 
 .detail-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.6rem;
   padding: 1.2rem 0 4rem;
+}
+
+.detail-shell > * {
+  min-width: 0;
 }
 
 .breadcrumbs,
@@ -598,13 +603,9 @@
   }
 
   .identity {
-    gap: 0.55rem;
-    padding: 0 0.5rem;
-  }
-
-  .identity {
     grid-template-columns: 1fr;
     gap: 1rem;
+    padding: 0 0.5rem;
   }
 
   .identity h1 {

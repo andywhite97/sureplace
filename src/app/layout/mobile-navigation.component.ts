@@ -28,7 +28,7 @@ export class MobileNavigationComponent {
   private router = inject(Router);
   private activity = inject(AccountActivityStore);
   currentUrl = signal(this.router.url);
-  hidden = computed(() => /^\/account\/messages\/[^/]+/.test(this.currentUrl()) || /^\/account\/manage\/(properties|stays)\/.+/.test(this.currentUrl()) || /^\/(login|register|forgot-password|reset-password|verify-email)(?:\/|[?#]|$)/.test(this.currentUrl()));
+  hidden = computed(() => /^\/(properties|stays)\/[^/?#]+/.test(this.currentUrl()) || /^\/account\/messages\/[^/]+/.test(this.currentUrl()) || /^\/account\/manage\/(properties|stays)\/.+/.test(this.currentUrl()) || /^\/(login|register|forgot-password|reset-password|verify-email)(?:\/|[?#]|$)/.test(this.currentUrl()));
   visible = computed(() => this.auth.status() !== 'initializing' && !this.hidden());
   profileInitials = computed(() => [this.auth.user()?.first_name, this.auth.user()?.last_name].filter(Boolean).map((name) => name![0]).join('').slice(0, 2) || 'SP');
   registrationRoute = computed(() => this.config.config().features.registration ? '/register' : '/login');
