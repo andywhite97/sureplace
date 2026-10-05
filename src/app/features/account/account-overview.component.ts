@@ -7,6 +7,7 @@ import { AccountActivityStore } from '../../core/services/account-activity.store
 import { UserCapabilityService } from '../../core/services/user-capability.service';
 import { ManageStatusComponent } from '../manage/manage-ui';
 import { NotificationItemComponent } from './account-ui';
+import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
 
 type AttentionItem =
   | {
@@ -37,7 +38,7 @@ type AttentionItem =
 
 @Component({
   standalone: true,
-  imports: [DatePipe, TitleCasePipe, RouterLink, ManageStatusComponent, NotificationItemComponent],
+  imports: [DatePipe, TitleCasePipe, RouterLink, ManageStatusComponent, NotificationItemComponent, ProfileImageComponent],
   templateUrl: './account-overview.component.html',
   styleUrl: './account-overview.component.scss',
 })

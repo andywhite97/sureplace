@@ -21,10 +21,12 @@ import { PropertyActionsApiService } from '../../../core/api/property-actions-ap
 import { MessagingApiService } from '../../../core/api/messaging-api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { VerificationBadgeComponent } from '../../../shared/ui/verification-badge.component';
+import { ProfileImageComponent } from '../../../shared/ui/profile-image.component';
+
 @Component({
   selector: 'sp-property-contact',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, VerificationBadgeComponent],
+  imports: [ReactiveFormsModule, RouterLink, VerificationBadgeComponent, ProfileImageComponent],
   template: `<aside class="contact">
       <p class="label">Advertised by</p>
       <div class="advertiser">
@@ -44,7 +46,10 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
           <h2>{{ advertiser().name }}</h2>
           <p>{{ advertiser().role }}</p>
           @if (advertiser().representative_name) {
-            <small>Listed by {{ advertiser().representative_name }} &middot; Agent</small>
+            <small class="representative">
+              <sp-profile-image [src]="advertiser().representative_image" [name]="advertiser().representative_name!" />
+              <span>Listed by {{ advertiser().representative_name }} &middot; Agent</span>
+            </small>
           }
         </div>
       </div>
@@ -166,7 +171,7 @@ export class PropertyContactComponent {
         verification_status: property.agency.verification_status,
         profile_slug: property.agency.slug,
         representative_name: property.agent?.name ?? null,
-        representative_image: null,
+        representative_image: property.agent?.avatar ?? null,
       };
     }
     if (property.agent) {
@@ -174,7 +179,7 @@ export class PropertyContactComponent {
         kind: 'AGENT',
         name: property.agent.name,
         role: 'Property agent',
-        image: null,
+        image: property.agent.avatar ?? null,
         verification_status: property.agent.verification_status,
         profile_slug: null,
         representative_name: null,

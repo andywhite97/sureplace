@@ -3,6 +3,7 @@ export interface VerificationBadge {
   label: string;
 }
 export interface PropertyCard {
+  advertiser?: PropertyAdvertiser;
   id: string;
   public_id: string;
   slug: string;
@@ -29,6 +30,7 @@ export interface PropertyCard {
   created_at: string;
 }
 export interface StayCard {
+  host?: StayHost;
   id: string;
   public_id: string;
   slug: string;
@@ -70,6 +72,7 @@ export interface PropertyAmenity {
   category: string;
 }
 export interface AdvertiserAgent {
+  avatar?: string | null;
   id: string;
   name: string;
   whatsapp_number: string;

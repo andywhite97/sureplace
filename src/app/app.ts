@@ -6,6 +6,7 @@ import { FooterComponent } from './layout/footer.component';
 import { MobileNavigationComponent } from './layout/mobile-navigation.component';
 import { ToastRegionComponent } from './layout/toast-region.component';
 import { CookieConsentComponent } from './layout/cookie-consent.component';
+import { BackendKeepAliveService } from './core/services/backend-keep-alive.service';
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -25,9 +26,11 @@ import { CookieConsentComponent } from './layout/cookie-consent.component';
 })
 export class App {
   private router = inject(Router);
+  private keepAlive = inject(BackendKeepAliveService);
   private url = signal(this.router.url);
   staffWorkspace = computed(() => /^\/staff(?:\/|[?#]|$)/.test(this.url()));
   constructor() {
+    this.keepAlive.start();
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event instanceof NavigationEnd) this.url.set(event.urlAfterRedirects);
     });

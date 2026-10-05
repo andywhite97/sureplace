@@ -11,7 +11,7 @@
   </header>
 
   <section class="mobile-profile-card" aria-label="Your profile">
-    <span class="profile-avatar" aria-hidden="true">{{ initials() }}</span>
+    <sp-profile-image class="profile-avatar" [src]="auth.user()?.avatar" [name]="profileName()" />
     <div>
       <p>My Profile</p>
       <strong>{{ profileName() }}</strong>

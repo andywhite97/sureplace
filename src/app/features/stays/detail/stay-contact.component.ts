@@ -9,10 +9,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { VerificationBadgeComponent } from '../../../shared/ui/verification-badge.component';
 
+import { ProfileImageComponent } from '../../../shared/ui/profile-image.component';
+
 @Component({
   selector: 'sp-stay-contact',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, VerificationBadgeComponent],
+  imports: [ReactiveFormsModule, RouterLink, VerificationBadgeComponent, ProfileImageComponent],
   template: `<aside>
       <div class="host-heading">
         <span class="host-avatar" aria-hidden="true">
@@ -32,7 +34,10 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
           <h2>{{ host().name }}</h2>
           <p class="managed-by">{{ host().role }}</p>
           @if (host().representative_name) {
-            <p class="representative">Managed by {{ host().representative_name }}</p>
+            <p class="representative">
+              <sp-profile-image [src]="host().representative_image" [name]="host().representative_name!" />
+              <span>Managed by {{ host().representative_name }}</span>
+            </p>
           }
         </div>
       </div>
@@ -122,6 +127,8 @@ import { VerificationBadgeComponent } from '../../../shared/ui/verification-badg
         align-items: center;
         gap: 0.7rem;
       }
+      .representative { display:flex; align-items:center; gap:.45rem; }
+      .representative sp-profile-image { --profile-image-size:1.75rem; }
       .host-avatar {
         display: grid;
         place-items: center;

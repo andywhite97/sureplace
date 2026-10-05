@@ -10,10 +10,12 @@ import { MessagingApiService } from '../../core/api/messaging-api.service';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { ToastService } from '../../core/services/toast.service';
 
+import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
+
 @Component({
   selector: 'sp-agents',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProfileImageComponent],
   template: `
     <section class="agents-page">
       <header class="page-header">
@@ -139,6 +141,9 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
 
               <div class="agency-row">
+                @if (agent.agency; as agency) {
+                  <sp-profile-image [src]="agency.logo" [name]="agency.name" [agency]="true" />
+                }
                 <span class="agency-name">{{ agent.agency?.name || 'Independent agent' }}</span>
                 @if (agent.verified_agency && agent.agency) {
                   <span class="badge verified-agency"><i class="fa-solid fa-shield-check"></i> Verified Agency</span>

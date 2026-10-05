@@ -232,3 +232,6 @@ h2 {
     border-radius: 0.9rem 0.9rem 0.75rem 0.75rem;
   }
 }
+
+.advertiser small.representative { display:flex; align-items:center; gap:.45rem; }
+.representative sp-profile-image { --profile-image-size:1.75rem; }

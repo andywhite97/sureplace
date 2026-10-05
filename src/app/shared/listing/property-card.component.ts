@@ -9,6 +9,7 @@ import { SmartImageComponent } from '../ui/smart-image.component';
 import { VerificationBadgeComponent } from '../ui/verification-badge.component';
 import { AvailabilityStatusComponent } from '../ui/availability-status.component';
 import { IconComponent } from '../ui/icon.component';
+import { ListingIdentityComponent } from './listing-identity.component';
 import { formatMoney } from './price-format';
 @Component({
   selector: 'sp-property-card',
@@ -19,6 +20,7 @@ import { formatMoney } from './price-format';
     VerificationBadgeComponent,
     AvailabilityStatusComponent,
     IconComponent,
+    ListingIdentityComponent,
   ],
   template: `<article
     role="link"
@@ -69,6 +71,7 @@ import { formatMoney } from './price-format';
           <span><sp-icon name="car" />{{ item().parking_spaces }} parking</span>
         }
       </div>
+      <sp-listing-identity [identity]="item().advertiser" />
       @if (item().verification_badges[0]; as badge) {
         <sp-verification-badge [label]="badge.label" />
       }

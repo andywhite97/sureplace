@@ -8,12 +8,13 @@ import { ToastService } from '../../core/services/toast.service';
 import { SmartImageComponent } from '../ui/smart-image.component';
 import { VerificationBadgeComponent } from '../ui/verification-badge.component';
 import { IconComponent } from '../ui/icon.component';
+import { ListingIdentityComponent } from './listing-identity.component';
 import { formatMoney } from './price-format';
 
 @Component({
   selector: 'sp-stay-card',
   standalone: true,
-  imports: [RouterLink, SmartImageComponent, VerificationBadgeComponent, IconComponent],
+  imports: [RouterLink, SmartImageComponent, VerificationBadgeComponent, IconComponent, ListingIdentityComponent],
   template: `<article>
     <div class="visual">
       <a [routerLink]="['/stays', item().slug]" [attr.aria-label]="'View ' + item().name">
@@ -46,6 +47,7 @@ import { formatMoney } from './price-format';
           {{ item().available_room_type_count }} room type{{ item().available_room_type_count === 1 ? '' : 's' }} available
         </p>
       }
+      <sp-listing-identity [identity]="item().host" />
       @if (item().verification_badges[0]; as badge) {
         <sp-verification-badge [label]="badge.label" />
       }
