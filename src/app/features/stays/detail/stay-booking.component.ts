@@ -257,6 +257,33 @@ export interface BookingCriteria {
       .primary:disabled {
         opacity: 0.45;
       }
+      .booking button.primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        grid-template-columns: none;
+        width: 100%;
+        min-width: 0;
+        min-height: 50px;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0.8rem 1rem;
+        border-radius: 0.8rem;
+        font: inherit;
+        font-weight: 750;
+        line-height: 1.2;
+        white-space: nowrap;
+        cursor: pointer;
+        box-shadow: 0 6px 16px rgba(15, 157, 131, 0.18);
+      }
+      .booking button.primary:focus-visible {
+        outline: 3px solid rgba(15, 157, 131, 0.35);
+        outline-offset: 3px;
+      }
+      .booking button.primary:disabled {
+        cursor: not-allowed;
+        box-shadow: none;
+      }
       .error {
         color: #a33;
       }

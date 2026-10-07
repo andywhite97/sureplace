@@ -387,6 +387,16 @@
   margin: 0;
 }
 
+.location-layout .directions-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.location-layout .directions-link span { min-width:0; text-align:center; }
+.location-layout aside .directions-link i { flex:none; color:inherit; }
+
 .policies > div {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -871,7 +881,7 @@
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.65rem;
     padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
@@ -895,19 +905,6 @@
     color: var(--midnight);
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .mobile-booking a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 48px;
-    border-radius: 0.8rem;
-    background: var(--teal);
-    color: #fff;
-    padding: 0.78rem 1rem;
-    text-decoration: none;
-    font-weight: 900;
   }
 
   .mobile-booking button {

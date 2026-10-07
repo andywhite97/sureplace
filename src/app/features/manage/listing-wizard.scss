@@ -529,6 +529,21 @@ figcaption.failed {
   color: #9b2525;
 }
 
+.photos figure.upload-failed {
+  outline: 2px solid #9b2525;
+  outline-offset: 2px;
+}
+
+.availability-confirmation {
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.9rem;
+  border:1px solid var(--line);
+  border-radius:.7rem;
+}
+.availability-confirmation input { width:1.2rem; min-height:1.2rem; }
+
 figcaption.uploaded {
   color: var(--teal);
 }

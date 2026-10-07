@@ -49,7 +49,8 @@ describe('PropertySearchComponent', () => {
     const fixture = TestBed.createComponent(PropertySearchComponent);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector('.location-control')?.textContent).toContain('Ezulwini');
+    expect(element.querySelector('.location-control')).toBeNull();
+    expect(element.querySelector('.toolbar select')).toBeNull();
     expect(element.querySelector('.mobile-count')?.textContent).toContain('41 properties');
     expect(element.querySelector('.mobile-segment .active')?.textContent).toContain('Rent');
     expect(element.querySelector('.mobile-view-toggle .active')?.textContent).toContain('List');
@@ -75,6 +76,34 @@ describe('PropertySearchComponent', () => {
     expect(navigate.mock.calls.at(-1)?.[0].toString()).toContain('property_type=HOUSE');
     fixture.componentInstance.applyBounds({ north: '-26', south: '-27', east: '32', west: '31' });
     expect(navigate.mock.calls.at(-1)?.[0].toString()).toContain('north=-26');
+  });
+
+  it('opens all additional filters in a modal and applies sorting and location together', () => {
+    const fixture = TestBed.createComponent(PropertySearchComponent);
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    const open = vi.fn(() => dialog.setAttribute('open', ''));
+    const close = vi.fn(() => dialog.removeAttribute('open'));
+    Object.defineProperty(dialog, 'showModal', { value: open });
+    Object.defineProperty(dialog, 'close', { value: close });
+    fixture.nativeElement.querySelector('.more-filter').click();
+    expect(open).toHaveBeenCalled();
+    expect(fixture.componentInstance.filtersOpen()).toBe(true);
+    expect(dialog.querySelector('[formControlName="ordering"]')).not.toBeNull();
+    expect(dialog.querySelector('[formControlName="region"]')).not.toBeNull();
+    expect(dialog.querySelector('[formControlName="search"]')).not.toBeNull();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    fixture.componentInstance.form.patchValue({ town: 'Mbabane', ordering: 'price_asc' });
+    fixture.componentInstance.apply();
+    expect(navigate.mock.calls.at(-1)?.[0].toString()).toContain('town=Mbabane');
+    expect(navigate.mock.calls.at(-1)?.[0].toString()).toContain('ordering=price_asc');
+    expect(close).toHaveBeenCalled();
+    expect(fixture.componentInstance.filtersOpen()).toBe(false);
+    fixture.componentInstance.openFilters();
+    fixture.componentInstance.form.controls.town.setValue('Unapplied change');
+    dialog.dispatchEvent(new Event('cancel'));
+    expect(fixture.componentInstance.form.controls.town.value).toBe('Ezulwini');
+    expect(fixture.componentInstance.filtersOpen()).toBe(false);
   });
 
   it('renders matching mobile skeletons while loading', () => {

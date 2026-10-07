@@ -56,6 +56,9 @@ export class PropertyManagementApiService {
       {},
     );
   }
+  markUnavailable(id: string) {
+    return this.api.post<ManagedProperty>(`/properties/${encodeURIComponent(id)}/mark-unavailable/`, {});
+  }
   uploadImage(id: string, data: FormData) {
     return this.api.post<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, data);
   }

@@ -437,12 +437,14 @@
               <div class="destination-actions">
                 <a class="destination-count" routerLink="/properties" [queryParams]="{ town: destination.name }" [attr.aria-label]="'View properties in ' + destination.name">
                   <i class="fa-solid fa-house" aria-hidden="true"></i>
-                  @if (destinationCount(destination, 'properties') !== null) { <span>{{ destinationCount(destination, 'properties') }} properties</span> } @else { <span>Properties</span> }
+                  <span class="destination-label">Properties</span>
+                  @if (destinationCount(destination, 'properties') !== null) { <span class="destination-total">{{ destinationCount(destination, 'properties') }}</span> }
                 </a>
                 @if (config.config().features.stays) {
                   <a class="destination-count" routerLink="/stays" [queryParams]="{ town: destination.name }" [attr.aria-label]="'View stays in ' + destination.name">
                     <i class="fa-solid fa-bed" aria-hidden="true"></i>
-                    @if (destinationCount(destination, 'stays') !== null) { <span>{{ destinationCount(destination, 'stays') }} stays</span> } @else { <span>Stays</span> }
+                    <span class="destination-label">Stays</span>
+                    @if (destinationCount(destination, 'stays') !== null) { <span class="destination-total">{{ destinationCount(destination, 'stays') }}</span> }
                   </a>
                 }
                 <a

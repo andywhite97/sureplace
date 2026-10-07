@@ -588,3 +588,36 @@ legend {
     padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
   }
 }
+
+.stay-search-page .compact-stay-controls {
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);
+  gap:.55rem; max-width:1200px; margin:auto; padding:.65rem 1.25rem; align-items:stretch;
+}
+.stay-search-page .stay-view-toggle {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:.2rem;
+  border:1px solid var(--line); border-radius:.7rem; background:var(--mist);
+}
+.stay-search-page .compact-stay-controls button {
+  min-width:0; min-height:44px; display:flex; align-items:center; justify-content:center;
+  gap:.4rem; padding:.5rem .6rem; border:0; border-radius:.55rem; background:transparent;
+  font:inherit; font-weight:750; color:var(--midnight); cursor:pointer;
+}
+.stay-search-page .compact-stay-controls button.active { background:var(--teal); color:#fff; }
+.stay-search-page .compact-stay-controls .stay-filter-trigger { border:1px solid var(--line); background:#fff; }
+.stay-search-page .stay-filter-dialog {
+  width:min(680px,calc(100% - 2rem)); height:auto; max-height:calc(100dvh - 2rem);
+  box-sizing:border-box; border:0; border-radius:1rem; color:var(--midnight); box-shadow:var(--shadow);
+}
+.stay-search-page .stay-filter-dialog:not([open]) { display:none; }
+.stay-search-page .stay-filter-dialog::backdrop { background:rgba(10,30,29,.5); }
+.stay-search-page .stay-filter-dialog header { margin-bottom:1rem; }
+.stay-search-page .stay-filter-dialog h2 { margin:0; font-size:1.25rem; }
+.stay-search-page .stay-filter-dialog label { display:grid; gap:.35rem; min-width:0; font-size:.85rem; font-weight:700; }
+.stay-search-page .stay-filter-dialog .check { display:flex; }
+.stay-search-page .stay-filter-dialog input:not([type=checkbox]),
+.stay-search-page .stay-filter-dialog select { width:100%; min-width:0; min-height:44px; box-sizing:border-box; }
+.stay-search-page .stay-guest-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.6rem; }
+@media(max-width:767px) {
+  .stay-search-page .compact-stay-controls { padding:.65rem .75rem; }
+  .stay-search-page .stay-filter-dialog { width:100%; max-height:88dvh; margin:auto auto 0; border-radius:1.35rem 1.35rem 0 0; }
+}

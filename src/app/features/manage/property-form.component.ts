@@ -69,9 +69,9 @@ type PhotoItem =
       @if (!submitted()) {
         <div class="wizard-top">
           <div class="wizard-nav">
-            <button type="button" (click)="exitWizard()">
+            <button type="button" [disabled]="busy() || submitting()" (click)="back()">
               <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-              Exit listing
+              {{ step() > 0 ? 'Previous: ' + steps[step() - 1].label : 'Back to listing type' }}
             </button>
             <strong>Step {{ step() + 1 }} of {{ steps.length }}</strong>
           </div>
@@ -401,7 +401,7 @@ type PhotoItem =
                   }
                   <div class="photos">
                     @for (img of photoItems(); track img.token; let i = $index) {
-                      <figure>
+                      <figure [class.upload-failed]="img.status === 'failed'">
                         @if (img.isCover) {
                           <span class="cover-badge" aria-label="Current cover image">
                             <i class="fa-solid fa-check" aria-hidden="true"></i>
@@ -527,6 +527,11 @@ type PhotoItem =
                       Loading your listing...
                     </div>
                   }
+                  <label class="availability-confirmation">
+                    <input type="checkbox" formControlName="available" />
+                    This property is currently available
+                  </label>
+                  <p class="hint">Confirm availability every 2 weeks. If you do not confirm within 3 weeks, your property will be marked unavailable and hidden from search results.</p>
                   @if (reviewWarnings().length) {
                     <div class="error-summary" tabindex="-1">
                       <strong>{{ reviewWarnings().length }} items still need attention</strong>
@@ -721,6 +726,7 @@ export class PropertyFormComponent implements OnDestroy {
     pet_friendly: [false],
     amenities: [[] as string[]],
     confirmed: [false, Validators.requiredTrue],
+    available: [true],
   });
   current = computed(() => this.steps[this.step()]);
   progress = computed(() => ((this.step() + 1) / this.steps.length) * 100);
@@ -825,6 +831,7 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   async continue() {
+    if (this.busy() || this.submitting() || this.submitted()) return;
     if (!this.validateStep(this.step())) return;
     if (this.step() === 2 || this.listing()) {
       const saved = await this.persistDraft(true);
@@ -832,6 +839,7 @@ export class PropertyFormComponent implements OnDestroy {
     }
     if (this.current().key === 'photos' && !(await this.uploadQueuedImages())) return;
     if (this.current().key === 'review' && this.isPublishedListing()) {
+      if (!(await this.saveAvailability())) return;
       void this.router.navigate(['/account/manage/properties']);
       return;
     }
@@ -974,6 +982,7 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   async retryFailedUploads() {
+    if (this.busy() || this.submitting()) return;
     this.error.set('');
     this.uploadProgress.set('Retrying failed uploads...');
     this.pendingImages.update((images) =>
@@ -981,7 +990,9 @@ export class PropertyFormComponent implements OnDestroy {
         image.status === 'failed' ? { ...image, status: 'pending', error: undefined } : image,
       ),
     );
-    await this.uploadQueuedImages();
+    if (await this.uploadQueuedImages()) {
+      if (this.current().key === 'photos') await this.moveToStep(this.step() + 1, 'forward');
+    }
   }
 
   movePhoto(token: string, direction: -1 | 1) {
@@ -1060,6 +1071,7 @@ export class PropertyFormComponent implements OnDestroy {
     if (!(await this.uploadQueuedImages())) return;
     const id = this.listing()?.id;
     if (!id) return;
+    if (!(await this.saveAvailability())) return;
     this.submitting.set(true);
     this.api
       .submit(id)
@@ -1202,6 +1214,7 @@ export class PropertyFormComponent implements OnDestroy {
           furnished: property.furnished,
           pet_friendly: property.pet_friendly,
           amenities: property.amenities.map((a) => a.id),
+          available: property.availability_status !== 'UNAVAILABLE',
         },
         { emitEvent: false },
       );
@@ -1230,7 +1243,13 @@ export class PropertyFormComponent implements OnDestroy {
         ? this.api.update(this.id || this.listing()!.id, this.payload())
         : this.api.create(this.payload());
     try {
-      const property = await firstValueFrom(request);
+      const response = await firstValueFrom(request);
+      // Write responses omit photos; retain them until a detail response refreshes the listing.
+      const property = {
+        ...this.listing(),
+        ...response,
+        images: response.images ?? this.listing()?.images ?? [],
+      };
       const created = !this.id;
       this.listing.set(property);
       this.syncPhotoOrder(property);
@@ -1259,6 +1278,23 @@ export class PropertyFormComponent implements OnDestroy {
       this.form.controls.property_type.valid &&
       this.form.controls.price.valid
     );
+  }
+
+  private async saveAvailability() {
+    const id = this.listing()?.id;
+    if (!id) return false;
+    this.busy.set(true);
+    try {
+      const request = this.form.controls.available.value
+        ? this.api.confirmAvailability(id) : this.api.markUnavailable(id);
+      this.listing.set(await firstValueFrom(request));
+      return true;
+    } catch {
+      this.error.set('Availability could not be saved. Please try again.');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   private refresh() {
@@ -1313,8 +1349,7 @@ export class PropertyFormComponent implements OnDestroy {
 
   private async uploadQueuedImages() {
     if (!this.pendingImages().length) {
-      await this.persistPhotoOrder();
-      return true;
+      return this.persistPhotoOrder();
     }
     const property = await this.persistDraft(false);
     const id = property?.id || this.listing()?.id;
@@ -1328,7 +1363,7 @@ export class PropertyFormComponent implements OnDestroy {
     let failed = 0;
     const total = pendingTokens.length;
     if (!total) {
-      await this.persistPhotoOrder();
+      if (!(await this.persistPhotoOrder())) return false;
       this.error.set('');
       this.uploadProgress.set('');
       return true;
@@ -1344,31 +1379,34 @@ export class PropertyFormComponent implements OnDestroy {
         const data = new FormData();
         data.set('image', pending.file);
         data.set('sort_order', String(index));
+        let image: PropertyImage;
         try {
-          const image = await firstValueFrom(this.api.uploadImage(id, data));
-          uploaded += 1;
-          URL.revokeObjectURL(pending.previewUrl);
-          this.pendingImages.update((items) =>
-            items.filter((item) => item.localId !== pending.localId),
-          );
-          this.listing.update((current) => (current ? this.withImage(current, image) : current));
-          this.photoOrder.update((items) =>
-            items.map((item) => (item === token ? this.persistedToken(image.id) : item)),
-          );
+          image = await firstValueFrom(this.api.uploadImage(id, data));
         } catch {
           failed += 1;
           this.markPending(pending.localId, {
             status: 'failed',
             error: `${pending.file.name} failed to upload.`,
           });
+          continue;
         }
+        uploaded += 1;
+        this.listing.update((current) => (current ? this.withImage(current, image) : current));
+        this.photoOrder.update((items) =>
+          items.map((item) => (item === token ? this.persistedToken(image.id) : item)),
+        );
+        this.pendingImages.update((items) =>
+          items.filter((item) => item.localId !== pending.localId),
+        );
+        URL.revokeObjectURL(pending.previewUrl);
       }
-      await this.persistPhotoOrder();
+      const orderSaved = await this.persistPhotoOrder();
       if (failed) {
         this.error.set(this.uploadFailureMessage(uploaded, failed, total));
         this.uploadProgress.set('Retry failed uploads when ready.');
         return false;
       }
+      if (!orderSaved) return false;
       this.error.set('');
       this.uploadProgress.set(
         `${uploaded} photo${uploaded === 1 ? '' : 's'} uploaded successfully.`,
@@ -1392,18 +1430,21 @@ export class PropertyFormComponent implements OnDestroy {
 
   private async persistPhotoOrder() {
     const id = this.listing()?.id;
-    if (!id) return;
+    if (!id) return true;
     const persistedItems = this.photoItems().filter((item) => item.kind === 'persisted');
+    const wasBusy = this.busy();
     this.busy.set(true);
     try {
       for (const [index, image] of persistedItems.entries()) {
-        await firstValueFrom(this.api.updateImage(id, image.id, { sort_order: index }));
+        const updated = await firstValueFrom(this.api.updateImage(id, image.id, { sort_order: index }));
+        this.listing.update((current) => current ? this.withImage(current, updated) : current);
       }
-      if (persistedItems.length) this.refresh();
+      return true;
     } catch {
       this.error.set('Photo order could not be saved.');
+      return false;
     } finally {
-      this.busy.set(false);
+      this.busy.set(wasBusy);
     }
   }
 
@@ -1431,7 +1472,7 @@ export class PropertyFormComponent implements OnDestroy {
   private withImage(property: ManagedProperty, image: PropertyImage): ManagedProperty {
     return {
       ...property,
-      images: [...property.images.filter((item) => item.id !== image.id), image].sort(
+      images: [...(property.images || []).filter((item) => item.id !== image.id), image].sort(
         (a, b) => a.sort_order - b.sort_order,
       ),
     };

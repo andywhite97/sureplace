@@ -172,4 +172,19 @@ describe('Stay final submission', () => {
     expect(c.step()).toBe(6);
     expect(api.update).not.toHaveBeenCalled();
   });
+  it('returns to the previous step from the header and preserves entered details', () => {
+    const fixture = create();
+    const component = fixture.componentInstance;
+    component.step.set(5);
+    component.form.controls.phone.setValue('12345678', { emitEvent: false });
+    const values = component.form.getRawValue();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.wizard-nav button') as HTMLButtonElement;
+    expect(button.textContent).toContain('Previous: Amenities');
+    button.click();
+    fixture.detectChanges();
+    expect(component.step()).toBe(4);
+    expect(component.form.getRawValue()).toEqual(values);
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

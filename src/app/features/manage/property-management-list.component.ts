@@ -107,7 +107,16 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
                   >Updated {{ p.updated_at | date: 'mediumDate' }}</small
                 >
               </div>
+              <p class="availability-help">Confirm every 2 weeks. Without confirmation, the property is marked unavailable after 3 weeks.</p>
               <div class="actions">
+                @if (p.status === 'PUBLISHED' || p.status === 'PAUSED') {
+                  <button [disabled]="availabilityBusy().includes(p.id)" (click)="confirm(p)">
+                    {{ p.availability_status === 'AVAILABLE' ? 'Still available' : 'Mark available' }}
+                  </button>
+                  @if (p.availability_status !== 'UNAVAILABLE') {
+                    <button [disabled]="availabilityBusy().includes(p.id)" (click)="unavailable(p)">Mark unavailable</button>
+                  }
+                }
                 <a class="primary" [routerLink]="['/account/manage/properties', p.id, 'edit']"
                   >Edit</a
                 >
@@ -127,9 +136,6 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
                     @if (p.status === 'PUBLISHED') {
                       <button (click)="pause(p)">Pause listing</button>
                     }
-                    @if (p.status === 'PUBLISHED' || p.status === 'PAUSED') {
-                      <button (click)="confirm(p)">Confirm availability</button>
-                    }
                   </div>
                 </details>
               </div>
@@ -141,6 +147,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
   </section>`,
   styles: [
     `
+      .availability-help { margin:.25rem 0; color:var(--slate); font-size:.78rem; }
       .workspace {
         display: grid;
         gap: 1rem;
@@ -410,6 +417,7 @@ export class PropertyManagementListComponent {
   rows = signal<ManagedProperty[]>([]);
   loading = signal(true);
   error = signal('');
+  availabilityBusy = signal<string[]>([]);
   query = signal('');
   filter = signal('all');
   readonly formatMoney = formatMoney;
@@ -458,7 +466,7 @@ export class PropertyManagementListComponent {
   }
   statusCopy(p: ManagedProperty) {
     return p.status === 'PUBLISHED'
-      ? 'This listing is visible publicly.'
+      ? p.availability_status === 'AVAILABLE' ? 'This listing is visible publicly.' : 'Confirm availability to show this property in search results.'
       : p.status === 'DRAFT'
         ? 'Finish your listing before submitting.'
         : ['SUBMITTED', 'UNDER_REVIEW'].includes(p.status)
@@ -502,10 +510,19 @@ export class PropertyManagementListComponent {
       });
   }
   confirm(p: ManagedProperty) {
-    this.api.confirmAvailability(p.id).subscribe({
+    this.setAvailability(p, true);
+  }
+  unavailable(p: ManagedProperty) {
+    this.setAvailability(p, false);
+  }
+  private setAvailability(p: ManagedProperty, available: boolean) {
+    if (this.availabilityBusy().includes(p.id)) return;
+    this.availabilityBusy.update(ids => [...ids, p.id]);
+    const request = available ? this.api.confirmAvailability(p.id) : this.api.markUnavailable(p.id);
+    request.pipe(finalize(() => this.availabilityBusy.update(ids => ids.filter(id => id !== p.id)))).subscribe({
       next: (x) => {
         this.replace(x);
-        this.toast.show('Property availability confirmed.', 'success');
+        this.toast.show(available ? 'Property availability confirmed.' : 'Property marked unavailable.', 'success');
       },
       error: () => this.toast.show('Availability could not be confirmed.', 'error'),
     });

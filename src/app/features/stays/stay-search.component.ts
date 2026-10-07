@@ -1,4 +1,4 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
@@ -51,6 +51,16 @@ export class StaySearchComponent {
   loading = signal(true);
   error = signal<{ message: string; requestId: string | null } | null>(null);
   filtersOpen = signal(false);
+  private filterDialog = viewChild<ElementRef<HTMLDialogElement>>('filterDialog');
+  openFilters() {
+    this.filterDialog()?.nativeElement.showModal();
+    this.filtersOpen.set(true);
+  }
+  closeFilters(applied = false) {
+    if (!applied) this.patch(this.state());
+    this.filterDialog()?.nativeElement.close?.();
+    this.filtersOpen.set(false);
+  }
   guestsOpen = signal(false);
   selectedId = signal<string | null>(null);
   dateError = signal<string | null>(null);
@@ -137,6 +147,7 @@ export class StaySearchComponent {
       dates = this.query.validateDates(v.check_in, v.check_out);
     this.dateError.set(dates.message);
     if (!dates.valid) return;
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     if (v.max_price !== '' && Number(v.min_price) > Number(v.max_price)) {
       this.form.controls.max_price.setErrors({ range: true });
       return;
@@ -162,7 +173,7 @@ export class StaySearchComponent {
       view: this.state().view,
       page: 1,
     });
-    this.filtersOpen.set(false);
+    this.closeFilters(true);
     this.guestsOpen.set(false);
   }
   changeGuest(key: 'adults' | 'children' | 'rooms', delta: number) {
@@ -219,6 +230,8 @@ export class StaySearchComponent {
     void this.navigate(n as StaySearchParams);
   }
   clearAll() {
+    this.form.reset({ ordering: 'newest' });
+    this.dateError.set(null);
     void this.navigate({ view: this.state().view });
   }
   searchAllAreas() {
@@ -247,7 +260,7 @@ export class StaySearchComponent {
       });
   }
   @HostListener('document:keydown.escape') closeOverlays() {
-    this.filtersOpen.set(false);
+    if (this.filtersOpen()) this.closeFilters();
     this.guestsOpen.set(false);
   }
   private navigate(v: StaySearchParams) {

@@ -67,10 +67,10 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 
           <div class="actions-wrap">
             <button type="button" class="primary" (click)="message()"><i class="fa-regular fa-message" aria-hidden="true"></i> Message</button>
-            @if (profile.phone) {
-              <a class="secondary" [href]="'tel:' + profile.phone"><i class="fa-solid fa-phone" aria-hidden="true"></i> Call</a>
-            }
             <button type="button" class="secondary" (click)="share()"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i> Share</button>
+            @if (profile.phone) {
+              <a class="secondary call-action" [href]="'tel:' + profile.phone"><i class="fa-solid fa-phone" aria-hidden="true"></i> Call</a>
+            }
           </div>
         </header>
 
@@ -190,7 +190,9 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
     .badge { display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; width:max-content; }
     .verified-agent { background: rgba(40,120,208,.12); color:var(--verification); }
     .verified-agency { background: rgba(15,157,131,.12); color: var(--teal); }
-    .actions-wrap { min-width:10rem; display:grid; align-content:start; gap:.55rem; }
+    .actions-wrap { min-width:17rem; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; gap:.55rem; }
+    .actions-wrap .call-action { grid-column:1 / -1; }
+    .actions-wrap > button, .actions-wrap > a { min-height:44px; min-width:0; box-sizing:border-box; }
     button.primary, a.primary, a.secondary, button.secondary { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; padding:.8rem 1rem; border-radius:.7rem; font-weight:750; text-decoration:none; border:1px solid transparent; }
     button.primary, a.primary { background: linear-gradient(135deg, var(--teal), #078e82); color:#fff; box-shadow:0 8px 16px rgba(15,157,131,.18); }
     a.secondary, button.secondary { background:#fff; border-color: rgba(21,43,42,.12); color: var(--midnight); }
@@ -240,8 +242,8 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
     .skeleton.line { height:1rem; width: 14rem; }
     .skeleton.line.short { width: 9rem; }
     @keyframes shimmer { 100% { transform:translateX(100%); } }
-    @media (max-width: 860px) { .content-grid { grid-template-columns:1fr; } .listing-row { grid-template-columns:repeat(2, minmax(0,1fr)); } .hero { flex-direction:column; } .actions-wrap { grid-template-columns:repeat(3, minmax(0,1fr)); width:100%; } }
-    @media (max-width: 560px) { .page { padding:.9rem .7rem 3rem; } .hero { padding:1.1rem; } .identity-block { flex-direction:column; } .actions-wrap { grid-template-columns:repeat(2, minmax(0,1fr)); } .actions-wrap .primary { grid-column:1 / -1; } .listing-row { display:flex; overflow-x:auto; padding-bottom:.3rem; scroll-snap-type:x proximity; } .listing-card { flex:0 0 min(78vw, 18rem); scroll-snap-align:start; } .area-list { grid-template-columns:1fr; } }
+    @media (max-width: 860px) { .content-grid { grid-template-columns:1fr; } .listing-row { grid-template-columns:repeat(2, minmax(0,1fr)); } .hero { flex-direction:column; } .actions-wrap { min-width:0; width:100%; } }
+    @media (max-width: 560px) { .page { padding:.9rem .7rem 3rem; } .hero { padding:1.1rem; } .identity-block { flex-direction:column; } .actions-wrap { grid-template-columns:repeat(2, minmax(0,1fr)); } .actions-wrap .call-action { grid-column:1 / -1; } .listing-row { display:flex; overflow-x:auto; padding-bottom:.3rem; scroll-snap-type:x proximity; } .listing-card { flex:0 0 min(78vw, 18rem); scroll-snap-align:start; } .area-list { grid-template-columns:1fr; } }
   `,
 })
 export class AgentProfileComponent {

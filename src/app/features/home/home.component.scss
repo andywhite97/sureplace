@@ -1134,15 +1134,34 @@
     font-size: 1.45rem;
   }
   .destination-actions {
-    gap: 0.4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
   }
   .destination-actions a {
-    min-height: 32px;
-    padding: 0.42rem 0.58rem;
-    font-size: 0.78rem;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 0.55rem 0.65rem;
+    margin: 0;
+    border-radius: 0.65rem;
+    border-color: rgba(255, 255, 255, 0.24);
+    font-size: 0.75rem;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .destination-actions i {
+    flex: none;
+    width: 1rem;
+    text-align: center;
+  }
+  .destination-total {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
   }
   .destination-actions .destination-arrow {
-    width: 36px;
-    min-width: 36px;
+    display: none;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
@@ -50,6 +50,16 @@ export class PropertySearchComponent {
   loading = signal(true);
   error = signal<{ message: string; requestId: string | null } | null>(null);
   filtersOpen = signal(false);
+  private filterDialog = viewChild<ElementRef<HTMLDialogElement>>('filterDialog');
+  openFilters() {
+    this.filterDialog()?.nativeElement.showModal();
+    this.filtersOpen.set(true);
+  }
+  closeFilters(applied = false) {
+    if (!applied) this.patch(this.state());
+    this.filterDialog()?.nativeElement.close?.();
+    this.filtersOpen.set(false);
+  }
   moreOpen = signal(false);
   selectedId = signal<string | null>(null);
   pageSize = 20;
@@ -175,7 +185,7 @@ export class PropertySearchComponent {
       page: 1,
     };
     void this.navigate(params);
-    this.filtersOpen.set(false);
+    this.closeFilters(true);
     this.moreOpen.set(false);
   }
   setMode(mode: 'RENT' | 'SALE') {
@@ -208,6 +218,7 @@ export class PropertySearchComponent {
     void this.navigate(next as PropertySearchParams);
   }
   clearAll() {
+    this.form.reset({ listing_type: this.state().listing_type || 'RENT', ordering: 'newest' });
     void this.navigate({ listing_type: this.state().listing_type, view: this.state().view });
   }
   searchAllAreas() {

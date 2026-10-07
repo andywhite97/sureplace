@@ -33,9 +33,9 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
       @if (!submitted()) {
         <div class="wizard-top">
           <div class="wizard-nav">
-            <button type="button" (click)="back()">
+            <button type="button" [disabled]="busy() || roomBusy() || submitting()" (click)="back()">
               <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-              {{ current().key === 'rooms' ? 'Previous: Policies' : 'Back' }}
+              {{ step() > 0 ? 'Previous: ' + steps[step() - 1].label : 'Back to listing type' }}
             </button>
             <strong>Step {{ step() + 1 }} of {{ steps.length }}</strong>
           </div>

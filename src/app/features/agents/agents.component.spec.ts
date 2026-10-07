@@ -60,4 +60,27 @@ describe('AgentsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Find an agent');
     expect(fixture.nativeElement.textContent).toContain('1 agent found');
   });
+
+  it('opens the filters separately, shows active filters, and resets them without clearing search', () => {
+    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    const showModal = vi.fn(() => dialog.setAttribute('open', ''));
+    const close = vi.fn(() => dialog.removeAttribute('open'));
+    Object.defineProperty(dialog, 'showModal', { value: showModal });
+    Object.defineProperty(dialog, 'close', { value: close });
+    expect(dialog.hasAttribute('open')).toBe(false);
+    expect(fixture.nativeElement.querySelector('.toolbar .filters')).toBeNull();
+    fixture.nativeElement.querySelector('.filter-trigger').click();
+    expect(showModal).toHaveBeenCalled();
+    fixture.componentInstance.form.patchValue({ search: 'Thandiwe', agency: 'g1', verifiedOnly: true });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.filter-count').textContent.trim()).toBe('2');
+    fixture.componentInstance.load();
+    expect(api.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'Thandiwe', agency: 'g1', verified: 'true' }));
+    fixture.nativeElement.querySelector('.filter-reset').click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.form.controls.search.value).toBe('Thandiwe');
+    expect(fixture.componentInstance.activeFilterCount()).toBe(0);
+    fixture.nativeElement.querySelector('.filter-dialog-actions .primary').click();
+    expect(close).toHaveBeenCalled();
+  });
 });

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, finalize, of, startWith } from 'rxjs';
@@ -27,23 +28,29 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
       </header>
 
       <div class="toolbar panel">
-        <div class="toolbar-heading">
-          <div>
-            <span class="toolbar-kicker"><i class="fa-solid fa-compass" aria-hidden="true"></i> Agent directory</span>
-            <p>Search by person, agency or the area you want to call home.</p>
-          </div>
-          <span class="directory-mark"><i class="fa-solid fa-user-check" aria-hidden="true"></i></span>
-        </div>
+        <div class="search-row">
         <label class="search-field">
           <span class="sr-only">Search agents</span>
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
           <input
             [formControl]="form.controls.search"
             type="search"
-            placeholder="Search by agent name, agency or town..."
+            placeholder="Name, agency or town"
           />
         </label>
+        <button type="button" class="filter-trigger" aria-haspopup="dialog" (click)="openFilters()">
+          <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+          Filters @if (activeFilterCount()) { <span class="filter-count">{{ activeFilterCount() }}</span> }
+        </button>
+        </div>
+      </div>
 
+      <dialog #filterDialog class="filter-dialog" aria-labelledby="agent-filter-title" (click)="$event.target === $event.currentTarget && closeFilters()">
+        <div class="filter-dialog-content" (click)="$event.stopPropagation()">
+        <header class="filter-dialog-heading">
+          <h2 id="agent-filter-title">Filter agents</h2>
+          <button type="button" class="filter-close" aria-label="Close filters" (click)="closeFilters()"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </header>
         <div class="filters">
           <label>
             <span>Region</span>
@@ -75,11 +82,6 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
             </select>
           </label>
 
-          <label class="check">
-            <input type="checkbox" [formControl]="form.controls.verifiedOnly" />
-            <span>Verified only</span>
-          </label>
-
           <label>
             <span>Sort</span>
             <select [formControl]="form.controls.ordering">
@@ -89,8 +91,17 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
               <option value="newest">Newest</option>
             </select>
           </label>
+          <label class="check">
+            <input type="checkbox" [formControl]="form.controls.verifiedOnly" />
+            <span>Verified only</span>
+          </label>
         </div>
-      </div>
+        <footer class="filter-dialog-actions">
+          <button type="button" class="filter-reset" (click)="resetExtraFilters()">Reset filters</button>
+          <button type="button" class="primary" (click)="closeFilters()">Show agents</button>
+        </footer>
+        </div>
+      </dialog>
 
       @if (loading()) {
         <div class="grid loading-grid" aria-live="polite" aria-busy="true">
@@ -189,21 +200,36 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
     h1 { margin: 0; color:#fff; letter-spacing:-.04em; font-size: clamp(2.2rem, 4vw, 3.5rem); }
     .subtitle { max-width:37rem; margin: .65rem 0 0; color:rgba(255,255,255,.9); font-size: 1.06rem; line-height:1.55; }
     .panel { background: rgba(255,255,255,.9); border: 1px solid rgba(21,43,42,.08); border-radius: 1.15rem; box-shadow: 0 16px 38px rgba(21,43,42,.07); }
-    .toolbar { padding: 1.15rem; display: grid; gap: 1rem; }
+    .toolbar { padding: .85rem; display: grid; gap: .65rem; }
+    .search-row { display:flex; align-items:stretch; gap:.55rem; }
+    .search-row .search-field { flex:1; min-width:0; }
+    .filter-trigger { display:inline-flex; align-items:center; justify-content:center; gap:.4rem; flex:none; padding:.5rem .65rem; border:1px solid rgba(21,43,42,.12); border-radius:.65rem; background:#fff; color:var(--midnight); font:inherit; font-size:.85rem; font-weight:750; cursor:pointer; }
+    .filter-count { display:grid; place-items:center; width:1.25rem; height:1.25rem; border-radius:50%; background:var(--teal); color:#fff; font-size:.7rem; }
+    .filter-dialog { display:none; width:min(32rem,calc(100% - 2rem)); max-height:calc(100dvh - 2rem); box-sizing:border-box; overflow:auto; padding:0; border:0; border-radius:1rem; color:var(--midnight); background:#fff; box-shadow:0 24px 80px #0004; }
+    .filter-dialog[open] { display:block; }
+    .filter-dialog::backdrop { background:rgba(10,30,28,.55); }
+    .filter-dialog-content { padding:1.1rem; }
+    .filter-dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+    .filter-dialog-heading h2 { margin:0; font-size:1.2rem; }
+    .filter-close { display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:.6rem; background:var(--mist); color:var(--midnight); cursor:pointer; }
+    .filter-dialog .filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .filter-dialog .check { grid-column:1 / -1; }
+    .filter-dialog-actions { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-top:1rem; }
+    .filter-reset { min-height:44px; padding:.5rem .2rem; border:0; background:transparent; color:var(--teal); font:inherit; font-weight:700; cursor:pointer; }
     .toolbar-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
     .toolbar-kicker { display:inline-flex; align-items:center; gap:.45rem; color:var(--teal); font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
     .toolbar-heading p { margin:.28rem 0 0; color:var(--slate); font-size:.9rem; }
     .directory-mark { width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:.8rem; color:var(--teal); background:rgba(15,157,131,.1); }
-    .search-field { display: flex; align-items: center; gap: .75rem; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .9rem; padding: .9rem 1rem; box-shadow:inset 0 1px 0 rgba(21,43,42,.03); }
+    .search-field { display: flex; align-items: center; gap: .55rem; min-height:44px; box-sizing:border-box; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .65rem; padding: .5rem .7rem; box-shadow:inset 0 1px 0 rgba(21,43,42,.03); }
     .search-field:focus-within { border-color:rgba(15,157,131,.75); box-shadow:0 0 0 3px rgba(15,157,131,.12); }
-    .search-field input { flex: 1; border: 0; background: transparent; font: inherit; color: var(--midnight); }
+    .search-field input { flex: 1; min-width:0; width:0; min-height:0; padding:0; border: 0; background: transparent; font: inherit; color: var(--midnight); }
     .search-field i { color: var(--slate); }
-    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .75rem; }
-    .filters label { display: grid; gap: .35rem; font-size: .78rem; color: var(--slate); }
-    .filters select, .filters input { background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .75rem; padding: .7rem .8rem; font: inherit; color: var(--midnight); }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .55rem .65rem; }
+    .filters label { display: grid; min-width:0; gap: .25rem; font-size: .78rem; color: var(--slate); }
+    .filters select { box-sizing:border-box; width:100%; min-width:0; min-height:44px; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .65rem; padding: .5rem .6rem; font: inherit; color: var(--midnight); }
     .filters select:focus, .filters input:focus { outline:2px solid rgba(15,157,131,.25); outline-offset:1px; border-color:var(--teal); }
-    .check { align-self: end; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .75rem; padding: .78rem .8rem; display: flex; align-items: center; gap: .5rem; }
-    .check input { accent-color: var(--teal); }
+    .filters label.check { align-self:end; min-height:44px; display:flex; align-items:center; gap:.5rem; cursor:pointer; }
+    .check input { flex:none; width:18px; height:18px; min-height:0; margin:0; padding:0; accent-color:var(--teal); }
     .meta-row { display: flex; justify-content: flex-end; margin: 1rem 0 .7rem; }
     .result-count { margin:0; padding:.38rem .7rem; border-radius:999px; background:rgba(15,157,131,.09); color:var(--teal); font-size:.82rem; font-weight:800; }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
@@ -227,6 +253,12 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
     .stats-row { font-size: .86rem; }
     .bio { margin: 0; line-height: 1.5; }
     .actions { display: flex; gap: .5rem; margin-top: auto; }
+    .actions > a, .actions > button {
+      display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+      flex:1; min-width:0; min-height:44px; width:auto; max-width:none;
+      box-sizing:border-box; margin:0; grid-template-columns:none;
+      text-align:center; white-space:nowrap; font:inherit; font-size:.85rem; font-weight:750;
+    }
     a.primary, button.primary, button.secondary { border-radius: .8rem; border: 1px solid transparent; padding: .72rem .9rem; font-weight: 750; cursor: pointer; }
     a.primary, button.primary { background: linear-gradient(135deg, var(--teal), #078e82); color: #fff; text-decoration: none; box-shadow:0 7px 14px rgba(15,157,131,.18); }
     button.secondary { background: #fff; border-color: rgba(21,43,42,.12); color: var(--midnight); }
@@ -243,8 +275,19 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
     .skeleton.line.tiny { width: 35%; }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
     @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 640px) { .page-header { padding:1.65rem 1.25rem; border-radius:1rem; } .toolbar-heading p { font-size:.82rem; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actions { flex-direction: column; } .page-header { margin-bottom: 1rem; } }
-    @media (max-width: 430px) { .agents-page { padding-inline:.7rem; } .grid { gap:.6rem; } .agent-card { padding:.7rem; gap:.55rem; } .avatar-fallback, .avatar-wrap img { width:2.65rem; height:2.65rem; } .identity h2 { font-size:.88rem; } .badge { font-size:.61rem; padding:.16rem .35rem; } .agency-name, .service-areas, .stats-row { font-size:.72rem; } .bio { display:none; } .actions { flex-direction:row; gap:.35rem; } a.primary, button.primary, button.secondary { padding:.55rem .35rem; font-size:.7rem; flex:1; } .filters { grid-template-columns: 1fr; } }
+    @media (max-width: 767px) {
+      .page-header { padding:1.65rem 1.25rem; border-radius:1rem; margin-bottom:1rem; }
+      .grid { grid-template-columns:minmax(0,1fr); gap:.85rem; }
+      .agent-card { padding:1rem; gap:.65rem; min-height:0; }
+      .card-top { gap:.85rem; }
+      .identity h2 { font-size:1.1rem; overflow-wrap:anywhere; }
+      .agency-name, .service-areas, .stats-row, .bio { font-size:.85rem; }
+      .bio { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+      .actions { flex-direction:row; gap:.6rem; margin-top:.25rem; }
+      .actions a, .actions button { flex:1; min-height:44px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:.65rem .8rem; font-size:.85rem; text-align:center; }
+    }
+    @media (max-width: 430px) { .agents-page { padding-inline:.7rem; } }
+    @media (max-width: 640px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .filters label.check { grid-column:1 / -1; min-height:36px; } .toolbar-heading p, .directory-mark { display:none; } .search-field input, .filters select { font-size:1rem; } }
   `,
 })
 export class AgentsComponent {
@@ -265,6 +308,18 @@ export class AgentsComponent {
     verifiedOnly: [false],
     ordering: ['relevance'],
   });
+  private filterDialog = viewChild<ElementRef<HTMLDialogElement>>('filterDialog');
+  private filterValues = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  activeFilterCount = computed(() => {
+    const values = this.filterValues();
+    return [values.region, values.town, values.agency, values.verifiedOnly, values.ordering !== 'relevance'].filter(Boolean).length;
+  });
+
+  openFilters() { this.filterDialog()?.nativeElement.showModal(); }
+  closeFilters() { this.filterDialog()?.nativeElement.close(); }
+  resetExtraFilters() {
+    this.form.patchValue({ region: '', town: '', agency: '', verifiedOnly: false, ordering: 'relevance' });
+  }
 
   agents = signal<AgentListItem[]>([]);
   count = signal(0);

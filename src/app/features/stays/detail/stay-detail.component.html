@@ -337,7 +337,7 @@
                     rel="noopener"
                   >
                     <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i>
-                    Open directions in Google Maps
+                    <span>Open directions in Google Maps</span>
                   </a>
                 </aside>
               </div>
@@ -402,7 +402,6 @@
         }}</span>
         <strong>{{ selectedRoom()?.name || 'Check availability' }}</strong>
       </div>
-      <a [href]="selectedRoom() ? '#booking' : '#rooms'">Reserve</a>
       <button type="button" (click)="mobileContact.message()">
         <i class="fa-regular fa-message" aria-hidden="true"></i> Message host
       </button>
