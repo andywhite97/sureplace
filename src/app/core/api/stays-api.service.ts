@@ -35,7 +35,10 @@ export class StaysApiService {
   ) {
     return this.api.get<StayAvailabilityResponse>(
       `/stays/${encodeURIComponent(slugOrId)}/availability/`,
-      Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)])),
+      {
+        ...Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)])),
+        include_unavailable: 'true',
+      },
     );
   }
   createBooking(stayId: string, body: BookingCreateRequest, idempotencyKey: string) {

@@ -1,0 +1,81 @@
+.stay-detail-page {
+  .dates-dialog {
+    width: min(520px, calc(100% - 24px));
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 18px;
+    padding: 24px;
+    color: var(--midnight);
+  }
+  .dates-dialog::backdrop {
+    background: #102c2a88;
+  }
+  .dates-dialog header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dates-dialog form {
+    display: grid;
+    gap: 14px;
+  }
+  .dates-dialog label {
+    display: grid;
+    gap: 6px;
+  }
+  .dates-dialog input {
+    min-width: 0;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .dates-dialog button {
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--teal);
+    color: #fff;
+  }
+  .mobile-booking {
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .mobile-booking strong {
+    font-size: 14px;
+  }
+  .mobile-booking button {
+    width: auto !important;
+  }
+  @media (max-width: 767px) {
+    .dates-dialog {
+      position: fixed;
+      bottom: 0;
+      top: auto;
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
+      border-radius: 20px 20px 0 0;
+      max-height: 90dvh;
+      overflow: auto;
+    }
+  }
+  .mobile-booking {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .mobile-booking {
+      display: flex !important;
+    }
+    .mobile-booking button {
+      background: var(--teal);
+      color: #fff;
+      flex: 1;
+      max-width: 200px;
+    }
+  }
+}

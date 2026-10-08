@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { NotificationsApiService } from '../../core/api/account-api.services';
 import { AccountNotification } from '../../core/models/account.models';
@@ -21,6 +22,7 @@ describe('NotificationsComponent', () => {
 
   function setup(markAllRead = vi.fn(() => of({ updated: 1 }))) {
     const activity = {
+      notificationPage: signal<AccountNotification[] | null>(null),
       markAllNotificationsRead: vi.fn(),
       refresh: vi.fn(),
     };
@@ -59,5 +61,15 @@ describe('NotificationsComponent', () => {
     expect(fixture.componentInstance.items()[0].is_read).toBe(false);
     expect(activity.refresh).toHaveBeenCalledWith(true);
     expect(toast.show).toHaveBeenCalledWith('Notifications could not be marked as read.', 'error');
+  });
+
+  it('adds new notifications from background updates without a page reload', () => {
+    const { fixture, activity, markAllRead } = setup();
+    fixture.detectChanges();
+    activity.notificationPage.set([{ ...notification(), id: 'new', title: 'New booking' }]);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.items()[0].id).toBe('new');
+    expect(fixture.componentInstance.items()[0].is_read).toBe(true);
+    expect(markAllRead).toHaveBeenCalledTimes(2);
   });
 });

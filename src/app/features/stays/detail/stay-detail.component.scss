@@ -394,8 +394,14 @@
   gap: 0.5rem;
   text-align: center;
 }
-.location-layout .directions-link span { min-width:0; text-align:center; }
-.location-layout aside .directions-link i { flex:none; color:inherit; }
+.location-layout .directions-link span {
+  min-width: 0;
+  text-align: center;
+}
+.location-layout aside .directions-link i {
+  flex: none;
+  color: inherit;
+}
 
 .policies > div {
   display: grid;
@@ -888,23 +894,6 @@
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 -16px 36px rgba(21, 43, 42, 0.12);
     isolation: isolate;
-  }
-
-  .mobile-booking div {
-    display: none;
-  }
-
-  .mobile-booking span {
-    color: var(--slate);
-    font-size: 0.78rem;
-    font-weight: 800;
-  }
-
-  .mobile-booking strong {
-    overflow: hidden;
-    color: var(--midnight);
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .mobile-booking button {

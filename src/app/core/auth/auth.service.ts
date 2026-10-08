@@ -16,6 +16,7 @@ import {
   timeout,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { BookingCheckoutStateService } from '../services/booking-checkout-state.service';
 import { AuthTokens, User } from '../models/api.models';
 import { AuthApiService, LoginRequest, RegisterRequest } from './auth-api.service';
 import { TokenStorage } from './token-storage.service';
@@ -25,6 +26,7 @@ export type AuthStatus = 'initializing' | 'authenticated' | 'unauthenticated';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private api = inject(AuthApiService);
+  private bookingIntent = inject(BookingCheckoutStateService);
   private storage = inject(TokenStorage);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
@@ -148,6 +150,7 @@ export class AuthService {
   }
 
   logout() {
+    this.bookingIntent.clear();
     const tokens = this.storage.read();
     this.clear();
     void this.router.navigateByUrl('/');

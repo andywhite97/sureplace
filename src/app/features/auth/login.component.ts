@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { BookingCheckoutStateService } from '../../core/services/booking-checkout-state.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -129,7 +130,10 @@ import { SeoService } from '../../core/services/seo.service';
               Log in <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             }
           </button>
-          <p class="create">Don't have an account? <a routerLink="/register">Create one</a></p>
+          <p class="create">
+            Don't have an account?
+            <a routerLink="/register" [queryParams]="{ returnUrl: routeReturnUrl() }">Create one</a>
+          </p>
           <p class="form-note">
             <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> A simpler, safer place to
             find home.
@@ -720,6 +724,14 @@ export class LoginComponent {
         : '';
     if (this.auth.user()?.is_staff && (!safeReturnUrl || safeReturnUrl === '/account'))
       return '/staff';
-    return safeReturnUrl || '/account';
+    this.bookingIntent.restore();
+    return (
+      safeReturnUrl ||
+      (!value && this.bookingIntent.state() ? this.bookingIntent.url() : '/account')
+    );
   }
+  routeReturnUrl() {
+    return this.route.snapshot.queryParamMap.get('returnUrl');
+  }
+  private bookingIntent = inject(BookingCheckoutStateService);
 }

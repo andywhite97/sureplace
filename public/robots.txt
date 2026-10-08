@@ -1,9 +1,3 @@
 User-agent: *
 Allow: /
-Disallow: /account/
-Disallow: /login
-Disallow: /register
-Disallow: /forgot-password
-Disallow: /reset-password
-
-Sitemap: https://sureplace-back.onrender.com/sitemap.xml
+Sitemap: https://sureplace.twinpeaksinvestment.com/sitemap.xml

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { BookingsApiService } from '../../core/api/account-api.services';
@@ -9,7 +9,7 @@ import { formatMoney } from '../../shared/listing/price-format';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 import { StatusBadgeComponent } from './account-ui';
 
-type BookingFilter = 'upcoming' | 'past' | 'cancelled';
+type BookingFilter = 'upcoming' | 'pending' | 'past' | 'cancelled';
 type BookingSort = 'newest' | 'check_in_asc' | 'check_in_desc';
 
 @Component({
@@ -19,6 +19,9 @@ type BookingSort = 'newest' | 'check_in_asc' | 'check_in_desc';
   styleUrl: './bookings.component.scss',
 })
 export class BookingsComponent {
+  @ViewChild('cancelDialog') cancelDialog?: ElementRef<HTMLDialogElement>;
+  cancelling = signal<Booking | null>(null);
+  cancellationReason = signal('');
   private api = inject(BookingsApiService);
   private toast = inject(ToastService);
   items = signal<Booking[]>([]);
@@ -98,7 +101,7 @@ export class BookingsComponent {
   }
 
   canCancel(booking: Booking) {
-    return ['PENDING', 'CONFIRMED'].includes(booking.status);
+    return booking.status==='CONFIRMED' ? booking.check_out>=this.today() : booking.status==='PENDING'&&(!booking.expires_at||Date.parse(booking.expires_at)>Date.now());
   }
 
   setSort(value: string) {
@@ -118,9 +121,16 @@ export class BookingsComponent {
   }
 
   cancel(booking: Booking) {
+    this.cancelling.set(booking);
+    this.cancellationReason.set('');
+    this.cancelDialog?.nativeElement.showModal();
+  }
+  confirmCancel() {
+    const booking = this.cancelling();
+    if (!booking || this.busy()) return;
     this.busy.set(true);
     this.api
-      .cancel(booking.id)
+      .cancel(booking.id, this.cancellationReason())
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: (updated) => {
@@ -128,18 +138,31 @@ export class BookingsComponent {
             items.map((item) => (item.id === booking.id ? updated : item)),
           );
           this.toast.show('Booking cancelled.', 'success');
+          this.cancelDialog?.nativeElement.close();
         },
         error: () => this.toast.show('Booking could not be cancelled.', 'error'),
       });
   }
 
   private group(filter: BookingFilter) {
+    if (filter === 'pending') return this.items().filter((b) => b.status === 'PENDING');
     if (filter === 'upcoming')
-      return this.items().filter((booking) => ['PENDING', 'CONFIRMED'].includes(booking.status));
+      return this.items().filter(
+        (booking) =>
+          booking.status === 'CONFIRMED' &&
+          booking.check_out >= this.today(),
+      );
     if (filter === 'cancelled')
       return this.items().filter((booking) => booking.status === 'CANCELLED');
-    return this.items().filter((booking) =>
-      ['DECLINED', 'COMPLETED', 'EXPIRED'].includes(booking.status),
+    return this.items().filter(
+      (booking) =>
+        ['DECLINED', 'COMPLETED', 'EXPIRED'].includes(booking.status) ||
+        (booking.status === 'CONFIRMED' &&
+          booking.check_out < this.today()),
     );
+  }
+  private today() {
+    const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Mbabane',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+    return ['year','month','day'].map(k=>parts.find(p=>p.type===k)?.value).join('-');
   }
 }

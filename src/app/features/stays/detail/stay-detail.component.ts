@@ -7,6 +7,8 @@ import {
   computed,
   inject,
   signal,
+  ElementRef,
+  ViewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,6 +18,7 @@ import { FavouritesApiService } from '../../../core/api/favourites-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { StayQueryService } from '../../../core/services/stay-query.service';
 import { SeoService } from '../../../core/services/seo.service';
+import { listingDescription, listingSocialImage } from '../../../shared/listing/listing-seo';
 import { ToastService } from '../../../core/services/toast.service';
 import { RoomAvailabilityResult, StayCard, StayDetail } from '../../../core/models/listing.models';
 import { StayGalleryComponent } from './stay-gallery.component';
@@ -44,6 +47,7 @@ import { formatMoney } from '../../../shared/listing/price-format';
   styleUrl: './stay-detail.component.scss',
 })
 export class StayDetailComponent {
+  @ViewChild('datesDialog') datesDialog?: ElementRef<HTMLDialogElement>;
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(StaysApiService);
@@ -74,6 +78,7 @@ export class StayDetailComponent {
   criteriaEditorOpen = signal(false);
   readonly visibleAmenityCount = 8;
   minDate = this.query.today();
+  private availabilityRequest = 0;
   searchForm = this.fb.nonNullable.group({
     check_in: [''],
     check_out: [''],
@@ -99,7 +104,7 @@ export class StayDetailComponent {
     const availabilityByRoom = new Map(
       this.availability().map((result) => [result.room_type_id, result.available]),
     );
-    return stay.room_types.filter((room) => availabilityByRoom.get(room.id) === true);
+    return stay.room_types;
   });
   markers = computed(() => {
     const s = this.stay();
@@ -123,6 +128,12 @@ export class StayDetailComponent {
       .pipe(
         map((p) => p.get('slug') || ''),
         tap(() => {
+          this.seo.apply({
+            title: 'Stay',
+            description: 'Discover stays and accommodation across Eswatini.',
+            robots: 'noindex, follow',
+            image: null,
+          });
           this.loading.set(true);
           this.error.set(null);
           this.notFound.set(false);
@@ -153,17 +164,7 @@ export class StayDetailComponent {
       .subscribe((s) => {
         this.stay.set(s);
         if (s) {
-          const path = `/stays/${s.slug}`;
-          this.seo.apply({
-            title: `${s.name} in ${this.locationLabel(s)}`,
-            description:
-              this.shortDescription(s.description) ||
-              `${this.typeLabel(s.stay_type)} accommodation in ${s.town}, ${s.region}.`,
-            path,
-            type: 'article',
-            image: this.coverImage(s),
-            jsonLd: this.stayJsonLd(s, path),
-          });
+          this.updateSeo(s);
           this.loadRelated(s);
           if (this.validCriteria()) this.loadAvailability();
         }
@@ -172,12 +173,13 @@ export class StayDetailComponent {
   applyAvailability() {
     const v = this.searchForm.getRawValue(),
       d = this.query.validateDates(v.check_in, v.check_out);
-    if (!d.valid) {
+    if (!d.valid || !d.complete || this.searchForm.invalid) {
       this.availabilityError.set(d.message || 'Choose valid dates.');
       return;
     }
     this.criteria.set(v);
     this.criteriaEditorOpen.set(false);
+    this.datesDialog?.nativeElement.close();
     this.selectedRoomId.set(null);
     this.availability.set([]);
     this.availabilityError.set('');
@@ -193,13 +195,19 @@ export class StayDetailComponent {
     const s = this.stay(),
       c = this.criteria();
     if (!s || !this.query.validateDates(c.check_in, c.check_out).complete) return;
+    const request = ++this.availabilityRequest;
     this.availabilityLoading.set(true);
     this.availabilityError.set('');
     this.api
       .availability(s.slug, c)
-      .pipe(finalize(() => this.availabilityLoading.set(false)))
+      .pipe(
+        finalize(() => {
+          if (request === this.availabilityRequest) this.availabilityLoading.set(false);
+        }),
+      )
       .subscribe({
         next: (r) => {
+          if (request !== this.availabilityRequest) return;
           this.availability.set(r.room_types);
           const selectedRoomId = this.selectedRoomId();
           if (
@@ -227,8 +235,16 @@ export class StayDetailComponent {
   }
   selectRoom(id: string) {
     const a = this.availabilityFor(id);
+    if (!a) {
+      this.openCriteriaEditor();
+      return;
+    }
     if (a && !a.available) return;
     this.selectedRoomId.set(id);
+    if (isPlatformBrowser(this.platformId) && globalThis.matchMedia?.('(max-width: 767px)').matches)
+      setTimeout(() =>
+        document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      );
   }
   validCriteria() {
     const c = this.criteria();
@@ -236,13 +252,39 @@ export class StayDetailComponent {
   }
   openCriteriaEditor() {
     this.criteriaEditorOpen.set(true);
-    this.scrollToRooms();
+    this.datesDialog?.nativeElement.showModal();
+  }
+  searchCriteria(criteria: BookingCriteria) {
+    this.searchForm.patchValue(criteria);
+    this.applyAvailability();
+  }
+  quantityChanged(rooms: number) {
+    this.searchForm.controls.rooms.setValue(rooms);
+    this.applyAvailability();
   }
 
   private scrollToRooms() {
-    setTimeout(() =>
-      document.getElementById('rooms')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-    );
+    if (isPlatformBrowser(this.platformId)) setTimeout(() => this.scrollToSection('rooms'));
+  }
+  sectionHref(section: string) {
+    return `${this.router.url.split('#')[0]}#${section}`;
+  }
+  scrollToSection(section: string, event?: MouseEvent) {
+    if (
+      event &&
+      (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)
+    )
+      return;
+    if (!isPlatformBrowser(this.platformId)) return;
+    const target = document.getElementById(section);
+    if (!target) return;
+    event?.preventDefault();
+    target.scrollIntoView({
+      behavior: globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+      block: 'start',
+    });
   }
   dateRangeLabel() {
     const criteria = this.criteria();
@@ -316,8 +358,7 @@ export class StayDetailComponent {
       .join(', ');
   }
   shortDescription(description: string) {
-    const trimmed = description.trim();
-    return trimmed.length > 180 ? `${trimmed.slice(0, 177).trim()}...` : trimmed;
+    return listingDescription(description);
   }
   guestCapacityLabel(s: StayDetail) {
     const capacities = s.room_types
@@ -380,6 +421,7 @@ export class StayDetailComponent {
         next: (x) => {
           this.stay.set(x);
           this.error.set(null);
+          this.updateSeo(x);
         },
         error: (e) =>
           this.error.set({
@@ -389,7 +431,22 @@ export class StayDetailComponent {
       });
   }
   private coverImage(s: StayDetail) {
-    return s.images.find((image) => image.is_cover)?.image || s.images[0]?.image || null;
+    return listingSocialImage(s.images)?.image;
+  }
+  private updateSeo(s: StayDetail) {
+    const path = `/stays/${s.slug}`;
+    const cover = listingSocialImage(s.images);
+    this.seo.apply({
+      title: `${s.name} in ${this.locationLabel(s)}`,
+      description:
+        this.shortDescription(s.description) ||
+        `${this.typeLabel(s.stay_type)} accommodation in ${s.town}, ${s.region}.`,
+      path,
+      type: 'website',
+      image: cover?.image,
+      imageAlt: cover?.caption || `${s.name} in ${s.town}`,
+      jsonLd: this.stayJsonLd(s, path),
+    });
   }
   private stayJsonLd(s: StayDetail, path: string) {
     const url = this.seo.absoluteUrl(path);
@@ -405,7 +462,7 @@ export class StayDetailComponent {
         name: s.name,
         description: s.description,
         url,
-        image: image ? this.seo.absoluteUrl(image) : undefined,
+        image: image ? this.seo.absoluteImageUrl(image) : undefined,
         address: {
           '@type': 'PostalAddress',
           streetAddress: s.address || s.suburb,

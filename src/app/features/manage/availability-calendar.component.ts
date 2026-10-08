@@ -1,41 +1,167 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
-import { RoomManagementApiService, StayManagementApiService } from '../../core/api/manage-api.services';
+import { finalize, forkJoin, of } from 'rxjs';
+import {
+  ManagerBookingsApiService,
+  RoomManagementApiService,
+  StayManagementApiService,
+} from '../../core/api/manage-api.services';
+import { Booking } from '../../core/models/account.models';
 import { RoomAvailabilityDay } from '../../core/models/manage.models';
 import { RoomTypeSummary } from '../../core/models/listing.models';
-import { formatMoney } from '../../shared/listing/price-format';
-
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  template: `<section class="page"><header><a routerLink="/account/manage/stays">Back</a><h1>Availability calendar</h1></header>
-    <form class="controls" [formGroup]="range" (ngSubmit)="loadCalendar()"><label>Room<select formControlName="room">@for (r of rooms(); track r.id) { <option [value]="r.id">{{ r.name }}</option> }</select></label><label>Start<input type="date" formControlName="start" /></label><label>End<input type="date" formControlName="end" /></label><button>Load</button></form>
-    @if (calendar().length) { <div class="calendar">@for (d of calendar(); track d.date) { <article [class.blocked]="d.blocked"><strong>{{ label(d.date) }}</strong><span>{{ d.available_units }} available</span><span>{{ d.reserved_units }} reserved</span><span>{{ formatMoney(d.effective_price, selectedCurrency()) }}</span>@if (d.blocked) { <b>Blocked</b> }</article> }</div> }
-    <form class="bulk" [formGroup]="bulk" (ngSubmit)="saveBulk()"><h2>Bulk update</h2><div class="pair"><label>Start date<input type="date" formControlName="start_date" /></label><label>End date<input type="date" formControlName="end_date" /></label></div><div class="pair"><label>Available units<input type="number" min="0" formControlName="available_units" /></label><label>Custom price<input type="number" min="0" formControlName="custom_price" /></label></div><label>Minimum stay override<input type="number" min="1" formControlName="minimum_stay_override" /></label><label class="check"><input type="checkbox" formControlName="is_blocked" /> Block these dates</label>@if (message()) { <p role="status">{{ message() }}</p> }@if (error()) { <p class="error" role="alert">{{ error() }}</p> }<button [disabled]="busy()">Update Availability</button></form>
-  </section>`,
-  styles: [
-    `.page{display:grid;gap:1rem}header,.controls{display:flex;flex-wrap:wrap;gap:.6rem;align-items:end}.calendar{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:.5rem}article{display:grid;gap:.2rem;padding:.7rem;border:1px solid var(--line);border-radius:var(--radius-sm)}.blocked{background:#fde8e8}.bulk{display:grid;gap:.7rem;padding:1rem;border:1px solid var(--line);border-radius:var(--radius-sm)}.pair{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}label{display:grid;gap:.25rem}.check{display:flex;align-items:center}input,select{padding:.58rem;border:1px solid var(--line);border-radius:var(--radius-sm)}button,a{padding:.55rem .75rem;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;color:var(--midnight);text-decoration:none;font-weight:800}button[type=submit],.bulk button{background:var(--teal);color:#fff}.error{color:#9b2525}@media(max-width:760px){.pair{grid-template-columns:1fr}.controls{display:grid}}`,
-  ],
+  imports: [DatePipe, RouterLink, ReactiveFormsModule],
+  templateUrl: './availability-calendar.component.html',
+  styleUrls: ['../bookings/booking-ui.scss', './booking-calendar.scss'],
 })
 export class AvailabilityCalendarComponent {
   private stayApi = inject(StayManagementApiService);
   private roomApi = inject(RoomManagementApiService);
+  private bookingApi = inject(ManagerBookingsApiService);
   private fb = inject(FormBuilder);
-  stayId = inject(ActivatedRoute).snapshot.paramMap.get('id')!;
+  stayId = inject(ActivatedRoute).snapshot.paramMap.get('id') || '';
+  stays = signal<Array<{ id: string; name: string }>>([]);
   rooms = signal<RoomTypeSummary[]>([]);
-  calendar = signal<RoomAvailabilityDay[]>([]);
+  bookings = signal<Booking[]>([]);
+  calendar = signal<Record<string, RoomAvailabilityDay[]>>({});
+  days = signal<string[]>([]);
+  preview = signal<Booking | null>(null);
   busy = signal(false);
+  loading = signal(true);
   error = signal('');
   message = signal('');
-  range = this.fb.nonNullable.group({ room: [''], start: [this.iso(new Date())], end: [this.iso(new Date(Date.now() + 1000 * 60 * 60 * 24 * 30))] });
-  bulk = this.fb.nonNullable.group({ start_date: [this.iso(new Date()), Validators.required], end_date: [this.iso(new Date()), Validators.required], available_units: [1, Validators.min(0)], custom_price: [''], minimum_stay_override: [1, Validators.min(1)], is_blocked: [false] });
-  selectedCurrency = computed(() => this.rooms().find((r) => r.id === this.range.controls.room.value)?.currency || 'SZL');
-  readonly formatMoney = formatMoney;
-  constructor() { this.stayApi.rooms(this.stayId).subscribe((r) => { this.rooms.set(r); if (r[0]) this.range.controls.room.setValue(r[0].id); this.loadCalendar(); }); }
-  loadCalendar() { const v = this.range.getRawValue(); if (!v.room) return; this.roomApi.calendar(v.room, v.start, v.end).subscribe((d) => this.calendar.set(d)); }
-  saveBulk() { const room = this.range.controls.room.value, v = this.bulk.getRawValue(); if (!room || v.end_date < v.start_date) { this.error.set('Choose a valid date range.'); return; } this.busy.set(true); this.error.set(''); this.roomApi.bulkAvailability(room, { start_date: v.start_date, end_date: v.end_date, available_units: v.available_units, custom_price: v.custom_price || undefined, minimum_stay_override: v.minimum_stay_override, is_blocked: v.is_blocked }).pipe(finalize(() => this.busy.set(false))).subscribe({ next: (r) => { this.message.set(`${r.updated} dates updated.`); this.loadCalendar(); }, error: (e) => this.error.set(e?.error?.message || 'Availability could not be updated.') }); }
-  label(v: string) { return new Intl.DateTimeFormat('en-SZ', { day: 'numeric', month: 'short' }).format(new Date(v + 'T00:00:00Z')); }
-  private iso(d: Date) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  range = this.fb.nonNullable.group({
+    room: [''],
+    start: [this.iso(new Date())],
+    end: [this.iso(new Date(Date.now() + 86400000 * 6))],
+  });
+  bulk = this.fb.nonNullable.group({
+    start_date: [this.iso(new Date()), Validators.required],
+    end_date: [this.iso(new Date()), Validators.required],
+    available_units: [1, Validators.min(0)],
+    custom_price: [''],
+    minimum_stay_override: [1, Validators.min(1)],
+    is_blocked: [false],
+  });
+  constructor() {
+    if (this.stayId) this.loadRooms();
+    else
+      this.stayApi.allManaged().subscribe({
+        next: (p) => {
+          this.stays.set(p.results.map((s) => ({ id: s.id, name: s.name })));
+          if (p.results[0]) this.selectStay(p.results[0].id);
+          else this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set('Managed stays could not be loaded.');
+        },
+      });
+  }
+  selectStay(id: string) {
+    this.stayId = id;
+    this.preview.set(null);
+    this.loadRooms();
+  }
+  loadRooms() {
+    this.loading.set(true);
+    this.stayApi.rooms(this.stayId).subscribe({
+      next: (r) => {
+        this.rooms.set(r);
+        this.range.controls.room.setValue('');
+        this.loadCalendar();
+      },
+      error: () => {
+        this.loading.set(false);
+        this.error.set('Rooms could not be loaded.');
+      },
+    });
+  }
+  visibleRooms() {
+    const id = this.range.controls.room.value;
+    return this.rooms().filter((r) => !id || r.id === id);
+  }
+  loadCalendar() {
+    const v = this.range.getRawValue();
+    const length = (Date.parse(v.end) - Date.parse(v.start)) / 86400000;
+    if (!Number.isInteger(length) || length < 0 || length > 31) {
+      this.error.set('Choose a calendar range of up to 32 days.');
+      this.loading.set(false);
+      return;
+    }
+    this.loading.set(true);
+    this.error.set('');
+    this.days.set(
+      Array.from({ length: length + 1 }, (_, i) =>
+        new Date(Date.parse(v.start) + i * 86400000).toISOString().slice(0, 10),
+      ),
+    );
+    const rooms = this.visibleRooms();
+    forkJoin({
+      bookings: this.bookingApi.list(this.stayId),
+      calendars: rooms.length
+        ? forkJoin(rooms.map((r) => this.roomApi.calendar(r.id, v.start, v.end)))
+        : of([]),
+    })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (r) => {
+          this.bookings.set(r.bookings.results);
+          this.calendar.set(Object.fromEntries(rooms.map((room, i) => [room.id, r.calendars[i]])));
+        },
+        error: () => this.error.set('Booking calendar could not be loaded.'),
+      });
+  }
+  day(room: string, date: string) {
+    return this.calendar()[room]?.find((d) => d.date === date);
+  }
+  at(room: string, date: string) {
+    return this.bookings().filter(
+      (b) =>
+        b.room_type === room &&
+        b.check_in <= date &&
+        b.check_out > date &&
+        (b.status === 'CONFIRMED' ||
+          (b.status === 'PENDING' && (!b.expires_at || Date.parse(b.expires_at) > Date.now()))),
+    );
+  }
+  saveBulk() {
+    const room = this.range.controls.room.value,
+      v = this.bulk.getRawValue();
+    if (!room || this.bulk.invalid || v.end_date < v.start_date) {
+      this.error.set('Select one room and a valid date range for bulk changes.');
+      return;
+    }
+    this.busy.set(true);
+    this.error.set('');
+    this.roomApi
+      .bulkAvailability(room, {
+        start_date: v.start_date,
+        end_date: v.end_date,
+        available_units: v.available_units,
+        custom_price: v.custom_price || undefined,
+        minimum_stay_override: v.minimum_stay_override,
+        is_blocked: v.is_blocked,
+      })
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: (r) => {
+          this.message.set(`${r.updated} dates updated.`);
+          this.loadCalendar();
+        },
+        error: (e) => this.error.set(e.error?.message || 'Availability could not be updated.'),
+      });
+  }
+  private iso(d: Date) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Mbabane',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    return ['year', 'month', 'day'].map((k) => parts.find((p) => p.type === k)?.value).join('-');
+  }
 }

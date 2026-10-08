@@ -24,6 +24,12 @@ const STATIC_PUBLIC_ROUTES = [
   'register',
   'agents',
   'verification',
+  'help',
+  'about',
+  'pricing',
+  'terms',
+  'privacy',
+  'cookies',
 ] as const;
 const PRIVATE_CLIENT_ROUTES = [
   'account',
@@ -55,6 +61,18 @@ const staticPublicRoutes: ServerRoute[] = STATIC_PUBLIC_ROUTES.map((path) => ({
 export const serverRoutes: ServerRoute[] = [
   ...privateClientRoutes,
   {
+    path: 'agents/:id',
+    renderMode: RenderMode.Prerender,
+    fallback: PrerenderFallback.Client,
+    getPrerenderParams: () => publicProfileParams('agent'),
+  },
+  {
+    path: 'agencies/:slug',
+    renderMode: RenderMode.Prerender,
+    fallback: PrerenderFallback.Client,
+    getPrerenderParams: () => publicProfileParams('agency'),
+  },
+  {
     path: 'properties/:slug',
     renderMode: RenderMode.Prerender,
     fallback: PrerenderFallback.Client,
@@ -72,6 +90,34 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client,
   },
 ];
+
+export async function publicProfileParams(kind: 'agent' | 'agency') {
+  const values = new Set<string>();
+  let url: string | null = `${prerenderApiBase}/agents/`;
+  for (let pages = 0; url && pages < 20; pages++) {
+    try {
+      const page: Page<{ id: string; agency?: { slug: string; is_active?: boolean } | null }> =
+        await fetchJson(url);
+      for (const item of page.results || []) {
+        const value =
+          kind === 'agent'
+            ? item.id
+            : item.agency?.is_active !== false
+              ? item.agency?.slug
+              : undefined;
+        if (value) values.add(value);
+      }
+      url = page.next;
+    } catch (error) {
+      console.warn(
+        `[prerender] Could not fetch ${kind} profiles. Dynamic routes will fall back to CSR.`,
+        error,
+      );
+      return [];
+    }
+  }
+  return [...values].map((value) => ({ [kind === 'agent' ? 'id' : 'slug']: value }));
+}
 
 export async function listingSlugParams(endpoint: '/properties/' | '/stays/') {
   const slugs = await collectPublishedSlugs(endpoint);
@@ -109,14 +155,18 @@ export async function collectPublishedSlugs(endpoint: '/properties/' | '/stays/'
 }
 
 async function fetchJson<T>(url: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3500);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-    return (await response.json()) as T;
-  } finally {
-    clearTimeout(timeout);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return (await response.json()) as T;
+    } catch (error) {
+      if (attempt === 1) throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+  throw new Error(`Unable to prerender ${url}`);
 }

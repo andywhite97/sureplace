@@ -178,6 +178,9 @@ export interface StayDetail extends Omit<
   agency: string | null;
   agent: string | null;
   host?: StayHost;
+  booking_mode?: 'REQUEST_TO_BOOK' | 'INSTANT_BOOK';
+  cancellation_policy?: string;
+  house_rules?: string;
 }
 export interface NightlyPrice {
   date: string;
@@ -189,6 +192,8 @@ export interface RoomAvailabilityResult {
   rooms_available: number;
   nightly_prices: NightlyPrice[];
   total: string;
+  reason?: 'occupancy' | 'minimum_stay' | 'inventory' | null;
+  minimum_stay?: number;
 }
 export interface StayAvailabilityResponse {
   stay_id: string;
@@ -205,6 +210,8 @@ export interface BookingCreateRequest {
   guest_email: string;
   guest_phone: string;
   special_requests: string;
+  expected_total?: string;
+  policies_accepted?: boolean;
 }
 export interface BookingSummary {
   id: string;

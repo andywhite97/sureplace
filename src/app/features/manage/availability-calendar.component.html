@@ -1,0 +1,136 @@
+<main class="booking-page">
+  <header>
+    <a routerLink="/account/manage/bookings">← Back to bookings</a>
+    <p class="eyebrow">Availability &amp; reservations</p>
+    <h1>Booking calendar</h1>
+    <p class="muted">Pending holds and confirmed stays, by room and date.</p>
+  </header>
+  @if (stays().length) {
+    <label
+      >Stay<select #staySelect [value]="stayId" (change)="selectStay(staySelect.value)">
+        @for (s of stays(); track s.id) {
+          <option [value]="s.id">{{ s.name }}</option>
+        }
+      </select></label
+    >
+  }
+  <form class="calendar-controls" [formGroup]="range" (ngSubmit)="loadCalendar()">
+    <label
+      >Room type<select formControlName="room">
+        <option value="">All rooms</option>
+        @for (r of rooms(); track r.id) {
+          <option [value]="r.id">{{ r.name }}</option>
+        }
+      </select></label
+    ><label>Start<input type="date" formControlName="start" /></label
+    ><label>End<input type="date" formControlName="end" /></label
+    ><button class="primary">Load calendar</button>
+  </form>
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (loading()) {
+    <div class="skeleton" role="status" aria-label="Loading calendar"></div>
+  } @else if (!rooms().length) {
+    <section class="panel">
+      <h2>No rooms yet</h2>
+      <p>Add a room to your stay to manage availability.</p>
+      <a routerLink="/account/manage/stays">Manage stays</a>
+    </section>
+  } @else {
+    <div class="legend">
+      <span class="status">Confirmed</span><span class="status pending">Pending hold</span
+      ><span>Blocked</span><span>Sold out</span>
+    </div>
+    <div class="calendar-scroll" tabindex="0" aria-label="Room availability calendar">
+      <div
+        class="calendar-grid"
+        [style.grid-template-columns]="'160px repeat(' + days().length + ', minmax(125px, 1fr))'"
+      >
+        <div class="room-heading">Room type</div>
+        @for (d of days(); track d) {
+          <div class="date-heading">
+            {{ d | date: 'EEE' }}<strong>{{ d | date: 'd MMM' }}</strong>
+          </div>
+        }
+        @for (r of visibleRooms(); track r.id) {
+          <div class="room-heading">
+            <strong>{{ r.name }}</strong
+            ><small>{{ r.quantity }} total rooms</small>
+          </div>
+          @for (d of days(); track d) {
+            <div class="day-cell" [class.blocked]="day(r.id, d)?.blocked">
+              <small>{{
+                day(r.id, d)?.blocked
+                  ? 'Blocked inventory'
+                  : day(r.id, d)?.available_units === 0
+                    ? 'Sold out'
+                    : day(r.id, d)?.available_units + ' available'
+              }}</small>
+              @for (b of at(r.id, d); track b.id) {
+                <button
+                  class="booking-block"
+                  [class.pending]="b.status === 'PENDING'"
+                  (click)="preview.set(b)"
+                >
+                  <strong>{{ b.guest_name }}</strong
+                  ><small>{{ b.status }} · {{ b.rooms }} room(s)</small>
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+  @if (preview(); as b) {
+    <section class="panel preview">
+      <h2>{{ b.guest_name }}</h2>
+      <span class="status" [class.pending]="b.status === 'PENDING'">{{ b.status }}</span>
+      <p>
+        {{ b.reference }} · {{ b.room_name }} × {{ b.rooms }}<br />{{
+          b.check_in | date: 'd MMM'
+        }}
+        – {{ b.check_out | date: 'd MMM y' }}
+      </p>
+      <a class="button primary" [routerLink]="['/account/manage/bookings', b.id]">View booking</a
+      ><button (click)="preview.set(null)">Close preview</button>
+    </section>
+  }
+  <section class="panel">
+    <form [formGroup]="bulk" (ngSubmit)="saveBulk()">
+      <h2>Update room availability</h2>
+      <p class="muted">
+        Choose a single room above to update its inventory, prices or blocked dates.
+      </p>
+      <div class="pair">
+        <label>Start date<input type="date" formControlName="start_date" /></label
+        ><label>End date<input type="date" formControlName="end_date" /></label>
+      </div>
+      <div class="pair">
+        <label
+          >Inventory before booking holds<input
+            type="number"
+            min="0"
+            formControlName="available_units" /></label
+        ><label
+          >Custom nightly price<input type="number" min="0" formControlName="custom_price"
+        /></label>
+      </div>
+      <label
+        >Minimum stay override<input
+          type="number"
+          min="1"
+          formControlName="minimum_stay_override" /></label
+      ><label class="consent"
+        ><input type="checkbox" formControlName="is_blocked" />Block these dates</label
+      >
+      @if (message()) {
+        <p class="notice" role="status">{{ message() }}</p>
+      }
+      <button class="primary" [disabled]="busy() || !range.controls.room.value">
+        {{ busy() ? 'Updating...' : 'Update availability' }}
+      </button>
+    </form>
+  </section>
+</main>

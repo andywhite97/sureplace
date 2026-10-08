@@ -1,4 +1,5 @@
 import { Component, HostListener, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { MessagingStore } from '../../core/services/messaging.store';
@@ -305,10 +306,15 @@ export class MessagesPageComponent {
   constructor() {
     this.store.loadList();
     this.store.startPolling();
-    this.route.paramMap.pipe(map((p) => p.get('conversationId'))).subscribe((id) => {
-      if (id) this.store.open(id);
-      else this.store.selected.set(null);
-    });
+    this.route.paramMap
+      .pipe(
+        map((p) => p.get('conversationId')),
+        takeUntilDestroyed(),
+      )
+      .subscribe((id) => {
+        if (id) this.store.open(id);
+        else this.store.close();
+      });
     const legacy = this.route.snapshot.queryParamMap.get('conversation');
     if (legacy) void this.router.navigate(['/account/messages', legacy], { replaceUrl: true });
   }

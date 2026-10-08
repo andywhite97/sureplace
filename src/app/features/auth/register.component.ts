@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { normalizeApiError } from '../../core/api/error-normalizer';
 import { ToastService } from '../../core/services/toast.service';
@@ -125,7 +125,10 @@ const intentOptions: Intent[] = [
               <button class="primary" type="button" (click)="next()">
                 Continue <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
               </button>
-              <p class="login-link">Already have an account? <a routerLink="/login">Log in</a></p>
+              <p class="login-link">
+                Already have an account?
+                <a routerLink="/login" [queryParams]="{ returnUrl: returnUrl }">Log in</a>
+              </p>
             </section>
           }
           @if (step() === 1) {
@@ -592,6 +595,7 @@ const intentOptions: Intent[] = [
   ],
 })
 export class RegisterComponent {
+  returnUrl = inject(ActivatedRoute).snapshot.queryParamMap.get('returnUrl');
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
   private router = inject(Router);
@@ -662,7 +666,10 @@ export class RegisterComponent {
           message: 'We sent a verification link.',
         });
         void this.router.navigate(['/verify-email/pending'], {
-          queryParams: { email: body.email },
+          queryParams: {
+            email: body.email,
+            ...(this.returnUrl ? { returnUrl: this.returnUrl } : {}),
+          },
         });
       },
       error: (e) => {

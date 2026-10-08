@@ -29,83 +29,105 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
 
       <div class="toolbar panel">
         <div class="search-row">
-        <label class="search-field">
-          <span class="sr-only">Search agents</span>
-          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-          <input
-            [formControl]="form.controls.search"
-            type="search"
-            placeholder="Name, agency or town"
-          />
-        </label>
-        <button type="button" class="filter-trigger" aria-haspopup="dialog" (click)="openFilters()">
-          <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-          Filters @if (activeFilterCount()) { <span class="filter-count">{{ activeFilterCount() }}</span> }
-        </button>
+          <label class="search-field">
+            <span class="sr-only">Search agents</span>
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input
+              [formControl]="form.controls.search"
+              type="search"
+              placeholder="Name, agency or town"
+            />
+          </label>
+          <button
+            type="button"
+            class="filter-trigger"
+            aria-haspopup="dialog"
+            (click)="openFilters()"
+          >
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            Filters
+            @if (activeFilterCount()) {
+              <span class="filter-count">{{ activeFilterCount() }}</span>
+            }
+          </button>
         </div>
       </div>
 
-      <dialog #filterDialog class="filter-dialog" aria-labelledby="agent-filter-title" (click)="$event.target === $event.currentTarget && closeFilters()">
+      <dialog
+        #filterDialog
+        class="filter-dialog"
+        aria-labelledby="agent-filter-title"
+        (click)="$event.target === $event.currentTarget && closeFilters()"
+      >
         <div class="filter-dialog-content" (click)="$event.stopPropagation()">
-        <header class="filter-dialog-heading">
-          <h2 id="agent-filter-title">Filter agents</h2>
-          <button type="button" class="filter-close" aria-label="Close filters" (click)="closeFilters()"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-        </header>
-        <div class="filters">
-          <label>
-            <span>Region</span>
-            <select [formControl]="form.controls.region">
-              <option value="">All regions</option>
-              @for (region of regions(); track region.value) {
-                <option [value]="region.value">{{ region.label }}</option>
-              }
-            </select>
-          </label>
+          <header class="filter-dialog-heading">
+            <h2 id="agent-filter-title">Filter agents</h2>
+            <button
+              type="button"
+              class="filter-close"
+              aria-label="Close filters"
+              (click)="closeFilters()"
+            >
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </header>
+          <div class="filters">
+            <label>
+              <span>Region</span>
+              <select [formControl]="form.controls.region">
+                <option value="">All regions</option>
+                @for (region of regions(); track region.value) {
+                  <option [value]="region.value">{{ region.label }}</option>
+                }
+              </select>
+            </label>
 
-          <label>
-            <span>Town</span>
-            <select [formControl]="form.controls.town">
-              <option value="">All towns</option>
-              @for (town of towns(); track town) {
-                <option [value]="town">{{ town }}</option>
-              }
-            </select>
-          </label>
+            <label>
+              <span>Town</span>
+              <select [formControl]="form.controls.town">
+                <option value="">All towns</option>
+                @for (town of towns(); track town) {
+                  <option [value]="town">{{ town }}</option>
+                }
+              </select>
+            </label>
 
-          <label>
-            <span>Agency</span>
-            <select [formControl]="form.controls.agency">
-              <option value="">All agencies</option>
-              @for (agency of agencies(); track agency.id) {
-                <option [value]="agency.id">{{ agency.name }}</option>
-              }
-            </select>
-          </label>
+            <label>
+              <span>Agency</span>
+              <select [formControl]="form.controls.agency">
+                <option value="">All agencies</option>
+                @for (agency of agencies(); track agency.id) {
+                  <option [value]="agency.id">{{ agency.name }}</option>
+                }
+              </select>
+            </label>
 
-          <label>
-            <span>Sort</span>
-            <select [formControl]="form.controls.ordering">
-              <option value="relevance">Relevance</option>
-              <option value="name">Name A–Z</option>
-              <option value="active">Most active</option>
-              <option value="newest">Newest</option>
-            </select>
-          </label>
-          <label class="check">
-            <input type="checkbox" [formControl]="form.controls.verifiedOnly" />
-            <span>Verified only</span>
-          </label>
-        </div>
-        <footer class="filter-dialog-actions">
-          <button type="button" class="filter-reset" (click)="resetExtraFilters()">Reset filters</button>
-          <button type="button" class="primary" (click)="closeFilters()">Show agents</button>
-        </footer>
+            <label>
+              <span>Sort</span>
+              <select [formControl]="form.controls.ordering">
+                <option value="relevance">Relevance</option>
+                <option value="name">Name A–Z</option>
+                <option value="active">Most active</option>
+                <option value="newest">Newest</option>
+              </select>
+            </label>
+            <label class="check">
+              <input type="checkbox" [formControl]="form.controls.verifiedOnly" />
+              <span>Verified only</span>
+            </label>
+          </div>
+          <footer class="filter-dialog-actions">
+            <button type="button" class="filter-reset" (click)="resetExtraFilters()">
+              Reset filters
+            </button>
+            <button type="button" class="primary" (click)="closeFilters()">Show agents</button>
+          </footer>
         </div>
       </dialog>
 
       @if (loading()) {
         <div class="grid loading-grid" aria-live="polite" aria-busy="true">
-          @for (item of [1,2,3,4,5,6]; track item) {
+          @for (item of [1, 2, 3, 4, 5, 6]; track item) {
             <div class="agent-card skeleton-card">
               <div class="avatar skeleton"></div>
               <div class="skeleton line short"></div>
@@ -146,7 +168,9 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
                 <div class="identity">
                   <h2>{{ agent.name }}</h2>
                   @if (agent.verified_agent) {
-                    <span class="badge verified-agent"><i class="fa-solid fa-check"></i> Verified Agent</span>
+                    <span class="badge verified-agent"
+                      ><i class="fa-solid fa-check"></i> Verified Agent</span
+                    >
                   }
                 </div>
               </div>
@@ -157,14 +181,19 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
                 }
                 <span class="agency-name">{{ agent.agency?.name || 'Independent agent' }}</span>
                 @if (agent.verified_agency && agent.agency) {
-                  <span class="badge verified-agency"><i class="fa-solid fa-shield-check"></i> Verified Agency</span>
+                  <span class="badge verified-agency"
+                    ><i class="fa-solid fa-shield-check"></i> Verified Agency</span
+                  >
                 }
               </div>
 
               <p class="service-areas">{{ serviceAreas(agent) }}</p>
 
               <div class="stats-row">
-                <span><i class="fa-solid fa-building"></i> {{ agent.active_listings_count }} active listings</span>
+                <span
+                  ><i class="fa-solid fa-building"></i> {{ agent.active_listings_count }} active
+                  listings</span
+                >
               </div>
 
               @if (agent.bio) {
@@ -183,7 +212,9 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
 
         @if (nextUrl() || previousUrl()) {
           <div class="pagination">
-            <button type="button" [disabled]="!previousUrl()" (click)="page(previousPage())">Previous</button>
+            <button type="button" [disabled]="!previousUrl()" (click)="page(previousPage())">
+              Previous
+            </button>
             <button type="button" [disabled]="!nextUrl()" (click)="page(nextPage())">Next</button>
           </div>
         }
@@ -191,106 +222,603 @@ import { ProfileImageComponent } from '../../shared/ui/profile-image.component';
     </section>
   `,
   styles: `
-    :host { display: block; }
-    .agents-page { max-width: 1280px; margin: 0 auto; padding: 2.4rem 1rem 4.5rem; color: var(--midnight); }
-    .page-header { position:relative; overflow:hidden; margin:0 0 1.15rem; padding:2.25rem 2rem; border-radius:1.35rem; background:linear-gradient(90deg, rgba(9,41,39,.88) 0%, rgba(9,41,39,.68) 53%, rgba(9,41,39,.18) 100%), url('/hero-eswatini-home.jpg') center/cover; border:1px solid rgba(15,157,131,.2); }
-    .page-header::after { content:'Local expertise. Stronger communities.'; position:absolute; right:2rem; bottom:1.55rem; color:rgba(255,255,255,.9); font-size:.92rem; font-style:italic; transform:rotate(-4deg); }
-    .page-header > div { position:relative; z-index:1; }
-    .eyebrow { letter-spacing: .13em; font-size: .72rem; text-transform: uppercase; color:#6ce5d2; font-weight: 800; margin: 0 0 .55rem; }
-    h1 { margin: 0; color:#fff; letter-spacing:-.04em; font-size: clamp(2.2rem, 4vw, 3.5rem); }
-    .subtitle { max-width:37rem; margin: .65rem 0 0; color:rgba(255,255,255,.9); font-size: 1.06rem; line-height:1.55; }
-    .panel { background: rgba(255,255,255,.9); border: 1px solid rgba(21,43,42,.08); border-radius: 1.15rem; box-shadow: 0 16px 38px rgba(21,43,42,.07); }
-    .toolbar { padding: .85rem; display: grid; gap: .65rem; }
-    .search-row { display:flex; align-items:stretch; gap:.55rem; }
-    .search-row .search-field { flex:1; min-width:0; }
-    .filter-trigger { display:inline-flex; align-items:center; justify-content:center; gap:.4rem; flex:none; padding:.5rem .65rem; border:1px solid rgba(21,43,42,.12); border-radius:.65rem; background:#fff; color:var(--midnight); font:inherit; font-size:.85rem; font-weight:750; cursor:pointer; }
-    .filter-count { display:grid; place-items:center; width:1.25rem; height:1.25rem; border-radius:50%; background:var(--teal); color:#fff; font-size:.7rem; }
-    .filter-dialog { display:none; width:min(32rem,calc(100% - 2rem)); max-height:calc(100dvh - 2rem); box-sizing:border-box; overflow:auto; padding:0; border:0; border-radius:1rem; color:var(--midnight); background:#fff; box-shadow:0 24px 80px #0004; }
-    .filter-dialog[open] { display:block; }
-    .filter-dialog::backdrop { background:rgba(10,30,28,.55); }
-    .filter-dialog-content { padding:1.1rem; }
-    .filter-dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
-    .filter-dialog-heading h2 { margin:0; font-size:1.2rem; }
-    .filter-close { display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:.6rem; background:var(--mist); color:var(--midnight); cursor:pointer; }
-    .filter-dialog .filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .filter-dialog .check { grid-column:1 / -1; }
-    .filter-dialog-actions { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-top:1rem; }
-    .filter-reset { min-height:44px; padding:.5rem .2rem; border:0; background:transparent; color:var(--teal); font:inherit; font-weight:700; cursor:pointer; }
-    .toolbar-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-    .toolbar-kicker { display:inline-flex; align-items:center; gap:.45rem; color:var(--teal); font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
-    .toolbar-heading p { margin:.28rem 0 0; color:var(--slate); font-size:.9rem; }
-    .directory-mark { width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:.8rem; color:var(--teal); background:rgba(15,157,131,.1); }
-    .search-field { display: flex; align-items: center; gap: .55rem; min-height:44px; box-sizing:border-box; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .65rem; padding: .5rem .7rem; box-shadow:inset 0 1px 0 rgba(21,43,42,.03); }
-    .search-field:focus-within { border-color:rgba(15,157,131,.75); box-shadow:0 0 0 3px rgba(15,157,131,.12); }
-    .search-field input { flex: 1; min-width:0; width:0; min-height:0; padding:0; border: 0; background: transparent; font: inherit; color: var(--midnight); }
-    .search-field i { color: var(--slate); }
-    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .55rem .65rem; }
-    .filters label { display: grid; min-width:0; gap: .25rem; font-size: .78rem; color: var(--slate); }
-    .filters select { box-sizing:border-box; width:100%; min-width:0; min-height:44px; background: #fff; border: 1px solid rgba(21,43,42,.12); border-radius: .65rem; padding: .5rem .6rem; font: inherit; color: var(--midnight); }
-    .filters select:focus, .filters input:focus { outline:2px solid rgba(15,157,131,.25); outline-offset:1px; border-color:var(--teal); }
-    .filters label.check { align-self:end; min-height:44px; display:flex; align-items:center; gap:.5rem; cursor:pointer; }
-    .check input { flex:none; width:18px; height:18px; min-height:0; margin:0; padding:0; accent-color:var(--teal); }
-    .meta-row { display: flex; justify-content: flex-end; margin: 1rem 0 .7rem; }
-    .result-count { margin:0; padding:.38rem .7rem; border-radius:999px; background:rgba(15,157,131,.09); color:var(--teal); font-size:.82rem; font-weight:800; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-    .agent-card { position:relative; overflow:hidden; background: #fff; border: 1px solid rgba(21,43,42,.08); border-radius: 1rem; padding: 1.1rem; display: flex; flex-direction: column; gap: .78rem; min-height: 100%; box-shadow:0 8px 20px rgba(21,43,42,.035); transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
-    .agent-card::before { content:''; position:absolute; top:0; left:1.1rem; right:1.1rem; height:3px; border-radius:0 0 99px 99px; background:linear-gradient(90deg, var(--teal), #6ad9c9); opacity:0; transition:opacity .2s ease; }
-    .agent-card:hover { transform:translateY(-3px); border-color:rgba(15,157,131,.25); box-shadow:0 16px 30px rgba(21,43,42,.1); }
-    .agent-card:hover::before { opacity:1; }
-    .card-top { display: flex; gap: .8rem; align-items: center; }
-    .avatar-wrap { flex-shrink: 0; }
-    .avatar-fallback, .avatar-wrap img { width: 3.35rem; height: 3.35rem; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, rgba(15,157,131,.18), rgba(40,120,208,.16)); color: var(--midnight); font-weight: 800; box-shadow:0 0 0 4px rgba(15,157,131,.07); }
-    .avatar-wrap img { object-fit: cover; }
-    .identity { min-width: 0; }
-    .identity h2 { margin: 0; font-size: 1.05rem; }
-    .badge { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 700; }
-    .verified-agent { background: rgba(40,120,208,.12); color: var(--verification); }
-    .verified-agency { background: rgba(15,157,131,.12); color: var(--teal); }
-    .agency-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
-    .agency-name { font-weight: 750; }
-    .service-areas, .bio, .stats-row { color: var(--slate); }
-    .service-areas { margin: 0; line-height: 1.4; }
-    .stats-row { font-size: .86rem; }
-    .bio { margin: 0; line-height: 1.5; }
-    .actions { display: flex; gap: .5rem; margin-top: auto; }
-    .actions > a, .actions > button {
-      display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
-      flex:1; min-width:0; min-height:44px; width:auto; max-width:none;
-      box-sizing:border-box; margin:0; grid-template-columns:none;
-      text-align:center; white-space:nowrap; font:inherit; font-size:.85rem; font-weight:750;
+    :host {
+      display: block;
     }
-    a.primary, button.primary, button.secondary { border-radius: .8rem; border: 1px solid transparent; padding: .72rem .9rem; font-weight: 750; cursor: pointer; }
-    a.primary, button.primary { background: linear-gradient(135deg, var(--teal), #078e82); color: #fff; text-decoration: none; box-shadow:0 7px 14px rgba(15,157,131,.18); }
-    button.secondary { background: #fff; border-color: rgba(21,43,42,.12); color: var(--midnight); }
-    .pagination { display: flex; justify-content: center; gap: .75rem; margin-top: 1.25rem; }
-    .empty-state { padding: 2rem; text-align: center; }
-    .empty-state h2 { margin-top: 0; }
-    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
-    .skeleton-card { padding: 1rem; }
-    .skeleton { position: relative; overflow: hidden; background: rgba(100,116,113,.12); border-radius: .7rem; }
-    .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); animation: shimmer 1.2s infinite; }
-    .skeleton.avatar { width: 3.2rem; height: 3.2rem; border-radius: 50%; }
-    .skeleton.line { height: .9rem; margin: .35rem 0; }
-    .skeleton.line.short { width: 60%; }
-    .skeleton.line.tiny { width: 35%; }
-    @keyframes shimmer { 100% { transform: translateX(100%); } }
-    @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .agents-page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2.4rem 1rem 4.5rem;
+      color: var(--midnight);
+    }
+    .page-header {
+      position: relative;
+      overflow: hidden;
+      margin: 0 0 1.15rem;
+      padding: 2.25rem 2rem;
+      border-radius: 1.35rem;
+      background:
+        linear-gradient(
+          90deg,
+          rgba(9, 41, 39, 0.88) 0%,
+          rgba(9, 41, 39, 0.68) 53%,
+          rgba(9, 41, 39, 0.18) 100%
+        ),
+        url('/hero-eswatini-home.jpg') center/cover;
+      border: 1px solid rgba(15, 157, 131, 0.2);
+    }
+    .page-header::after {
+      content: 'Local expertise. Stronger communities.';
+      position: absolute;
+      right: 2rem;
+      bottom: 1.55rem;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.92rem;
+      font-style: italic;
+      transform: rotate(-4deg);
+    }
+    .page-header > div {
+      position: relative;
+      z-index: 1;
+    }
+    .eyebrow {
+      letter-spacing: 0.13em;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: #6ce5d2;
+      font-weight: 800;
+      margin: 0 0 0.55rem;
+    }
+    h1 {
+      margin: 0;
+      color: #fff;
+      letter-spacing: -0.04em;
+      font-size: clamp(2.2rem, 4vw, 3.5rem);
+    }
+    .subtitle {
+      max-width: 37rem;
+      margin: 0.65rem 0 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.06rem;
+      line-height: 1.55;
+    }
+    .panel {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(21, 43, 42, 0.08);
+      border-radius: 1.15rem;
+      box-shadow: 0 16px 38px rgba(21, 43, 42, 0.07);
+    }
+    .toolbar {
+      padding: 0.85rem;
+      display: grid;
+      gap: 0.65rem;
+    }
+    .search-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0.55rem;
+    }
+    .search-row .search-field {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      flex: none;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid rgba(21, 43, 42, 0.12);
+      border-radius: 0.65rem;
+      background: #fff;
+      color: var(--midnight);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .filter-count {
+      display: grid;
+      place-items: center;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 50%;
+      background: var(--teal);
+      color: #fff;
+      font-size: 0.7rem;
+    }
+    .filter-dialog {
+      display: none;
+      width: min(32rem, calc(100% - 2rem));
+      max-height: calc(100dvh - 2rem);
+      box-sizing: border-box;
+      overflow: auto;
+      padding: 0;
+      border: 0;
+      border-radius: 1rem;
+      color: var(--midnight);
+      background: #fff;
+      box-shadow: 0 24px 80px #0004;
+    }
+    .filter-dialog[open] {
+      display: block;
+    }
+    .filter-dialog::backdrop {
+      background: rgba(10, 30, 28, 0.55);
+    }
+    .filter-dialog-content {
+      padding: 1.1rem;
+    }
+    .filter-dialog-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .filter-dialog-heading h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    .filter-close {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 0.6rem;
+      background: var(--mist);
+      color: var(--midnight);
+      cursor: pointer;
+    }
+    .filter-dialog .filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .filter-dialog .check {
+      grid-column: 1 / -1;
+    }
+    .filter-dialog-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .filter-reset {
+      min-height: 44px;
+      padding: 0.5rem 0.2rem;
+      border: 0;
+      background: transparent;
+      color: var(--teal);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .toolbar-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .toolbar-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: var(--teal);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .toolbar-heading p {
+      margin: 0.28rem 0 0;
+      color: var(--slate);
+      font-size: 0.9rem;
+    }
+    .directory-mark {
+      width: 2.5rem;
+      height: 2.5rem;
+      display: grid;
+      place-items: center;
+      border-radius: 0.8rem;
+      color: var(--teal);
+      background: rgba(15, 157, 131, 0.1);
+    }
+    .search-field {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-height: 44px;
+      box-sizing: border-box;
+      background: #fff;
+      border: 1px solid rgba(21, 43, 42, 0.12);
+      border-radius: 0.65rem;
+      padding: 0.5rem 0.7rem;
+      box-shadow: inset 0 1px 0 rgba(21, 43, 42, 0.03);
+    }
+    .search-field:focus-within {
+      border-color: rgba(15, 157, 131, 0.75);
+      box-shadow: 0 0 0 3px rgba(15, 157, 131, 0.12);
+    }
+    .search-field input {
+      flex: 1;
+      min-width: 0;
+      width: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font: inherit;
+      color: var(--midnight);
+    }
+    .search-field i {
+      color: var(--slate);
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.55rem 0.65rem;
+    }
+    .filters label {
+      display: grid;
+      min-width: 0;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--slate);
+    }
+    .filters select {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      background: #fff;
+      border: 1px solid rgba(21, 43, 42, 0.12);
+      border-radius: 0.65rem;
+      padding: 0.5rem 0.6rem;
+      font: inherit;
+      color: var(--midnight);
+    }
+    .filters select:focus,
+    .filters input:focus {
+      outline: 2px solid rgba(15, 157, 131, 0.25);
+      outline-offset: 1px;
+      border-color: var(--teal);
+    }
+    .filters label.check {
+      align-self: end;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .check input {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--teal);
+    }
+    .meta-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: 1rem 0 0.7rem;
+    }
+    .result-count {
+      margin: 0;
+      padding: 0.38rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(15, 157, 131, 0.09);
+      color: var(--teal);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .agent-card {
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid rgba(21, 43, 42, 0.08);
+      border-radius: 1rem;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.78rem;
+      min-height: 100%;
+      box-shadow: 0 8px 20px rgba(21, 43, 42, 0.035);
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+    }
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 1.1rem;
+      right: 1.1rem;
+      height: 3px;
+      border-radius: 0 0 99px 99px;
+      background: linear-gradient(90deg, var(--teal), #6ad9c9);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .agent-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(15, 157, 131, 0.25);
+      box-shadow: 0 16px 30px rgba(21, 43, 42, 0.1);
+    }
+    .agent-card:hover::before {
+      opacity: 1;
+    }
+    .card-top {
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+    }
+    .avatar-wrap {
+      flex-shrink: 0;
+    }
+    .avatar-fallback,
+    .avatar-wrap img {
+      width: 3.35rem;
+      height: 3.35rem;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(15, 157, 131, 0.18), rgba(40, 120, 208, 0.16));
+      color: var(--midnight);
+      font-weight: 800;
+      box-shadow: 0 0 0 4px rgba(15, 157, 131, 0.07);
+    }
+    .avatar-wrap img {
+      object-fit: cover;
+    }
+    .identity {
+      min-width: 0;
+    }
+    .identity h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .verified-agent {
+      background: rgba(40, 120, 208, 0.12);
+      color: var(--verification);
+    }
+    .verified-agency {
+      background: rgba(15, 157, 131, 0.12);
+      color: var(--teal);
+    }
+    .agency-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .agency-name {
+      font-weight: 750;
+    }
+    .service-areas,
+    .bio,
+    .stats-row {
+      color: var(--slate);
+    }
+    .service-areas {
+      margin: 0;
+      line-height: 1.4;
+    }
+    .stats-row {
+      font-size: 0.86rem;
+    }
+    .bio {
+      margin: 0;
+      line-height: 1.5;
+    }
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+    .actions > a,
+    .actions > button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 0;
+      min-height: 44px;
+      width: auto;
+      max-width: none;
+      box-sizing: border-box;
+      margin: 0;
+      grid-template-columns: none;
+      text-align: center;
+      white-space: nowrap;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 750;
+    }
+    a.primary,
+    button.primary,
+    button.secondary {
+      border-radius: 0.8rem;
+      border: 1px solid transparent;
+      padding: 0.72rem 0.9rem;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    a.primary,
+    button.primary {
+      background: linear-gradient(135deg, var(--teal), #078e82);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 7px 14px rgba(15, 157, 131, 0.18);
+    }
+    button.secondary {
+      background: #fff;
+      border-color: rgba(21, 43, 42, 0.12);
+      color: var(--midnight);
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+    .empty-state {
+      padding: 2rem;
+      text-align: center;
+    }
+    .empty-state h2 {
+      margin-top: 0;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+    .skeleton-card {
+      padding: 1rem;
+    }
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: rgba(100, 116, 113, 0.12);
+      border-radius: 0.7rem;
+    }
+    .skeleton::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      animation: shimmer 1.2s infinite;
+    }
+    .skeleton.avatar {
+      width: 3.2rem;
+      height: 3.2rem;
+      border-radius: 50%;
+    }
+    .skeleton.line {
+      height: 0.9rem;
+      margin: 0.35rem 0;
+    }
+    .skeleton.line.short {
+      width: 60%;
+    }
+    .skeleton.line.tiny {
+      width: 35%;
+    }
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
     @media (max-width: 767px) {
-      .page-header { padding:1.65rem 1.25rem; border-radius:1rem; margin-bottom:1rem; }
-      .grid { grid-template-columns:minmax(0,1fr); gap:.85rem; }
-      .agent-card { padding:1rem; gap:.65rem; min-height:0; }
-      .card-top { gap:.85rem; }
-      .identity h2 { font-size:1.1rem; overflow-wrap:anywhere; }
-      .agency-name, .service-areas, .stats-row, .bio { font-size:.85rem; }
-      .bio { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
-      .actions { flex-direction:row; gap:.6rem; margin-top:.25rem; }
-      .actions a, .actions button { flex:1; min-height:44px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:.65rem .8rem; font-size:.85rem; text-align:center; }
+      .page-header {
+        padding: 1.65rem 1.25rem;
+        border-radius: 1rem;
+        margin-bottom: 1rem;
+      }
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.85rem;
+      }
+      .agent-card {
+        padding: 1rem;
+        gap: 0.65rem;
+        min-height: 0;
+      }
+      .card-top {
+        gap: 0.85rem;
+      }
+      .identity h2 {
+        font-size: 1.1rem;
+        overflow-wrap: anywhere;
+      }
+      .agency-name,
+      .service-areas,
+      .stats-row,
+      .bio {
+        font-size: 0.85rem;
+      }
+      .bio {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+      .actions {
+        flex-direction: row;
+        gap: 0.6rem;
+        margin-top: 0.25rem;
+      }
+      .actions a,
+      .actions button {
+        flex: 1;
+        min-height: 44px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 0.8rem;
+        font-size: 0.85rem;
+        text-align: center;
+      }
     }
-    @media (max-width: 430px) { .agents-page { padding-inline:.7rem; } }
-    @media (max-width: 640px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .filters label.check { grid-column:1 / -1; min-height:36px; } .toolbar-heading p, .directory-mark { display:none; } .search-field input, .filters select { font-size:1rem; } }
+    @media (max-width: 430px) {
+      .agents-page {
+        padding-inline: 0.7rem;
+      }
+    }
+    @media (max-width: 640px) {
+      .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .filters label.check {
+        grid-column: 1 / -1;
+        min-height: 36px;
+      }
+      .toolbar-heading p,
+      .directory-mark {
+        display: none;
+      }
+      .search-field input,
+      .filters select {
+        font-size: 1rem;
+      }
+    }
   `,
 })
 export class AgentsComponent {
+  private seo = inject(SeoService);
   private api = inject(AgentsApiService);
   private auth = inject(AuthService);
   private messaging = inject(MessagingApiService);
@@ -309,16 +837,34 @@ export class AgentsComponent {
     ordering: ['relevance'],
   });
   private filterDialog = viewChild<ElementRef<HTMLDialogElement>>('filterDialog');
-  private filterValues = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  private filterValues = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
   activeFilterCount = computed(() => {
     const values = this.filterValues();
-    return [values.region, values.town, values.agency, values.verifiedOnly, values.ordering !== 'relevance'].filter(Boolean).length;
+    return [
+      values.region,
+      values.town,
+      values.agency,
+      values.verifiedOnly,
+      values.ordering !== 'relevance',
+    ].filter(Boolean).length;
   });
 
-  openFilters() { this.filterDialog()?.nativeElement.showModal(); }
-  closeFilters() { this.filterDialog()?.nativeElement.close(); }
+  openFilters() {
+    this.filterDialog()?.nativeElement.showModal();
+  }
+  closeFilters() {
+    this.filterDialog()?.nativeElement.close();
+  }
   resetExtraFilters() {
-    this.form.patchValue({ region: '', town: '', agency: '', verifiedOnly: false, ordering: 'relevance' });
+    this.form.patchValue({
+      region: '',
+      town: '',
+      agency: '',
+      verifiedOnly: false,
+      ordering: 'relevance',
+    });
   }
 
   agents = signal<AgentListItem[]>([]);
@@ -333,7 +879,8 @@ export class AgentsComponent {
   towns = computed(() => {
     const region = this.form.controls.region.value;
     const all = this.refs.data().regions ?? [];
-    if (!region) return Array.from(new Set((all.flatMap((item) => item.areas ?? []) as string[]))).sort();
+    if (!region)
+      return Array.from(new Set(all.flatMap((item) => item.areas ?? []) as string[])).sort();
     const match = all.find((item) => item.value === region);
     return match?.areas ?? [];
   });
@@ -363,7 +910,11 @@ export class AgentsComponent {
     });
 
     this.form.valueChanges
-      .pipe(startWith(this.form.getRawValue()), debounceTime(250), distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)))
+      .pipe(
+        startWith(this.form.getRawValue()),
+        debounceTime(250),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+      )
       .subscribe(() => this.load());
 
     this.refs.load().subscribe();
@@ -372,6 +923,22 @@ export class AgentsComponent {
 
   load(page = 1) {
     const values = this.form.getRawValue();
+    const filtered = !!(
+      values.search ||
+      values.region ||
+      values.town ||
+      values.agency ||
+      values.verifiedOnly ||
+      values.ordering !== 'relevance' ||
+      page > 1
+    );
+    this.seo.apply({
+      title: 'Property agents in Eswatini',
+      description:
+        'Find property agents in Eswatini. Compare service areas, agencies and active listings on SurePlace.',
+      path: '/agents',
+      robots: filtered ? 'noindex, follow' : 'index, follow',
+    });
     const params: Record<string, string | string[] | null | undefined> = {
       page: String(page),
       search: values.search || undefined,
@@ -402,7 +969,14 @@ export class AgentsComponent {
   }
 
   clearFilters() {
-    this.form.reset({ search: '', region: '', town: '', agency: '', verifiedOnly: false, ordering: 'relevance' });
+    this.form.reset({
+      search: '',
+      region: '',
+      town: '',
+      agency: '',
+      verifiedOnly: false,
+      ordering: 'relevance',
+    });
     this.load();
   }
 
@@ -429,16 +1003,20 @@ export class AgentsComponent {
   }
 
   serviceAreas(agent: AgentListItem) {
-    return (agent.service_areas && agent.service_areas.length ? agent.service_areas : ['Eswatini']).slice(0, 3).join(' · ');
+    return (agent.service_areas && agent.service_areas.length ? agent.service_areas : ['Eswatini'])
+      .slice(0, 3)
+      .join(' · ');
   }
 
   initials(name: string) {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('') || 'A';
+    return (
+      name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('') || 'A'
+    );
   }
 
   message(agent: AgentListItem) {
@@ -446,9 +1024,12 @@ export class AgentsComponent {
       void this.router.navigate(['/login'], { queryParams: { returnUrl: `/agents/${agent.id}` } });
       return;
     }
-    this.messaging.createForAgent(agent.id, `Hi ${agent.name}, I'd like to discuss a property opportunity.`).subscribe({
-      next: (conversation) => void this.router.navigate(['/account/messages', conversation.id]),
-      error: () => this.toast.show('Could not start the conversation.', 'error'),
-    });
+    this.messaging
+      .createForAgent(agent.id, `Hi ${agent.name}, I'd like to discuss a property opportunity.`)
+      .subscribe({
+        next: (conversation) => void this.router.navigate(['/account/messages', conversation.id]),
+        error: () => this.toast.show('Could not start the conversation.', 'error'),
+      });
   }
 }
+import { SeoService } from '../../core/services/seo.service';

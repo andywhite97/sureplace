@@ -157,7 +157,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
       .primary,
       button,
       a {
-        min-height: 42px;
+        min-height: 44px;
         box-sizing: border-box;
         padding: 0.6rem 0.8rem;
         border: 1px solid var(--line);
@@ -173,6 +173,15 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
         border-color: var(--teal);
         background: var(--teal);
         color: #fff;
+        margin: 0;
+      }
+      .page-head > a,
+      .actions > a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        white-space: nowrap;
       }
       .filters {
         display: grid;
@@ -268,6 +277,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
         justify-content: space-between;
         gap: 0.8rem;
         align-items: center;
+        flex-wrap: wrap;
       }
       .badges,
       .actions {
@@ -278,12 +288,14 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
       }
       .actions details {
         position: relative;
+        flex: 0 0 44px;
       }
       .actions summary {
         display: grid;
         place-items: center;
-        min-width: 42px;
-        min-height: 42px;
+        width: 44px;
+        height: 44px;
+        box-sizing: border-box;
         border: 1px solid var(--line);
         border-radius: 0.55rem;
         cursor: pointer;
@@ -336,6 +348,8 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
       @media (max-width: 680px) {
         .page-head {
           display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          justify-content: stretch;
         }
         .page-head .primary {
           width: 100%;
@@ -350,16 +364,25 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
         footer {
           grid-column: auto;
           display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          justify-content: stretch;
         }
         .badges {
           justify-content: space-between;
         }
         .actions {
           display: grid;
-          grid-template-columns: 1fr 1fr auto;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+          width: 100%;
         }
         .actions > a {
           text-align: center;
+          min-height: 44px;
+          padding-inline: 0.55rem;
+          font-size: 0.875rem;
+        }
+        .actions > .primary {
+          grid-column: 1 / -1;
         }
         .actions details > div {
           right: 0;

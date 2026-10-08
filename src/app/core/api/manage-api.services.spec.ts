@@ -21,6 +21,18 @@ describe('management api services', () => {
   });
   afterEach(() => http.verify());
 
+  it('loads all managed booking pages while retaining manager scope', () => {
+    const next = vi.fn();
+    TestBed.inject(ManagerBookingsApiService).list().subscribe(next);
+    http
+      .expectOne('/api/v1/bookings/?scope=manager')
+      .flush({ count: 2, next: 'page2', previous: null, results: [{ id: 'b1' }] });
+    http
+      .expectOne('/api/v1/bookings/?scope=manager&page=2')
+      .flush({ count: 2, next: null, previous: 'page1', results: [{ id: 'b2' }] });
+    expect(next.mock.calls[0][0].results.map((b: { id: string }) => b.id)).toEqual(['b1', 'b2']);
+  });
+
   it('loads manager portfolios and workflow actions', () => {
     const properties = TestBed.inject(PropertyManagementApiService);
     properties.mine().subscribe();

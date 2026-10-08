@@ -1,6 +1,6 @@
 import '@angular/compiler';
 import { PrerenderFallback, RenderMode, ServerRoute } from '@angular/ssr';
-import { collectPublishedSlugs, serverRoutes } from './app.routes.server';
+import { collectPublishedSlugs, publicProfileParams, serverRoutes } from './app.routes.server';
 import { environment } from '../environments/environment';
 
 describe('serverRoutes', () => {
@@ -17,9 +17,40 @@ describe('serverRoutes', () => {
   });
 
   it('prerenders public shell routes', () => {
-    for (const path of ['', 'properties', 'stays', 'login', 'register', 'agents']) {
+    for (const path of [
+      '',
+      'properties',
+      'stays',
+      'login',
+      'register',
+      'agents',
+      'about',
+      'pricing',
+      'help',
+      'terms',
+      'privacy',
+      'cookies',
+    ]) {
       expect(route(path)?.renderMode).toBe(RenderMode.Prerender);
     }
+  });
+  it('discovers agent IDs and deduplicated agency slugs from public profiles', async () => {
+    globalThis.fetch = vi.fn(async () =>
+      response({
+        next: null,
+        results: [
+          { id: 'a1', agency: { slug: 'agency-one' } },
+          { id: 'a2', agency: { slug: 'agency-one' } },
+          { id: 'a3', agency: null },
+        ],
+      }),
+    ) as never;
+    await expect(publicProfileParams('agent')).resolves.toEqual([
+      { id: 'a1' },
+      { id: 'a2' },
+      { id: 'a3' },
+    ]);
+    await expect(publicProfileParams('agency')).resolves.toEqual([{ slug: 'agency-one' }]);
   });
 
   it('keeps private routes client-rendered', () => {

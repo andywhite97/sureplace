@@ -20,13 +20,32 @@ describe('account api services', () => {
   });
   afterEach(() => http.verify());
 
+  it('loads all booking pages and preserves the status filter', () => {
+    const next = vi.fn();
+    TestBed.inject(BookingsApiService).list('CONFIRMED').subscribe(next);
+    const first = http.expectOne('/api/v1/bookings/?status=CONFIRMED&scope=guest');
+    first.flush({
+      count: 21,
+      next: 'https://api.example/bookings/?page=2',
+      previous: null,
+      results: Array.from({ length: 20 }, (_, i) => ({ id: `b${i}` })),
+    });
+    expect(next).not.toHaveBeenCalled();
+    http
+      .expectOne('/api/v1/bookings/?status=CONFIRMED&page=2&scope=guest')
+      .flush({ count: 21, next: null, previous: 'page1', results: [{ id: 'b20' }] });
+    expect(next.mock.calls[0][0].results).toHaveLength(21);
+    expect(next.mock.calls[0][0].results[20].id).toBe('b20');
+    expect(next.mock.calls[0][0].next).toBeNull();
+  });
+
   it('loads account summary and resource lists', () => {
     TestBed.inject(AccountSummaryApiService).summary().subscribe();
     http.expectOne('/api/v1/dashboard/seeker-summary/').flush({});
     TestBed.inject(ViewingsApiService).list().subscribe();
     http.expectOne('/api/v1/viewing-requests/').flush({ results: [] });
     TestBed.inject(BookingsApiService).list().subscribe();
-    http.expectOne('/api/v1/bookings/').flush({ results: [] });
+    http.expectOne('/api/v1/bookings/?scope=guest').flush({ results: [] });
     TestBed.inject(NotificationsApiService).list().subscribe();
     http.expectOne('/api/v1/notifications/').flush({ results: [] });
   });

@@ -125,6 +125,14 @@ export type BookingStatus =
   'PENDING' | 'CONFIRMED' | 'DECLINED' | 'CANCELLED' | 'COMPLETED' | 'EXPIRED' | string;
 
 export interface Booking {
+  booking_mode?: 'REQUEST_TO_BOOK' | 'INSTANT_BOOK';
+  payment_method?: 'PAY_AT_PROPERTY';
+  policy_snapshot?: BookingPolicy;
+  decline_reason?: string;
+  action_note?: string;
+  cancellation_reason?: string;
+  stay_latitude?: number | null;
+  stay_longitude?: number | null;
   id: string;
   reference: string;
   stay: string;
@@ -156,6 +164,15 @@ export interface Booking {
   expires_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface BookingPolicy {
+  payment_method?: string;
+  cancellation_policy?: string;
+  house_rules?: string;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  minimum_stay?: number;
 }
 
 export interface NotificationData {

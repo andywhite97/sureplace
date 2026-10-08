@@ -18,8 +18,8 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
   room_type: 'r1',
   room_name: 'Deluxe Room',
   conversation: 'c1',
-  check_in: '2026-09-22',
-  check_out: '2026-09-26',
+  check_in: '2999-09-22',
+  check_out: '2999-09-26',
   adults: 1,
   children: 0,
   rooms: 1,
@@ -44,15 +44,46 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
 describe('BookingsComponent', () => {
   const rows = [
     booking(),
-    booking({ id: 'b2', reference: 'SP-BKG-002', status: 'CONFIRMED', stay_name: 'Royal Villas Mbabane' }),
-    booking({ id: 'b3', reference: 'SP-BKG-003', status: 'COMPLETED', stay_name: 'A very long completed stay name that remains readable on desktop' }),
-    booking({ id: 'b4', reference: 'SP-BKG-004', status: 'CANCELLED', stay_name: 'Cancelled Stay' }),
+    booking({
+      id: 'b2',
+      reference: 'SP-BKG-002',
+      status: 'CONFIRMED',
+      stay_name: 'Royal Villas Mbabane',
+    }),
+    booking({
+      id: 'b3',
+      reference: 'SP-BKG-003',
+      status: 'COMPLETED',
+      stay_name: 'A very long completed stay name that remains readable on desktop',
+    }),
+    booking({
+      id: 'b4',
+      reference: 'SP-BKG-004',
+      status: 'CANCELLED',
+      stay_name: 'Cancelled Stay',
+    }),
   ];
   const api = { list: vi.fn(), cancel: vi.fn() };
   const toast = { show: vi.fn() };
 
   beforeEach(() => {
-    api.list.mockReset().mockReturnValue(of({ count: rows.length, next: null, previous: null, results: rows }));
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: {
+        value: function () {
+          this.open = true;
+        },
+        configurable: true,
+      },
+      close: {
+        value: function () {
+          this.open = false;
+        },
+        configurable: true,
+      },
+    });
+    api.list
+      .mockReset()
+      .mockReturnValue(of({ count: rows.length, next: null, previous: null, results: rows }));
     api.cancel.mockReset();
     toast.show.mockReset();
     TestBed.configureTestingModule({
@@ -73,17 +104,19 @@ describe('BookingsComponent', () => {
 
   it('derives summary and tab counts from the loaded booking response', () => {
     const fixture = create();
-    const summary = [...fixture.nativeElement.querySelectorAll('.desktop-summary-strip strong')].map(
-      (node: HTMLElement) => node.textContent?.trim(),
+    const summary = [
+      ...fixture.nativeElement.querySelectorAll('.desktop-summary-strip strong'),
+    ].map((node: HTMLElement) => node.textContent?.trim());
+    expect(summary).toEqual(['1', '1', '1', '4']);
+    expect(fixture.nativeElement.querySelector('.booking-tabs').textContent).toContain(
+      'Cancelled (1)',
     );
-    expect(summary).toEqual(['2', '1', '1', '4']);
-    expect(fixture.nativeElement.querySelector('.booking-tabs').textContent).toContain('Cancelled (1)');
   });
 
   it('renders pending and confirmed bookings, including the branded missing-image fallback', () => {
     const fixture = create();
-    expect(fixture.nativeElement.querySelectorAll('article')).toHaveLength(2);
-    expect(fixture.nativeElement.textContent).toContain('Matsapha Serviced Studios');
+    expect(fixture.nativeElement.querySelectorAll('article')).toHaveLength(1);
+    expect(fixture.nativeElement.textContent).not.toContain('Matsapha Serviced Studios');
     expect(fixture.nativeElement.textContent).toContain('Royal Villas Mbabane');
     expect(fixture.nativeElement.querySelector('.booking-image sp-image')).toBeTruthy();
   });
@@ -104,7 +137,8 @@ describe('BookingsComponent', () => {
     api.cancel.mockReturnValue(of(updated));
     const fixture = create();
     fixture.componentInstance.cancel(rows[0]);
-    expect(api.cancel).toHaveBeenCalledWith('b1');
+    fixture.componentInstance.confirmCancel();
+    expect(api.cancel).toHaveBeenCalledWith('b1', '');
     expect(toast.show).toHaveBeenCalledWith('Booking cancelled.', 'success');
   });
 });

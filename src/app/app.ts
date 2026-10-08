@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, afterNextRender, computed, inject, signal } from '@angular/core';
+import { AccountActivityStore } from './core/services/account-activity.store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { PublicHeaderComponent } from './layout/public-header.component';
@@ -23,7 +24,9 @@ import { NativeAppService } from './core/services/native-app.service';
   template: `<sp-header [staffWorkspace]="staffWorkspace()" />
     <div class="route-viewport"><router-outlet /></div>
     @if (!staffWorkspace()) {
-      @if (!nativeApp) { <sp-footer /> }
+      @if (!nativeApp) {
+        <sp-footer />
+      }
       <sp-mobile-nav />
     }
     <sp-toast-region /><sp-cookie-consent />`,
@@ -33,9 +36,11 @@ export class App {
   private router = inject(Router);
   private keepAlive = inject(BackendKeepAliveService);
   private native = inject(NativeAppService);
+  private activity = inject(AccountActivityStore);
   private url = signal(this.router.url);
   staffWorkspace = computed(() => /^\/staff(?:\/|[?#]|$)/.test(this.url()));
   constructor() {
+    afterNextRender(() => this.activity.startGlobalUpdates());
     void this.native.start();
     this.keepAlive.start();
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {

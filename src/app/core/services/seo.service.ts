@@ -13,6 +13,7 @@ export interface SeoConfig {
   robots?: string;
   type?: 'website' | 'article';
   image?: string | null;
+  imageAlt?: string;
   jsonLd?: JsonLd | null;
   exactTitle?: boolean;
 }
@@ -45,7 +46,10 @@ export class SeoService {
     const description = config.description || DEFAULT_DESCRIPTION;
     const canonical = this.absoluteUrl(config.canonicalPath ?? config.path ?? this.currentPath());
     const robots = this.indexingPolicy(config.robots);
-    const image = config.image === null ? null : this.absoluteUrl(config.image || environment.defaultSocialImageUrl || DEFAULT_IMAGE);
+    const image =
+      config.image === null
+        ? null
+        : this.absoluteImageUrl(config.image || environment.defaultSocialImageUrl || DEFAULT_IMAGE);
 
     this.title.setTitle(title);
     this.setName('description', description);
@@ -62,10 +66,17 @@ export class SeoService {
 
     if (image) {
       this.setProperty('og:image', image);
+      this.setProperty('og:image:alt', config.imageAlt || title);
+      if (image.startsWith('https://')) this.setProperty('og:image:secure_url', image);
+      else this.removeProperty('og:image:secure_url');
       this.setName('twitter:image', image);
+      this.setName('twitter:image:alt', config.imageAlt || title);
     } else {
       this.removeProperty('og:image');
+      this.removeProperty('og:image:alt');
+      this.removeProperty('og:image:secure_url');
       this.removeName('twitter:image');
+      this.removeName('twitter:image:alt');
     }
 
     this.canonical(canonical);
@@ -86,7 +97,13 @@ export class SeoService {
   }
 
   privatePage(title: string, description = 'SurePlace account page.') {
-    this.apply({ title, description, robots: 'noindex, nofollow', image: null });
+    this.apply({
+      title,
+      description,
+      canonicalPath: this.currentPath().split(/[?#]/)[0],
+      robots: 'noindex, nofollow',
+      image: null,
+    });
   }
 
   jsonLd(data: JsonLd | null) {
@@ -107,6 +124,14 @@ export class SeoService {
     if (/^https?:\/\//i.test(path)) return path;
     const origin = (environment.frontendOrigin || this.document.location.origin).replace(/\/$/, '');
     return new URL(path || '/', `${origin}/`).href;
+  }
+
+  absoluteImageUrl(path: string) {
+    // Uploaded media belongs to the API host; public frontend assets belong to the site.
+    if (/^\/?media\//i.test(path) && /^https?:\/\//i.test(environment.apiBaseUrl)) {
+      return new URL(path.replace(/^\/?/, '/'), environment.apiBaseUrl).href;
+    }
+    return this.absoluteUrl(path);
   }
 
   private setName(name: string, content: string) {

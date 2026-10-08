@@ -33,7 +33,11 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
       @if (!submitted()) {
         <div class="wizard-top">
           <div class="wizard-nav">
-            <button type="button" [disabled]="busy() || roomBusy() || submitting()" (click)="back()">
+            <button
+              type="button"
+              [disabled]="busy() || roomBusy() || submitting()"
+              (click)="back()"
+            >
               <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
               {{ step() > 0 ? 'Previous: ' + steps[step() - 1].label : 'Back to listing type' }}
             </button>
@@ -282,6 +286,34 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                 </div>
               }
               @case ('policies') {
+                <section class="step-panel">
+                  <h2>Booking settings</h2>
+                  <label
+                    >Booking mode<select formControlName="booking_mode">
+                      <option value="REQUEST_TO_BOOK">Request to Book</option>
+                      <option value="INSTANT_BOOK">Instant Book</option>
+                    </select></label
+                  >
+                  <p>
+                    Request to Book: review each reservation before confirming. Instant Book:
+                    available reservations confirm automatically.
+                  </p>
+                  <label
+                    >Cancellation policy<textarea
+                      formControlName="cancellation_policy"
+                      maxlength="2000"
+                      rows="4"
+                      placeholder="Explain your cancellation terms to guests"
+                    ></textarea></label
+                  ><label
+                    >House rules<textarea
+                      formControlName="house_rules"
+                      maxlength="2000"
+                      rows="3"
+                    ></textarea>
+                  </label>
+                  <p>Guests pay at property. No online payment is taken by SurePlace.</p>
+                </section>
                 <div class="step-panel">
                   <div>
                     <h1>Policies</h1>
@@ -502,6 +534,9 @@ export class StayFormComponent {
     website: [''],
     check_in_time: [''],
     check_out_time: [''],
+    booking_mode: ['REQUEST_TO_BOOK' as 'REQUEST_TO_BOOK' | 'INSTANT_BOOK'],
+    cancellation_policy: ['', Validators.maxLength(2000)],
+    house_rules: ['', Validators.maxLength(2000)],
     amenities: [[] as string[]],
     confirmed: [false, Validators.requiredTrue],
   });
@@ -871,6 +906,9 @@ export class StayFormComponent {
             whatsapp_number: stay.whatsapp_number,
             website: stay.website,
             check_in_time: stay.check_in_time || '',
+            booking_mode: stay.booking_mode || 'REQUEST_TO_BOOK',
+            cancellation_policy: stay.cancellation_policy || '',
+            house_rules: stay.house_rules || '',
             check_out_time: stay.check_out_time || '',
             amenities: stay.amenities.map((a) => a.id),
           },
@@ -963,6 +1001,9 @@ export class StayFormComponent {
       whatsapp_number: v.whatsapp_number,
       website: v.website,
       check_in_time: v.check_in_time || null,
+      booking_mode: v.booking_mode,
+      cancellation_policy: v.cancellation_policy,
+      house_rules: v.house_rules,
       check_out_time: v.check_out_time || null,
       amenities: v.amenities,
       agency: this.agencyId || undefined,

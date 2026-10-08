@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from './api-client';
+import { bookingPages } from './booking-pages';
 import { PaginatedResponse } from '../models/api.models';
 import {
   AvailabilityBulkRequest,
@@ -57,7 +58,10 @@ export class PropertyManagementApiService {
     );
   }
   markUnavailable(id: string) {
-    return this.api.post<ManagedProperty>(`/properties/${encodeURIComponent(id)}/mark-unavailable/`, {});
+    return this.api.post<ManagedProperty>(
+      `/properties/${encodeURIComponent(id)}/mark-unavailable/`,
+      {},
+    );
   }
   uploadImage(id: string, data: FormData) {
     return this.api.post<PropertyImage>(`/properties/${encodeURIComponent(id)}/images/`, data);
@@ -84,6 +88,9 @@ export class StayManagementApiService {
   private api = inject(ApiClient);
   mine(params: Record<string, string> = {}) {
     return this.api.get<ManagedStayPage>('/stays/mine/', params);
+  }
+  allManaged() {
+    return bookingPages(page=>this.api.get<ManagedStayPage>('/stays/mine/', {page}));
   }
   detail(id: string) {
     return this.api.get<ManagedStay>(`/stays/${encodeURIComponent(id)}/`);
@@ -184,11 +191,26 @@ export class ManagerViewingsApiService {
 @Injectable({ providedIn: 'root' })
 export class ManagerBookingsApiService {
   private api = inject(ApiClient);
-  list() {
-    return this.api.get<ManagedBookingPage>('/bookings/', { scope: 'manager' });
+  list(stay?: string) {
+    return bookingPages((page) =>
+      this.api.get<ManagedBookingPage>('/bookings/', { scope: 'manager', page, stay }),
+    );
   }
-  action(id: string, action: 'confirm' | 'decline' | 'cancel' | 'complete') {
-    return this.api.post<unknown>(`/bookings/${encodeURIComponent(id)}/${action}/`, {});
+  detail(id: string) {
+    return this.api.get<import('../models/account.models').Booking>(
+      `/bookings/${encodeURIComponent(id)}/`,
+      { scope: 'manager' },
+    );
+  }
+  action(
+    id: string,
+    action: 'confirm' | 'decline' | 'cancel' | 'complete',
+    body: { reason?: string; note?: string } = {},
+  ) {
+    return this.api.post<import('../models/account.models').Booking>(
+      `/bookings/${encodeURIComponent(id)}/${action}/`,
+      body,
+    );
   }
 }
 

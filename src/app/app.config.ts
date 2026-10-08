@@ -8,7 +8,13 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { provideClientHydration, withHttpTransferCacheOptions } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter, withInMemoryScrolling, withViewTransitions } from '@angular/router';
+import {
+  provideRouter,
+  withInMemoryScrolling,
+  withViewTransitions,
+  TitleStrategy,
+} from '@angular/router';
+import { SeoTitleStrategy } from './core/services/seo-title.strategy';
 import { forkJoin, switchMap, take } from 'rxjs';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -20,17 +26,29 @@ import { PageMotionService } from './core/services/page-motion.service';
 
 export const createAppConfig = (hydrate = true): ApplicationConfig => ({
   providers: [
+    { provide: TitleStrategy, useClass: SeoTitleStrategy },
     provideBrowserGlobalErrorListeners(),
-    ...(hydrate ? [provideClientHydration(
-      withHttpTransferCacheOptions({
-        includePostRequests: false,
-      }),
-    )] : []),
-    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
-      ...(!hydrate ? [withViewTransitions({
-        skipInitialTransition: true,
-        onViewTransitionCreated: (info) => inject(PageMotionService).created(info),
-      })] : [])),
+    ...(hydrate
+      ? [
+          provideClientHydration(
+            withHttpTransferCacheOptions({
+              includePostRequests: false,
+            }),
+          ),
+        ]
+      : []),
+    provideRouter(
+      routes,
+      withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
+      ...(!hydrate
+        ? [
+            withViewTransitions({
+              skipInitialTransition: true,
+              onViewTransitionCreated: (info) => inject(PageMotionService).created(info),
+            }),
+          ]
+        : []),
+    ),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAppInitializer(() => {
       const platformId = inject(PLATFORM_ID);

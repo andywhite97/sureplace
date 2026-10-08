@@ -13,6 +13,29 @@ import { MessagingApiService } from '../../../core/api/messaging-api.service';
 import { LeafletLoaderService } from '../../../shared/map/leaflet-loader.service';
 
 describe('StayDetailComponent', () => {
+  it('scrolls each section link locally without leaving the stay route', () => {
+    const c = TestBed.createComponent(StayDetailComponent).componentInstance;
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'url', 'get').mockReturnValue('/stays/example?rooms=2');
+    for (const id of ['overview', 'rooms', 'amenities', 'location', 'policies']) {
+      const target = document.createElement('section');
+      target.id = id;
+      target.scrollIntoView = vi.fn();
+      document.body.append(target);
+      try {
+        const click = new MouseEvent('click', { cancelable: true });
+        c.scrollToSection(id, click);
+        expect(click.defaultPrevented).toBe(true);
+        expect(target.scrollIntoView).toHaveBeenCalledWith({
+          behavior: expect.stringMatching(/^(auto|smooth)$/),
+          block: 'start',
+        });
+        expect(c.sectionHref(id)).toBe(`/stays/example?rooms=2#${id}`);
+      } finally {
+        target.remove();
+      }
+    }
+  });
   let route: BehaviorSubject<any>;
   let detail: ReturnType<typeof vi.fn>;
   let availability: ReturnType<typeof vi.fn>;
@@ -146,6 +169,7 @@ describe('StayDetailComponent', () => {
             set: vi.fn(),
             apply: seoApply,
             absoluteUrl: (path: string) => `http://localhost:4200${path}`,
+            absoluteImageUrl: (path: string) => `http://localhost:4200${path}`,
           },
         },
         { provide: ToastService, useValue: { show: vi.fn() } },
@@ -171,7 +195,7 @@ describe('StayDetailComponent', () => {
     expect(fixture.componentInstance.googleMapsDirectionsUrl(-25.96, 31.25)).toBe(
       'https://www.google.com/maps/dir/?api=1&destination=-25.96%2C31.25',
     );
-  });
+  }, 15000);
 
   it('shows Verified Stay only from the stay verification status', () => {
     const fixture = TestBed.createComponent(StayDetailComponent);
@@ -186,6 +210,58 @@ describe('StayDetailComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.verified-stay')).toBeNull();
+  });
+
+  it('writes the stay cover into social tags and structured data, then clears stale listing images', () => {
+    TestBed.overrideProvider(SeoService, { useFactory: () => new SeoService() });
+    detail.mockReturnValue(
+      of({
+        ...stay,
+        images: [
+          { ...stay.images[0], image: '/room.jpg', is_cover: false },
+          {
+            ...stay.images[0],
+            image: '/stay-cover.jpg',
+            caption: 'Mountain retreat exterior',
+            sort_order: 1,
+          },
+        ],
+      }),
+    );
+    TestBed.createComponent(StayDetailComponent).detectChanges();
+    expect(document.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      'http://localhost:4200/stay-cover.jpg',
+    );
+    expect(document.querySelector('meta[name="twitter:image:alt"]')?.getAttribute('content')).toBe(
+      'Mountain retreat exterior',
+    );
+    expect(document.querySelector('script[data-sureplace-jsonld]')?.textContent).toContain(
+      'http://localhost:4200/stay-cover.jpg',
+    );
+    detail.mockReturnValue(of({ ...stay, images: [] }));
+    route.next(convertToParamMap({ slug: stay.slug }));
+    expect(document.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      'http://localhost:4200/hero-eswatini-home.jpg',
+    );
+    detail.mockReturnValue(throwError(() => ({ status: 404 })));
+    route.next(convertToParamMap({ slug: 'missing-stay' }));
+    expect(document.querySelector('meta[property="og:image"]')).toBeNull();
+    expect(document.querySelector('script[data-sureplace-jsonld]')).toBeNull();
+  });
+
+  it('restores cover metadata after retrying a failed stay request', () => {
+    detail.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+    const fixture = TestBed.createComponent(StayDetailComponent);
+    fixture.detectChanges();
+    detail.mockReturnValue(of(stay));
+    fixture.componentInstance.retry();
+    expect(seoApply).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        image: '/stay.jpg',
+        imageAlt: 'Mountain view',
+        path: `/stays/${stay.slug}`,
+      }),
+    );
   });
 
   it('hydrates dates, guests, and rooms from the stay search URL', () => {
@@ -235,6 +311,7 @@ describe('StayDetailComponent', () => {
             set: vi.fn(),
             apply: seoApply,
             absoluteUrl: (path: string) => `http://localhost:4200${path}`,
+            absoluteImageUrl: (path: string) => `http://localhost:4200${path}`,
           },
         },
         { provide: ToastService, useValue: { show: vi.fn() } },

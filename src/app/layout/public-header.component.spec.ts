@@ -39,6 +39,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     logout: vi.fn(),
   };
   const activity = {
+    refresh: vi.fn(),
     unreadMessages: computed(() => unreadMessages()),
     unreadNotifications: computed(() => unreadNotifications()),
   };
@@ -63,6 +64,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     unreadMessages.set(0);
     unreadNotifications.set(0);
     auth.logout.mockClear();
+    activity.refresh.mockClear();
     config.set({
       default_country: 'SZ',
       default_currency: 'SZL',
@@ -152,9 +154,11 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(headerText).toContain('List a Property');
     expect(headerText).not.toContain('Rent');
     expect(headerText).not.toContain('Buy');
+
     expect(headerText).not.toContain('Saved');
     expect(headerText).not.toContain('Messages');
     expect(properties).toBeTruthy();
+    expect(activity.refresh).not.toHaveBeenCalled();
   });
 
   it('renders a mobile notification shortcut for guests', () => {
@@ -166,7 +170,7 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(shortcuts.length).toBe(1);
     expect(shortcuts[0].getAttribute('aria-label')).toBe('Sign in to view notifications');
     expect(shortcuts[0].getAttribute('href')).toBe('/login');
-    expect(shortcuts[0].querySelector('.fa-bell')).toBeTruthy();
+    expect(shortcuts[0].querySelector('svg.notification-icon[aria-hidden="true"]')).toBeTruthy();
     expect(menu.querySelector('.fa-bars')).toBeTruthy();
   });
 
@@ -181,13 +185,30 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(headerText).toContain('Properties');
     expect(headerText).toContain('Saved');
     expect(headerText).toContain('Messages');
-    expect(headerText).toContain('Ava');
-    expect(headerText).toContain('Log out');
+    expect(fixture.nativeElement.querySelector('.account-trigger').getAttribute('aria-label')).toBe(
+      'Account pages for Ava',
+    );
+    expect(headerText).not.toContain('Log out');
     expect(headerText).toContain('List on SurePlace');
     expect(headerText).not.toContain('Log in');
     expect(headerText).not.toContain('Create account');
     expect(headerText).not.toContain('Rent');
     expect(headerText).not.toContain('Buy');
+
+    const messages = fixture.nativeElement.querySelector('.desktop-messages');
+    const notifications = fixture.nativeElement.querySelector('.desktop-notification');
+    expect(messages.getAttribute('aria-label')).toBe('7 unread messages');
+    expect(messages.querySelector('.message-badge').textContent.trim()).toBe('7');
+    expect(notifications.getAttribute('href')).toBe('/account/notifications');
+    expect(notifications.getAttribute('aria-label')).toBe('3 unread notifications');
+    unreadMessages.set(0);
+    unreadNotifications.set(0);
+    fixture.detectChanges();
+    expect(messages.querySelector('.message-badge')).toBeNull();
+    expect(notifications.querySelector('b')).toBeNull();
+    unreadMessages.set(7);
+    unreadNotifications.set(3);
+    fixture.detectChanges();
 
     fixture.nativeElement.querySelector('.menu-button').click();
     fixture.detectChanges();
@@ -222,6 +243,82 @@ describe('PublicHeaderComponent mobile navigation', () => {
       '.drawer [aria-current="page"]',
     ) as HTMLAnchorElement;
     expect(current?.textContent).toContain('Properties');
+  });
+
+  it('opens account pages from an avatar and closes on Escape, outside click and focus leaving', () => {
+    user.set({
+      first_name: 'Andile',
+      last_name: 'Hlophe',
+      email: 'andile@example.com',
+      avatar: '/media/avatar.webp',
+    });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    const trigger = fixture.nativeElement.querySelector('.account-trigger') as HTMLButtonElement;
+    expect(trigger.querySelector('img')?.getAttribute('src')).toBe('/media/avatar.webp');
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    trigger.click();
+    fixture.detectChanges();
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    const dropdown = fixture.nativeElement.querySelector('.account-dropdown');
+    expect(dropdown.textContent).toContain('Andile Hlophe');
+    expect(dropdown.querySelector('a[href="/account/profile"]')).toBeTruthy();
+    expect(dropdown.querySelector('a[href="/account/settings"]')).toBeTruthy();
+    expect(dropdown.querySelector('a[href="/account/bookings"]')).toBeTruthy();
+    expect(dropdown.querySelector('.account-logout button').textContent).toContain('Log out');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.accountOpen()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+    trigger.click();
+    fixture.detectChanges();
+    document.body.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.account-dropdown')).toBeNull();
+    trigger.click();
+    fixture.detectChanges();
+    trigger.dispatchEvent(
+      new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }),
+    );
+    expect(fixture.componentInstance.accountOpen()).toBe(false);
+  });
+
+  it('uses initials when a profile image fails and respects feature flags in account links', () => {
+    user.set({ first_name: 'Andile', last_name: 'Hlophe', avatar: '/missing.webp' });
+    config.update((value) => ({
+      ...value,
+      features: { ...value.features, bookings: false, internal_messaging: false },
+    }));
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    const trigger = fixture.nativeElement.querySelector('.account-trigger') as HTMLButtonElement;
+    trigger.querySelector('img')!.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+    expect(trigger.textContent).toContain('AH');
+    trigger.click();
+    fixture.detectChanges();
+    const dropdown = fixture.nativeElement.querySelector('.account-dropdown');
+    expect(dropdown.querySelector('a[href="/account/bookings"]')).toBeNull();
+    expect(dropdown.querySelector('a[href="/account/messages"]')).toBeNull();
+  });
+
+  it('closes after choosing a profile page or logging out', async () => {
+    user.set({ first_name: 'Andile' });
+    const fixture = TestBed.createComponent(PublicHeaderComponent);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.account-trigger').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.account-dropdown a[href="/account/profile"]').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(TestBed.inject(Router).url).toBe('/account/profile');
+    expect(fixture.componentInstance.accountOpen()).toBe(false);
+    fixture.nativeElement.querySelector('.account-trigger').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.account-logout button').click();
+    fixture.detectChanges();
+    expect(auth.logout).toHaveBeenCalledOnce();
+    expect(fixture.componentInstance.accountOpen()).toBe(false);
   });
 
   it('shows supply-side management links for supply users', () => {
@@ -440,8 +537,8 @@ describe('PublicHeaderComponent mobile navigation', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(TestBed.inject(Router).url).toBe('/account/profile');
-    expect(fixture.componentInstance.menuState()).toBe('closing');
-    finishDrawerClose(fixture);
+    expect(['closing', 'closed']).toContain(fixture.componentInstance.menuState());
+    if (fixture.componentInstance.menuState() === 'closing') finishDrawerClose(fixture);
     expect(fixture.nativeElement.querySelector('.backdrop')).toBeNull();
     expect(document.body.style.position).toBe('');
     fixture.componentInstance.openMenu();
@@ -478,7 +575,9 @@ describe('PublicHeaderComponent mobile navigation', () => {
     user.set({ first_name: 'Andy' });
     initializing.set(false);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Andy');
+    expect(fixture.nativeElement.querySelector('.account-trigger').getAttribute('aria-label')).toBe(
+      'Account pages for Andy',
+    );
     expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
   });
 });

@@ -18,6 +18,7 @@ Prerender public, stable routes:
 - `/stays`
 - `/agents`
 - `/verification`
+- `/help`, `/about`, `/pricing`, `/terms`, `/privacy`, `/cookies`
 - `/login`
 - `/register`
 
@@ -32,6 +33,8 @@ Use client fallback for detail pages when build-time slug discovery is unavailab
 
 - `/properties/:slug`
 - `/stays/:slug`
+- `/agents/:id`
+- `/agencies/:slug`
 
 ## Dynamic Slug Discovery
 
@@ -39,6 +42,7 @@ The build reads public slugs from:
 
 - `${apiBaseUrl}/properties/`
 - `${apiBaseUrl}/stays/`
+- `${apiBaseUrl}/agents/` for agent IDs and associated public agency slugs
 
 By default `apiBaseUrl` comes from `src/environments/environment.production.ts`. Override it for CI or local testing with:
 
@@ -47,6 +51,8 @@ SUREPLACE_PRERENDER_API_BASE=https://example.com/api/v1 npm run build:ghpages
 ```
 
 If the API returns an error, times out, or is unavailable, the build logs a warning and returns no dynamic params. GitHub Pages still serves those detail URLs through `404.html`, and Angular loads the listing in the browser.
+
+Discovery requests allow 15 seconds and retry once. Check discovery warnings before release: fallback pages are noindex and omitted from the generated frontend sitemap until prerendering succeeds. GitHub Pages preparation generates `sitemap.xml` from indexable canonical HTML and removes homepage canonical/JSON-LD from the noindex fallback.
 
 ## Browser-Only Code
 

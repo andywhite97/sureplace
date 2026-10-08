@@ -29,7 +29,7 @@ describe('RoomCardComponent', () => {
     f.componentRef.setInput('room', room);
     f.detectChanges();
     expect(f.nativeElement.textContent).toContain('Garden Room');
-    expect(f.nativeElement.textContent).toContain('From E850');
+    expect(f.nativeElement.textContent).toContain('E850 / night');
     expect(f.nativeElement.textContent).toContain('Choose dates');
   });
   it('disables unavailable rooms', () => {
@@ -45,7 +45,7 @@ describe('RoomCardComponent', () => {
       total: '0.00',
     });
     f.detectChanges();
-    expect(f.nativeElement.querySelector('button').disabled).toBe(true);
-    expect(f.nativeElement.textContent).toContain('Sold out for selected dates');
+    expect(f.nativeElement.querySelector('button.select-room').disabled).toBe(true);
+    expect(f.nativeElement.textContent).toContain('Sold out for these dates');
   });
 });

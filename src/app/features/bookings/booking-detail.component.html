@@ -1,0 +1,234 @@
+<main class="booking-page">
+  <header>
+    <a [routerLink]="manager ? '/account/manage/bookings' : '/account/bookings'"
+      >← Back to bookings</a
+    >
+    <p class="eyebrow">{{ manager ? 'Stay management' : 'Your reservation' }}</p>
+    <h1>{{ booking()?.stay_name || 'Booking details' }}</h1>
+  </header>
+  @if (loading()) {
+    <div class="skeleton" role="status" aria-label="Loading booking"></div>
+  } @else if (booking(); as b) {
+    <div class="layout">
+      <div class="stack">
+        <section class="panel">
+          <span class="status" [class.pending]="b.status === 'PENDING'">{{ b.status }}</span>
+          <h2>{{ b.status === 'PENDING' && manager ? 'Booking request' : 'Booking overview' }}</h2>
+          <dl>
+            <div>
+              <dt>Reference</dt>
+              <dd>
+                <strong>{{ b.reference }}</strong>
+              </dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{{ b.created_at | date: 'd MMM y' }}</dd>
+            </div>
+            <div>
+              <dt>Check-in</dt>
+              <dd>{{ b.check_in | date: 'd MMM y' }}</dd>
+            </div>
+            <div>
+              <dt>Check-out</dt>
+              <dd>{{ b.check_out | date: 'd MMM y' }}</dd>
+            </div>
+            <div>
+              <dt>Your stay</dt>
+              <dd>{{ nights(b) }} nights · {{ b.adults + b.children }} guests</dd>
+            </div>
+          </dl>
+          @if (b.status === 'PENDING' && b.expires_at) {
+            <p class="notice">
+              {{
+                active(b)
+                  ? 'Pending property confirmation. Hold expires '
+                  : 'This hold has elapsed; it can no longer be confirmed. Expiry processing will update its status. '
+              }}{{ b.expires_at | date: 'd MMM · HH:mm' }}
+            </p>
+            @if (active(b) && manager) {
+              <p>{{ b.rooms }} {{ b.room_name }} currently held for this request.</p>
+            }
+          }
+          @if (b.decline_reason) {
+            <p>Decline reason: {{ b.decline_reason.replaceAll('_', ' ') }}</p>
+            <p>{{ b.action_note }}</p>
+          }
+          @if (b.cancellation_reason) {
+            <p>Cancellation reason: {{ b.cancellation_reason }}</p>
+          }
+        </section>
+        <section class="panel">
+          <h2>Stay &amp; room details</h2>
+          <div class="room-info">
+            <sp-image [src]="b.stay_image" [alt]="b.stay_name" ratio="4 / 3" />
+            <div>
+              <h3>{{ b.stay_name }}</h3>
+              <p>{{ b.room_name }} × {{ b.rooms }}</p>
+              <small>{{ b.stay_town }}</small>
+            </div>
+          </div>
+          <a [routerLink]="['/stays', b.stay_slug]">View stay</a>
+          @if (b.status === 'CONFIRMED' && b.stay_latitude != null && b.stay_longitude != null) {
+            <p><a [href]="directions(b)" target="_blank" rel="noopener">Get directions</a></p>
+          }
+        </section>
+        <section class="panel">
+          <h2>Guest details</h2>
+          <p>{{ b.guest_name }}</p>
+          <p>{{ b.guest_email }}<br />{{ b.guest_phone }}</p>
+          <h3>Special requests</h3>
+          <p>{{ b.special_requests || 'No special requests.' }}</p>
+        </section>
+        <section class="panel"><sp-booking-policies [policy]="b.policy_snapshot || {}" /></section>
+      </div>
+      <aside class="stack summary">
+        <section class="panel">
+          <h2>Price</h2>
+          <dl>
+            <div>
+              <dt>Room total</dt>
+              <dd>{{ money(b.nightly_subtotal, b.currency) }}</dd>
+            </div>
+            @if (+b.taxes) {
+              <div>
+                <dt>Taxes</dt>
+                <dd>{{ money(b.taxes, b.currency) }}</dd>
+              </div>
+            }
+            @if (+b.fees) {
+              <div>
+                <dt>Fees</dt>
+                <dd>{{ money(b.fees, b.currency) }}</dd>
+              </div>
+            }
+            <div class="total">
+              <dt>Total</dt>
+              <dd>{{ money(b.total, b.currency) }}</dd>
+            </div>
+          </dl>
+          <details>
+            <summary>Nightly price snapshot per room</summary>
+            @for (p of b.nightly_pricing; track p.date) {
+              <p>{{ p.date | date: 'd MMM' }} · {{ money(p.price, b.currency) }}</p>
+            }
+          </details>
+          <h3>Payment</h3>
+          <p>Pay at property<br /><small>No online payment required</small></p>
+        </section>
+        <section class="panel">
+          <h2>{{ manager ? 'Guest communication & operations' : 'Manage your booking' }}</h2>
+          <div class="stack">
+            @if (b.conversation) {
+              <a class="button" [routerLink]="['/account/messages', b.conversation]">{{
+                manager ? 'Message guest' : 'Message property'
+              }}</a>
+            }
+            @if (active(b)) {
+              @if (manager && b.status === 'PENDING') {
+                <button class="primary" (click)="open('confirm')">Confirm booking</button
+                ><button class="danger" (click)="open('decline')">Decline request</button>
+              }
+              @if (canCancel(b)) {
+                <button class="danger" (click)="open('cancel')">
+                  {{ b.status === 'PENDING' ? 'Cancel request' : 'Cancel booking' }}
+                </button>
+              }
+            }
+            @if (manager && canComplete(b)) {
+              <button (click)="open('complete')">Complete stay</button>
+            }
+            @if (manager) {
+              <a class="button" [routerLink]="['/account/manage/stays', b.stay, 'calendar']"
+                >Open calendar</a
+              >
+            }
+          </div>
+        </section>
+      </aside>
+    </div>
+  }
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+    @if (!booking()) {
+      <button (click)="load()">Retry</button>
+    }
+  }
+  <dialog #actionDialog>
+    <form [formGroup]="form" (ngSubmit)="perform()">
+      <h2>
+        {{
+          action() === 'confirm'
+            ? 'Confirm this booking?'
+            : action() === 'decline'
+              ? 'Decline request'
+              : action() === 'complete'
+                ? 'Complete this stay?'
+                : 'Cancel booking?'
+        }}
+      </h2>
+      @if (booking(); as b) {
+        <p>
+          {{ b.stay_name }} · {{ b.room_name }} × {{ b.rooms }}<br />{{
+            b.check_in | date: 'd MMM'
+          }}
+          – {{ b.check_out | date: 'd MMM y' }}<br />{{ b.guest_name }} ·
+          {{ money(b.total, b.currency) }}
+        </p>
+        @if (action() === 'confirm') {
+          <p>The held room inventory will become a confirmed reservation.</p>
+        }
+        @if (action() === 'cancel') {
+          <p>
+            {{
+              b.policy_snapshot?.cancellation_policy ||
+                'Cancellation terms have not been supplied by the property.'
+            }}
+          </p>
+          @if (manager) {
+            <p>The guest will be notified immediately.</p>
+          }
+        }
+      }
+      @if (action() === 'decline') {
+        <label
+          >Reason category<select formControlName="reason">
+            <option value="">Choose a reason</option>
+            <option value="NO_AVAILABILITY">No availability</option>
+            <option value="CANNOT_ACCOMMODATE">Cannot accommodate request</option>
+            <option value="PROPERTY_UNAVAILABLE">Property unavailable</option>
+            <option value="OTHER">Other</option>
+          </select></label
+        ><label
+          >Guest-facing note (optional)<textarea maxlength="1000" formControlName="note"></textarea>
+        </label>
+      }
+      @if (action() === 'cancel') {
+        <label
+          >{{ manager ? 'Cancellation reason (required)' : 'Cancellation reason (optional)'
+          }}<textarea maxlength="1000" formControlName="reason"></textarea>
+        </label>
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <div class="actions">
+        <button type="button" (click)="actionDialog.close()" [disabled]="busy()">
+          {{ action() === 'cancel' ? 'Keep booking' : 'Go back' }}</button
+        ><button class="primary" [disabled]="busy()">
+          {{
+            busy()
+              ? 'Updating booking...'
+              : action() === 'confirm'
+                ? 'Confirm booking'
+                : action() === 'decline'
+                  ? 'Decline request'
+                  : action() === 'complete'
+                    ? 'Complete stay'
+                    : 'Cancel booking'
+          }}
+        </button>
+      </div>
+    </form>
+  </dialog>
+</main>

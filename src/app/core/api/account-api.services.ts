@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from './api-client';
+import { bookingPages } from './booking-pages';
 import { PaginatedResponse, User } from '../models/api.models';
 import {
   AccountNotification,
@@ -68,10 +69,18 @@ export class ViewingsApiService {
 export class BookingsApiService {
   private api = inject(ApiClient);
   list(status?: string) {
-    return this.api.get<BookingPage>('/bookings/', status ? { status } : undefined);
+    return bookingPages((page) =>
+      this.api.get<BookingPage>('/bookings/', { status, page, scope: 'guest' }),
+    );
   }
-  cancel(id: string) {
-    return this.api.post<Booking>(`/bookings/${encodeURIComponent(id)}/cancel/`, {});
+  detail(id: string) {
+    return this.api.get<Booking>(`/bookings/${encodeURIComponent(id)}/`, { scope: 'guest' });
+  }
+  byIntent(idempotency_key: string) {
+    return this.api.get<BookingPage>('/bookings/', { scope:'guest', idempotency_key, page_size:'1' });
+  }
+  cancel(id: string, reason = '') {
+    return this.api.post<Booking>(`/bookings/${encodeURIComponent(id)}/cancel/`, { reason });
   }
 }
 

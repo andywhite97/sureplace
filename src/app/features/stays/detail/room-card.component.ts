@@ -10,7 +10,7 @@ import { formatMoney } from '../../../shared/listing/price-format';
   template: `<article [class.selected]="selected()">
     <div class="photo">
       <sp-image
-        [src]="room().images[0]?.image || null"
+        [src]="coverImage()"
         [alt]="room().name"
         ratio="4 / 3"
         [priority]="priority()"
@@ -28,17 +28,21 @@ import { formatMoney } from '../../../shared/listing/price-format';
       <ul>
         <li>
           <i class="fa-solid fa-users" aria-hidden="true"></i>
-          Up to {{ room().total_capacity }} guest{{ room().total_capacity === 1 ? '' : 's' }}
+          Up to {{ room().total_capacity }} guest{{ room().total_capacity === 1 ? '' : 's' }} per
+          room
         </li>
         <li>
           <i class="fa-solid fa-bed" aria-hidden="true"></i>
           {{ room().number_of_beds }} bed{{ room().number_of_beds === 1 ? '' : 's' }}
           @if (room().bed_configuration) {
-            <span aria-hidden="true">&middot;</span> {{ room().bed_configuration }}
+            <span aria-hidden="true">&middot;</span> {{ optionLabel(room().bed_configuration) }}
           }
         </li>
         @if (room().bathroom_type) {
-          <li><i class="fa-solid fa-bath" aria-hidden="true"></i>{{ room().bathroom_type }}</li>
+          <li>
+            <i class="fa-solid fa-bath" aria-hidden="true"></i
+            >{{ optionLabel(room().bathroom_type) }} bathroom
+          </li>
         }
         <li>
           <i class="fa-solid fa-moon" aria-hidden="true"></i>
@@ -48,25 +52,42 @@ import { formatMoney } from '../../../shared/listing/price-format';
     </div>
     <aside class="choose">
       <div>
-        <strong>{{ price() }}</strong>
-        <small>{{ availability() ? 'total for selected dates' : 'per night' }}</small>
+        <strong>{{ money(room().base_price, room().currency) }} / night</strong>
+        @if (availability()?.available) {
+          <small>{{ price() }} total for selected dates</small>
+        }
       </div>
       @if (availability(); as a) {
-        <span [class.available]="a.available">{{
-          a.available
-            ? a.rooms_available + ' room' + (a.rooms_available === 1 ? '' : 's') + ' available'
-            : 'Sold out for selected dates'
-        }}</span>
+        <span [class.available]="a.available">{{ availabilityMessage(a) }}</span>
+        <div class="quantity">
+          <button
+            type="button"
+            aria-label="Fewer rooms"
+            [disabled]="quantity() <= 1"
+            (click)="quantityChanged.emit(quantity() - 1)"
+          >
+            −</button
+          ><span>{{ quantity() }} room(s)</span
+          ><button
+            type="button"
+            aria-label="More rooms"
+            [disabled]="quantity() >= a.rooms_available"
+            (click)="quantityChanged.emit(quantity() + 1)"
+          >
+            +
+          </button>
+        </div>
       } @else {
         <span>Choose dates to check availability</span>
       }
       <button
+        class="select-room"
         type="button"
         [disabled]="availability() && !availability()!.available"
         [attr.aria-pressed]="selected()"
         (click)="selectedRoom.emit(room().id)"
       >
-        {{ selected() ? 'Selected' : 'Select' }}
+        {{ selected() ? 'Selected' : 'Select room' }}
       </button>
     </aside>
   </article>`,
@@ -168,6 +189,16 @@ import { formatMoney } from '../../../shared/listing/price-format';
         opacity: 0.45;
         cursor: not-allowed;
       }
+      .quantity {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+      }
+      .quantity button {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px;
+      }
       .available {
         color: var(--teal);
         font-weight: 800;
@@ -234,8 +265,10 @@ import { formatMoney } from '../../../shared/listing/price-format';
           font-size: 1rem;
           color: var(--teal);
         }
-        .choose > span {
-          display: none;
+        .choose > span,
+        .quantity {
+          grid-column: 1 / -1;
+          display: flex;
         }
         .choose button {
           min-width: 84px;
@@ -275,6 +308,27 @@ export class RoomCardComponent {
   availability = input<RoomAvailabilityResult | null>(null);
   selected = input(false);
   selectedRoom = output<string>();
+  quantity = input(1);
+  quantityChanged = output<number>();
+  readonly money = formatMoney;
+  coverImage() {
+    const images = this.room().images || [];
+    return images.find((image) => image.is_cover)?.image || images[0]?.image || null;
+  }
+  optionLabel(value: string) {
+    return value === value.toUpperCase() ? value.replaceAll('_', ' ').toLowerCase() : value;
+  }
+  availabilityMessage(a: RoomAvailabilityResult) {
+    if (a.available)
+      return a.rooms_available === 1
+        ? 'Only 1 room left for your dates'
+        : `${a.rooms_available} rooms left for your dates`;
+    return a.reason === 'occupancy'
+      ? 'Does not fit selected guests'
+      : a.reason === 'minimum_stay'
+        ? `Minimum stay is ${a.minimum_stay} nights`
+        : 'Sold out for these dates';
+  }
 
   price() {
     const availability = this.availability();

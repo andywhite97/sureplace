@@ -85,4 +85,26 @@ describe('NotificationNavigationService', () => {
     expect(navigateByUrl).toHaveBeenCalledWith('/account/manage/properties/p1/edit');
     expect(refresh).toHaveBeenCalledWith(true);
   });
+
+  it('routes existing booking notifications to the appropriate dashboard', () => {
+    const service = TestBed.inject(NotificationNavigationService);
+    expect(
+      service.route(
+        notification({
+          notification_type: 'BOOKING_REQUESTED',
+          data: { booking_id: 'b1' },
+          action: { label: 'Open', url: '/bookings/b1' },
+        }),
+      ),
+    ).toBe('/account/manage/bookings');
+    expect(
+      service.route(
+        notification({
+          notification_type: 'BOOKING_CONFIRMED',
+          data: { booking_id: 'b1' },
+          action: { label: 'Open', url: '/account/bookings/b1' },
+        }),
+      ),
+    ).toBe('/account/bookings/b1');
+  });
 });

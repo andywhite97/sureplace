@@ -1,11 +1,13 @@
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { prepareSeoOutput } from './prepare-seo.mjs';
 import path from 'node:path';
 
 const args = new Set(process.argv.slice(2));
 const mode = valueAfter('--mode') ?? 'custom';
 const printOutput = args.has('--print-output');
 const repoName = sanitizeRepoName(process.env.GH_PAGES_REPO_NAME ?? 'sureplace');
-const customDomain = process.env.GH_PAGES_CUSTOM_DOMAIN?.trim() || 'sureplace.twinpeaksinvestment.com';
+const customDomain =
+  process.env.GH_PAGES_CUSTOM_DOMAIN?.trim() || 'sureplace.twinpeaksinvestment.com';
 
 const root = process.cwd();
 const angularJsonPath = path.join(root, 'angular.json');
@@ -26,10 +28,12 @@ if (printOutput) {
   process.exit(0);
 }
 
-const indexPath = path.join(outputDir, 'index.html');
-const notFoundPath = path.join(outputDir, '404.html');
-
-await copyFile(indexPath, notFoundPath);
+await prepareSeoOutput(
+  outputDir,
+  mode === 'custom'
+    ? `https://${normalizeDomain(customDomain)}`
+    : `https://sureplace.twinpeaksinvestment.com`,
+);
 
 if (mode === 'custom' && customDomain) {
   const domain = normalizeDomain(customDomain);

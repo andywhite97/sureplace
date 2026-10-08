@@ -1,5 +1,11 @@
 import { Routes } from '@angular/router';
-import { authGuard, capabilityGuard, guestGuard, staffAccessGuard, staffGuard } from './core/guards/auth.guard';
+import {
+  authGuard,
+  capabilityGuard,
+  guestGuard,
+  staffAccessGuard,
+  staffGuard,
+} from './core/guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
@@ -27,6 +33,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/stays/stay-search.component').then((m) => m.StaySearchComponent),
     title: 'Stays in Eswatini | SurePlace',
+  },
+  {
+    path: 'stays/:slug/book',
+    loadComponent: () =>
+      import('./features/bookings/booking-checkout.component').then(
+        (m) => m.BookingCheckoutComponent,
+      ),
+    title: 'Complete your booking | SurePlace',
   },
   {
     path: 'stays/:slug',
@@ -153,6 +167,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/account/viewings.component').then((m) => m.ViewingsComponent),
         title: 'Viewings | SurePlace',
+      },
+      {
+        path: 'bookings/:id',
+        loadComponent: () =>
+          import('./features/bookings/booking-detail.component').then(
+            (m) => m.BookingDetailComponent,
+          ),
+        title: 'Your booking | SurePlace',
       },
       {
         path: 'bookings',
@@ -347,6 +369,26 @@ export const routes: Routes = [
         title: 'Manager viewings | SurePlace',
       },
       {
+        path: 'manage/bookings/calendar',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays' },
+        loadComponent: () =>
+          import('./features/manage/availability-calendar.component').then(
+            (m) => m.AvailabilityCalendarComponent,
+          ),
+        title: 'Booking calendar | SurePlace',
+      },
+      {
+        path: 'manage/bookings/:id',
+        canActivate: [capabilityGuard],
+        data: { capability: 'canManageStays', manager: true },
+        loadComponent: () =>
+          import('./features/bookings/booking-detail.component').then(
+            (m) => m.BookingDetailComponent,
+          ),
+        title: 'Manage booking | SurePlace',
+      },
+      {
         path: 'manage/bookings',
         canActivate: [capabilityGuard],
         data: { capability: 'canManageStays' },
@@ -411,7 +453,10 @@ export const routes: Routes = [
       {
         path: 'agencies/:id',
         canActivate: [staffAccessGuard],
-        data: { workspace: 'agencies', staffPermissions: ['verification.review_verificationrequest'] },
+        data: {
+          workspace: 'agencies',
+          staffPermissions: ['verification.review_verificationrequest'],
+        },
         loadComponent: () =>
           import('./features/staff/staff-operation-detail.component').then(
             (m) => m.StaffOperationDetailComponent,
@@ -421,15 +466,23 @@ export const routes: Routes = [
       {
         path: 'agencies',
         canActivate: [staffAccessGuard],
-        data: { workspace: 'agencies', staffPermissions: ['verification.review_verificationrequest'] },
+        data: {
+          workspace: 'agencies',
+          staffPermissions: ['verification.review_verificationrequest'],
+        },
         loadComponent: () =>
-          import('./features/staff/staff-operations.component').then((m) => m.StaffOperationsComponent),
+          import('./features/staff/staff-operations.component').then(
+            (m) => m.StaffOperationsComponent,
+          ),
         title: 'Agency reviews | SurePlace staff',
       },
       {
         path: 'verification/:id',
         canActivate: [staffAccessGuard],
-        data: { workspace: 'verification', staffPermissions: ['verification.review_verificationrequest'] },
+        data: {
+          workspace: 'verification',
+          staffPermissions: ['verification.review_verificationrequest'],
+        },
         loadComponent: () =>
           import('./features/staff/staff-operation-detail.component').then(
             (m) => m.StaffOperationDetailComponent,
@@ -439,9 +492,14 @@ export const routes: Routes = [
       {
         path: 'verification',
         canActivate: [staffAccessGuard],
-        data: { workspace: 'verification', staffPermissions: ['verification.review_verificationrequest'] },
+        data: {
+          workspace: 'verification',
+          staffPermissions: ['verification.review_verificationrequest'],
+        },
         loadComponent: () =>
-          import('./features/staff/staff-operations.component').then((m) => m.StaffOperationsComponent),
+          import('./features/staff/staff-operations.component').then(
+            (m) => m.StaffOperationsComponent,
+          ),
         title: 'Verification queue | SurePlace staff',
       },
       {
@@ -459,19 +517,25 @@ export const routes: Routes = [
         canActivate: [staffAccessGuard],
         data: { workspace: 'users', staffPermissions: ['accounts.moderate_user'] },
         loadComponent: () =>
-          import('./features/staff/staff-operations.component').then((m) => m.StaffOperationsComponent),
+          import('./features/staff/staff-operations.component').then(
+            (m) => m.StaffOperationsComponent,
+          ),
         title: 'User review | SurePlace staff',
       },
       {
         path: 'access',
         canActivate: [staffAccessGuard],
         data: { staffSuperuser: true },
-        loadComponent: () => import('./features/staff/staff-access.component').then((m) => m.StaffAccessComponent),
+        loadComponent: () =>
+          import('./features/staff/staff-access.component').then((m) => m.StaffAccessComponent),
         title: 'Staff access & roles | SurePlace',
       },
       {
         path: 'no-access',
-        loadComponent: () => import('./features/staff/staff-access.component').then((m) => m.StaffAccessDeniedComponent),
+        loadComponent: () =>
+          import('./features/staff/staff-access.component').then(
+            (m) => m.StaffAccessDeniedComponent,
+          ),
         title: 'Limited staff access | SurePlace',
       },
     ],

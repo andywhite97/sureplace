@@ -99,6 +99,7 @@ describe('PropertyDetailComponent', () => {
             apply: vi.fn(),
             canonical: vi.fn(),
             absoluteUrl: (path: string) => `http://localhost:4200${path}`,
+            absoluteImageUrl: (path: string) => `http://localhost:4200${path}`,
           },
         },
       ],
@@ -128,6 +129,54 @@ describe('PropertyDetailComponent', () => {
     TestBed.createComponent(PropertyDetailComponent).detectChanges();
     route.next(convertToParamMap({ slug: 'next-home' }));
     expect(detail).toHaveBeenLastCalledWith('next-home');
+  });
+  it('writes the designated cover into social tags and structured data, with gallery and site fallbacks', () => {
+    TestBed.overrideProvider(SeoService, { useFactory: () => new SeoService() });
+    const images = [
+      { image: '/first.jpg', caption: 'Living room', sort_order: 0, is_cover: false },
+      { image: '/cover.jpg', caption: 'Front of the house', sort_order: 1, is_cover: true },
+    ];
+    detail.mockReturnValue(of({ ...property, images }));
+    const fixture = TestBed.createComponent(PropertyDetailComponent);
+    fixture.detectChanges();
+    const tag = (key: string) =>
+      document.querySelector(`meta[property="${key}"]`)?.getAttribute('content');
+    expect(tag('og:image')).toBe('http://localhost:4200/cover.jpg');
+    expect(tag('og:image:alt')).toBe('Front of the house');
+    expect(document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(
+      tag('og:image'),
+    );
+    expect(document.querySelector('script[data-sureplace-jsonld]')?.textContent).toContain(
+      'http://localhost:4200/cover.jpg',
+    );
+    expect(tag('og:description')).toContain('3 bedrooms, 2 bathrooms');
+    expect(tag('og:url')).toBe('http://localhost:4200/properties/green-home');
+    detail.mockReturnValue(of({ ...property, images: [images[0]] }));
+    route.next(convertToParamMap({ slug: property.slug }));
+    expect(tag('og:image')).toBe('http://localhost:4200/first.jpg');
+    detail.mockReturnValue(of(property));
+    route.next(convertToParamMap({ slug: property.slug }));
+    expect(tag('og:image')).toBe('http://localhost:4200/hero-eswatini-home.jpg');
+  });
+
+  it('restores listing metadata when a failed property request succeeds on retry', () => {
+    detail.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+    const fixture = TestBed.createComponent(PropertyDetailComponent);
+    fixture.detectChanges();
+    detail.mockReturnValue(
+      of({
+        ...property,
+        images: [{ image: '/retry-cover.jpg', caption: 'House', is_cover: true, sort_order: 0 }],
+      }),
+    );
+    fixture.componentInstance.retry();
+    expect(TestBed.inject(SeoService).apply).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: property.title,
+        image: '/retry-cover.jpg',
+        path: '/properties/green-home',
+      }),
+    );
   });
   it('shows the property-specific not-found state', () => {
     detail.mockReturnValue(throwError(() => ({ status: 404 })));

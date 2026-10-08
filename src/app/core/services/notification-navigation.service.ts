@@ -18,6 +18,14 @@ export class NotificationNavigationService {
   }
 
   route(notification: AccountNotification) {
+    if (notification.data?.booking_id && notification.notification_type.startsWith('BOOKING_')) {
+      const base =
+        notification.notification_type === 'BOOKING_REQUESTED' || notification.data['manager']
+          ? '/account/manage/bookings'
+          : '/account/bookings';
+      const action = this.safeInternalUrl(notification.action?.url || notification.data.route);
+      return action && (action === base || action.startsWith(base + '/')) ? action : base;
+    }
     return (
       this.safeInternalUrl(notification.action?.url) ||
       this.legacyRoute(notification) ||

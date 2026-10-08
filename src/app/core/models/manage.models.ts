@@ -48,6 +48,9 @@ export interface PropertyWriteRequest {
 }
 
 export interface StayWriteRequest {
+  booking_mode?: 'REQUEST_TO_BOOK' | 'INSTANT_BOOK';
+  cancellation_policy?: string;
+  house_rules?: string;
   name: string;
   description: string;
   stay_type: string;

@@ -1,0 +1,150 @@
+<main class="booking-page">
+  <header>
+    <p class="eyebrow">Stay-owner workspace</p>
+    <h1>Bookings</h1>
+    <p class="muted">Your bookings, guests and availability, all in one place.</p>
+    <div class="actions">
+      <button [class.primary]="overview()" (click)="overview.set(true)">Dashboard</button
+      ><button [class.primary]="!overview()" (click)="overview.set(false)">All bookings</button
+      ><a class="button" routerLink="/account/manage/bookings/calendar">Calendar</a
+      ><a class="button" routerLink="/account/messages">Messages</a>
+    </div>
+  </header>
+  @if (loading()) {
+    <div class="skeleton" role="status" aria-label="Loading managed bookings"></div>
+  } @else if (error()) {
+    <div class="error" role="alert">{{ error() }} <button (click)="load()">Retry</button></div>
+  } @else {
+    <div class="metrics">
+      <div class="metric">
+        Pending requests<strong>{{ metrics().pending }}</strong>
+      </div>
+      <div class="metric">
+        Today's arrivals<strong>{{ metrics().arrivals }}</strong>
+      </div>
+      <div class="metric">
+        Today's departures<strong>{{ metrics().departures }}</strong>
+      </div>
+      <div class="metric">
+        Upcoming bookings<strong>{{ metrics().upcoming }}</strong>
+      </div>
+    </div>
+    @if (overview()) {
+      <div class="pair">
+        <section class="panel">
+          <h2>Today's arrivals</h2>
+          @for (b of arrivals(); track b.id) {
+            <p>
+              <a [routerLink]="['/account/manage/bookings', b.id]">{{ b.guest_name }}</a
+              ><br /><small
+                >{{ b.room_name }} · {{ b.reference }} ·
+                {{ b.policy_snapshot?.check_in_time?.slice(0, 5) || 'Time by arrangement' }}</small
+              >
+            </p>
+          } @empty {
+            <p class="muted">No arrivals today.</p>
+          }
+        </section>
+        <section class="panel">
+          <h2>Today's departures</h2>
+          @for (b of departures(); track b.id) {
+            <p>
+              <a [routerLink]="['/account/manage/bookings', b.id]">{{ b.guest_name }}</a
+              ><br /><small
+                >{{ b.room_name }} · {{ b.reference }} ·
+                {{ b.policy_snapshot?.check_out_time?.slice(0, 5) || 'Time by arrangement' }}</small
+              >
+            </p>
+          } @empty {
+            <p class="muted">No departures today.</p>
+          }
+        </section>
+      </div>
+    }
+    <section class="panel">
+      <h2>{{ overview() ? 'Recent bookings' : 'All bookings' }}</h2>
+      @if (overview()) {
+        <button (click)="overview.set(false)">View all →</button>
+      } @else {
+        <div class="tabs">
+          @for (f of filters; track f.value) {
+            <button [class.active]="filter() === f.value" (click)="filter.set(f.value)">
+              {{ f.label }}
+            </button>
+          }
+        </div>
+        <div class="filters">
+          <label
+            >Guest or reference<input
+              type="search"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+              placeholder="Search bookings" /></label
+          ><label
+            >Stay<select
+              [ngModel]="stayFilter()"
+              (ngModelChange)="stayFilter.set($event); roomFilter.set('')"
+            >
+              <option value="">All stays</option>
+              @for (s of stays(); track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select></label
+          ><label
+            >Room type<select [ngModel]="roomFilter()" (ngModelChange)="roomFilter.set($event)">
+              <option value="">All rooms</option>
+              @for (r of rooms(); track r.id) {
+                <option [value]="r.id">{{ r.name }}</option>
+              }
+            </select></label
+          ><label
+            >Date range from<input
+              type="date"
+              [ngModel]="start()"
+              (ngModelChange)="start.set($event)" /></label
+          ><label
+            >Date range to<input
+              type="date"
+              [ngModel]="end()"
+              (ngModelChange)="end.set($event)" /></label
+          ><button (click)="load()">Refresh bookings</button>
+        </div>
+      }
+      @if (!overview()) {
+        <div class="booking-row column-labels">
+          <strong>Reference / Stay</strong><strong>Guest</strong><strong>Dates / Room</strong
+          ><strong>Total</strong><strong>Status</strong><strong>Action</strong>
+        </div>
+      }
+      @for (b of overview() ? rows().slice(0, 5) : filtered(); track b.id) {
+        <article class="booking-row">
+          <div>
+            <strong>{{ b.reference }}</strong
+            ><small>{{ b.stay_name }}</small>
+          </div>
+          <div>
+            {{ b.guest_name }}<small>{{ b.adults + b.children }} guests</small>
+          </div>
+          <div>
+            {{ b.check_in | date: 'd MMM' }} – {{ b.check_out | date: 'd MMM y'
+            }}<small>{{ b.room_name }} × {{ b.rooms }}</small>
+          </div>
+          <strong>{{ formatMoney(b.total, b.currency) }}</strong>
+          <div>
+            <span class="status" [class.pending]="b.status === 'PENDING'">{{ b.status }}</span>
+            @if (b.status === 'PENDING' && b.expires_at) {
+              <small>Expires {{ b.expires_at | date: 'd MMM HH:mm' }}</small>
+            }
+          </div>
+          <div class="actions">
+            <a class="button" [routerLink]="['/account/manage/bookings', b.id]">{{
+              b.status === 'PENDING' && active(b) ? 'Review' : 'View booking'
+            }}</a>
+          </div>
+        </article>
+      } @empty {
+        <p class="muted">No bookings match this view.</p>
+      }
+    </section>
+  }
+</main>

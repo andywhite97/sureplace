@@ -27,6 +27,7 @@ import { AuthService } from '../core/auth/auth.service';
 import { AccountActivityStore } from '../core/services/account-activity.store';
 import { UserCapabilityService } from '../core/services/user-capability.service';
 import { ListingEntryService } from '../core/services/listing-entry.service';
+import { ProfileImageComponent } from '../shared/ui/profile-image.component';
 
 type NavItem = {
   label: string;
@@ -47,7 +48,7 @@ type MenuState = 'closed' | 'open' | 'closing';
 @Component({
   selector: 'sp-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, ProfileImageComponent],
   template: `<header [class.staff-header]="staffWorkspace()">
       <a routerLink="/" class="logo" aria-label="SurePlace home" (click)="closeMenu()">
         <img src="/logo_dark.png" alt="SurePlace" width="420" height="140" />
@@ -68,7 +69,10 @@ type MenuState = 'closed' | 'open' | 'closing';
         </form>
         <div class="staff-identity">
           <span class="staff-avatar" aria-hidden="true">{{ staffInitials() }}</span
-          ><span>{{ auth.user()?.first_name || 'Staff' }}<small>{{ auth.user()?.is_superuser ? 'Superuser' : 'Staff member' }}</small></span>
+          ><span
+            >{{ auth.user()?.first_name || 'Staff'
+            }}<small>{{ auth.user()?.is_superuser ? 'Superuser' : 'Staff member' }}</small></span
+          >
         </div>
         <a class="exit-console" aria-label="Exit Console" routerLink="/account"
           ><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i
@@ -89,14 +93,121 @@ type MenuState = 'closed' | 'open' | 'closing';
           @if (auth.isAuthenticated()) {
             <a routerLink="/account/saved" routerLinkActive="active">Saved</a>
             @if (config.config().features.internal_messaging) {
-              <a routerLink="/account/messages" routerLinkActive="active">Messages</a>
+              <a
+                class="desktop-messages"
+                routerLink="/account/messages"
+                routerLinkActive="active"
+                [attr.aria-label]="
+                  badge('messages') ? badgeLabel('messages', badge('messages')) : 'Messages'
+                "
+              >
+                Messages
+                @if (badge('messages')) {
+                  <b class="message-badge" aria-hidden="true">{{ badge('messages') }}</b>
+                }
+              </a>
             }
           }
         </nav>
         <div class="actions">
           @if (auth.isAuthenticated()) {
-            <a routerLink="/account">{{ auth.user()?.first_name || 'Account' }}</a>
-            <button type="button" (click)="auth.logout()">Log out</button>
+            <a
+              class="notification-link desktop-notification"
+              routerLink="/account/notifications"
+              routerLinkActive="active"
+              [attr.aria-label]="
+                badge('notifications')
+                  ? badgeLabel('notifications', badge('notifications'))
+                  : 'Notifications'
+              "
+            >
+              <svg class="notification-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              @if (badge('notifications')) {
+                <b aria-hidden="true">{{ badge('notifications') }}</b>
+              }
+            </a>
+            <div #accountControl class="account-control" (focusout)="accountFocusOut($event)">
+              <button
+                #accountButton
+                class="account-trigger"
+                type="button"
+                [attr.aria-label]="'Account pages for ' + accountName()"
+                aria-controls="account-dropdown"
+                [attr.aria-expanded]="accountOpen()"
+                (click)="accountOpen.set(!accountOpen())"
+              >
+                <sp-profile-image
+                  [src]="auth.user()?.avatar"
+                  [name]="accountName()"
+                  aria-hidden="true"
+                />
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                  [class.expanded]="accountOpen()"
+                >
+                  <path
+                    d="m4 6 4 4 4-4"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              @if (accountOpen()) {
+                <div id="account-dropdown" class="account-dropdown">
+                  <div class="account-identity">
+                    <sp-profile-image
+                      [src]="auth.user()?.avatar"
+                      [name]="accountName()"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <strong>{{ accountName() }}</strong
+                      ><small>{{ auth.user()?.email }}</small>
+                    </div>
+                  </div>
+                  <nav aria-label="Account pages">
+                    @for (section of accountDropdownSections(); track section.id) {
+                      <section>
+                        <h2>{{ section.title }}</h2>
+                        @for (item of section.items; track item.commands) {
+                          <a
+                            [routerLink]="item.commands"
+                            [class.current]="isActive(item)"
+                            [attr.aria-current]="isActive(item) ? 'page' : null"
+                            (click)="closeAccount()"
+                          >
+                            <i [class]="item.icon" aria-hidden="true"></i
+                            ><span>{{ item.label }}</span>
+                            @if (badge(item.badge)) {
+                              <b [attr.aria-label]="badgeLabel(item.badge, badge(item.badge))">{{
+                                badge(item.badge)
+                              }}</b>
+                            }
+                          </a>
+                        }
+                      </section>
+                    }
+                  </nav>
+                  <div class="account-logout">
+                    <button type="button" (click)="logout()">
+                      <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>Log out
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
           } @else if (auth.status() === 'unauthenticated') {
             <a routerLink="/login">Log in</a>
             @if (config.config().features.registration) {
@@ -122,7 +233,15 @@ type MenuState = 'closed' | 'open' | 'closing';
                   : 'Sign in to view notifications'
               "
             >
-              <i class="fa-regular fa-bell" aria-hidden="true"></i>
+              <svg class="notification-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
               @if (auth.isAuthenticated() && badge('notifications')) {
                 <b aria-hidden="true">{{ badge('notifications') }}</b>
               }
@@ -296,6 +415,133 @@ type MenuState = 'closed' | 'open' | 'closing';
       .actions {
         margin-left: auto;
       }
+      .account-control {
+        position: relative;
+      }
+      .account-trigger {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 44px;
+        padding: 3px;
+        border-radius: 999px;
+      }
+      .account-trigger sp-profile-image {
+        --profile-image-size: 38px;
+      }
+      .account-trigger svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 150ms ease;
+      }
+      .account-trigger svg.expanded {
+        transform: rotate(180deg);
+      }
+      .account-trigger:hover,
+      .account-trigger[aria-expanded='true'] {
+        background: var(--mist);
+      }
+      .account-control :is(a, button):focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--teal) 38%, transparent);
+        outline-offset: 2px;
+      }
+      .account-dropdown {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        width: 280px;
+        max-height: calc(100dvh - 100px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 16px 48px rgb(21 43 42 / 16%);
+        padding: 8px;
+        box-sizing: border-box;
+        white-space: normal;
+      }
+      .account-identity {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 8px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .account-identity sp-profile-image {
+        --profile-image-size: 42px;
+      }
+      .account-identity div {
+        min-width: 0;
+      }
+      .account-identity strong {
+        display: block;
+        font-size: 0.95rem;
+        overflow-wrap: anywhere;
+      }
+      .account-identity small {
+        display: block;
+        color: var(--slate);
+        font-size: 0.75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 3px;
+      }
+      .account-dropdown h2 {
+        margin: 12px 10px 4px;
+        color: var(--slate);
+        font-size: 0.65rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .account-dropdown a,
+      .account-logout button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        min-height: 40px;
+        box-sizing: border-box;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        width: 100%;
+        text-align: left;
+      }
+      .account-dropdown i {
+        width: 18px;
+        text-align: center;
+        color: var(--slate);
+      }
+      .account-dropdown a:hover,
+      .account-logout button:hover {
+        background: var(--mist);
+      }
+      .account-dropdown a.current {
+        background: #e6f7f1;
+        color: var(--teal);
+        font-weight: 750;
+      }
+      .account-dropdown a.current i {
+        color: var(--teal);
+      }
+      .account-dropdown b {
+        margin-left: auto;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+      }
+      .account-logout {
+        border-top: 1px solid var(--line);
+        margin-top: 8px;
+        padding-top: 8px;
+      }
+      .account-logout button,
+      .account-logout i {
+        color: #955050;
+      }
       .cta {
         background: var(--teal);
         color: white !important;
@@ -445,28 +691,81 @@ type MenuState = 'closed' | 'open' | 'closing';
         align-items: center;
         gap: 0.35rem;
       }
-      .mobile-shortcuts a {
+      .mobile-shortcuts a,
+      .desktop-notification {
         position: relative;
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
         display: grid;
         place-items: center;
         border: 1px solid var(--line);
         border-radius: var(--radius-sm);
         background: #fff;
         font-size: 1rem;
+        color: var(--midnight);
+        box-sizing: border-box;
+        text-decoration: none;
       }
-      .mobile-shortcuts b {
+      .notification-icon {
+        width: 21px;
+        height: 21px;
+      }
+      .notification-link b {
         position: absolute;
-        top: -0.2rem;
-        right: -0.2rem;
-        min-width: 1.2rem;
-        padding: 0.08rem 0.28rem;
+        top: 2px;
+        right: 2px;
+        min-width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        display: grid;
+        place-items: center;
+        padding: 0 3px;
+        border: 2px solid #fff;
         border-radius: 999px;
         background: var(--teal);
         color: #fff;
-        font-size: 0.65rem;
-        line-height: 1.2;
+        font-size: 9px;
+        line-height: 1;
+      }
+      .desktop-messages {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+      }
+      .message-badge {
+        display: inline-grid;
+        place-items: center;
+        min-width: 20px;
+        height: 20px;
+        padding-inline: 5px;
+        box-sizing: border-box;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 750;
+      }
+      .notification-link:hover,
+      .notification-link:focus-visible {
+        background: var(--mist);
+        color: var(--teal);
+      }
+      @media (min-width: 851px) and (max-width: 1100px) {
+        header:not(.staff-header) {
+          gap: 1rem;
+          padding-inline: 1rem;
+        }
+        .desktop-nav,
+        .actions {
+          gap: 0.85rem;
+          font-size: 0.875rem;
+          white-space: nowrap;
+        }
+        .logo img {
+          height: 36px;
+          max-width: 145px;
+        }
       }
       .menu-button:active,
       .cta:active {
@@ -811,6 +1110,14 @@ export class PublicHeaderComponent {
   private activity = inject(AccountActivityStore);
   private platformId = inject(PLATFORM_ID);
   menuButton = viewChild<ElementRef<HTMLButtonElement>>('menuButton');
+  accountControl = viewChild<ElementRef<HTMLElement>>('accountControl');
+  accountButton = viewChild<ElementRef<HTMLButtonElement>>('accountButton');
+  accountOpen = signal(false);
+  accountName = computed(
+    () =>
+      [this.auth.user()?.first_name, this.auth.user()?.last_name].filter(Boolean).join(' ') ||
+      'Account',
+  );
   drawer = viewChild<ElementRef<HTMLElement>>('drawer');
   menuState = signal<MenuState>('closed');
   menuRendered = signal(false);
@@ -840,12 +1147,14 @@ export class PublicHeaderComponent {
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
         this.currentUrl.set(event.urlAfterRedirects);
+        this.closeAccount();
         this.closeMenu(false);
       });
     effect(() => {
       const authenticated = this.auth.isAuthenticated();
       if (authenticated !== this.previousAuthState) {
         this.previousAuthState = authenticated;
+        this.closeAccount();
         this.closeMenu(false);
       }
     });
@@ -898,6 +1207,33 @@ export class PublicHeaderComponent {
     }),
   );
   badgeLabel = unreadBadgeLabel;
+  accountDropdownSections = computed(() =>
+    this.accountSections().filter(
+      (section) => section.id === 'account' || section.id === 'activity',
+    ),
+  );
+
+  closeAccount(returnFocus = false) {
+    if (!this.accountOpen()) return;
+    this.accountOpen.set(false);
+    if (returnFocus) this.accountButton()?.nativeElement.focus();
+  }
+
+  accountFocusOut(event: FocusEvent) {
+    if (!this.accountControl()?.nativeElement.contains(event.relatedTarget as Node | null))
+      this.closeAccount();
+  }
+
+  @HostListener('document:click', ['$event'])
+  accountOutsideClick(event: MouseEvent) {
+    if (!this.accountControl()?.nativeElement.contains(event.target as Node | null))
+      this.closeAccount();
+  }
+
+  @HostListener('window:resize')
+  accountResize() {
+    if (this.isBrowser() && window.innerWidth <= 850) this.closeAccount();
+  }
 
   authenticatedSections(): NavSection[] {
     const shared = this.accountSections();
@@ -963,6 +1299,7 @@ export class PublicHeaderComponent {
   }
 
   openMenu() {
+    this.closeAccount();
     if (!this.isBrowser()) return;
     if (this.menuState() !== 'closed') return;
     this.expandedSection.set(this.currentSection());
@@ -997,6 +1334,7 @@ export class PublicHeaderComponent {
   }
 
   logout() {
+    this.closeAccount();
     this.closeMenu(false);
     this.auth.logout();
   }
@@ -1029,6 +1367,7 @@ export class PublicHeaderComponent {
 
   @HostListener('document:keydown.escape')
   escape() {
+    this.closeAccount(true);
     this.closeMenu();
   }
 

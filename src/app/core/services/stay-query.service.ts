@@ -46,7 +46,9 @@ export class StayQueryService {
     if (checkIn && isoDate.test(checkIn)) out.check_in = checkIn;
     if (checkOut && isoDate.test(checkOut)) out.check_out = checkOut;
     for (const key of ['adults', 'children', 'rooms'] as const) {
-      const value = Number(map.get(key));
+      const raw = map.get(key);
+      if (raw === null || raw === '') continue;
+      const value = Number(raw);
       if (Number.isInteger(value))
         out[key] = key === 'children' ? Math.max(0, value) : Math.max(1, value);
     }

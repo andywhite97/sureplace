@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { finalize } from 'rxjs';
 import { NotificationsApiService } from '../../core/api/account-api.services';
 import { AccountNotification } from '../../core/models/account.models';
@@ -198,6 +198,14 @@ export class NotificationsComponent {
   });
   constructor() {
     this.load();
+    effect(() => {
+      const latest = this.activity.notificationPage();
+      if (latest !== null)
+        untracked(() => {
+          this.items.set(latest);
+          this.markUnreadOnEntry(latest);
+        });
+    });
   }
   unread() {
     return this.items().some((x) => !x.is_read);

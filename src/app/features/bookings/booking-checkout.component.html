@@ -1,0 +1,297 @@
+<main class="booking-page">
+  <header>
+    <a [routerLink]="['/stays', stay()?.slug || '']">← Back to stay</a>
+    <p class="eyebrow">Your SurePlace stay</p>
+    <h1>{{ success() ? 'Your booking' : 'Complete your booking' }}</h1>
+    @if (!success()) {
+      <div class="steps" aria-label="Booking progress">
+        <span>1 Choose your room</span>
+        @if (reviewing()) {
+          <span>2 Guest details</span>
+          <b aria-current="step">3 Review &amp; {{ instant() ? 'confirm' : 'request' }}</b>
+        } @else {
+          <b aria-current="step">2 {{ auth.isAuthenticated() ? 'Guest details' : 'Sign in' }}</b>
+          <span>3 Review &amp; {{ instant() ? 'confirm' : 'request' }}</span>
+        }
+      </div>
+    }
+  </header>
+  @if (loading()) {
+    <div class="skeleton" aria-label="Loading checkout" role="status"></div>
+  } @else if (success(); as b) {
+    <section class="panel success" role="status">
+      <div class="suri suri-success" aria-hidden="true"></div>
+      <h1>{{ receiptTitle(b) }}</h1>
+      <p>
+        {{
+          b.status === 'CONFIRMED'
+            ? "You're all set for " + b.stay_name + '.'
+            : b.status === 'PENDING' && holdActive(b)
+              ? b.stay_name + ' has received your request.'
+              : 'View the latest details for your reservation at ' + b.stay_name + '.'
+        }}
+      </p>
+      @if (b.status === 'PENDING') {
+        <p class="notice">
+          {{
+            holdActive(b)
+              ? 'Your selected room is being held while the property reviews it.'
+              : 'This hold has elapsed and no longer reserves a room. View your booking for its current status.'
+          }}
+        </p>
+        @if (b.expires_at) {
+          <p>
+            {{ holdActive(b) ? 'Hold expires ' : 'Hold ended '
+            }}{{ b.expires_at | date: 'd MMM · HH:mm' }}
+          </p>
+        }
+      }
+      <dl>
+        <div>
+          <dt>Booking reference</dt>
+          <dd>
+            <strong>{{ b.reference }}</strong>
+          </dd>
+        </div>
+        <div>
+          <dt>Dates</dt>
+          <dd>{{ b.check_in | date: 'd MMM' }} – {{ b.check_out | date: 'd MMM y' }}</dd>
+        </div>
+        <div>
+          <dt>Your room</dt>
+          <dd>{{ b.room_name }} × {{ b.rooms }}</dd>
+        </div>
+        <div>
+          <dt>Guests</dt>
+          <dd>{{ b.adults + b.children }}</dd>
+        </div>
+        <div>
+          <dt>Total</dt>
+          <dd>{{ money(b.total, b.currency) }}</dd>
+        </div>
+        <div>
+          <dt>Payment</dt>
+          <dd>Pay at property</dd>
+        </div>
+      </dl>
+      <p>No online payment required.</p>
+      <div class="actions">
+        <a class="button primary" [routerLink]="['/account/bookings', b.id]">View booking</a>
+        @if (b.conversation) {
+          <a class="button" [routerLink]="['/account/messages', b.conversation]"
+            >Message property</a
+          >
+        }
+      </div>
+    </section>
+  } @else {
+    @if (error()) {
+      <div class="error" role="alert">
+        <p>{{ error() }}</p>
+        <button (click)="refresh()" [disabled]="busy() || !intent.state()">
+          Check availability again
+        </button>
+      </div>
+    }
+    @if (stay(); as s) {
+      @if (room(); as r) {
+        <div class="layout">
+          <div class="stack">
+            @if (!auth.isAuthenticated()) {
+              <section class="panel success">
+                <div class="suri" aria-hidden="true"></div>
+                <h2>Almost there</h2>
+                <p>
+                  Sign in to complete your booking.<br />Your dates and selected room will be saved.
+                </p>
+                <div class="stack">
+                  <a
+                    class="button primary"
+                    routerLink="/login"
+                    [queryParams]="{ returnUrl: intent.url() }"
+                    >Log in</a
+                  ><a
+                    class="button"
+                    routerLink="/register"
+                    [queryParams]="{ returnUrl: intent.url() }"
+                    >Create account</a
+                  >
+                </div>
+              </section>
+            } @else {
+              <form [formGroup]="form" (ngSubmit)="submit()">
+                @if (!reviewing()) {
+                  <section class="panel">
+                    <h2>Guest details</h2>
+                    <div class="pair">
+                      <label
+                        >First name<input
+                          autocomplete="given-name"
+                          formControlName="first_name" /></label
+                      ><label
+                        >Last name<input autocomplete="family-name" formControlName="last_name"
+                      /></label>
+                    </div>
+                    <p></p>
+                    <label>Phone number<sp-eswatini-phone-input formControlName="phone" /></label>
+                    <p></p>
+                    <label
+                      >Account email<input type="email" [value]="auth.user()?.email || ''" readonly
+                    /></label>
+                    @if (
+                      (form.controls.first_name.touched && form.controls.first_name.invalid) ||
+                      (form.controls.last_name.touched && form.controls.last_name.invalid)
+                    ) {
+                      <p class="error" role="alert">Enter your first and last name.</p>
+                    }
+                  </section>
+                  <section class="panel">
+                    <h2>Who's staying?</h2>
+                    <div class="pair">
+                      <label
+                        >Adults<input
+                          type="number"
+                          min="1"
+                          formControlName="adults"
+                          (input)="countsChanged()" /></label
+                      ><label
+                        >Children<input
+                          type="number"
+                          min="0"
+                          formControlName="children"
+                          (input)="countsChanged()"
+                      /></label>
+                    </div>
+                    @if (!quote()) {
+                      <p>
+                        <button type="button" (click)="refresh()" [disabled]="busy()">
+                          Update availability &amp; price
+                        </button>
+                      </p>
+                    }
+                    <p></p>
+                    <label
+                      >Special requests (optional)<textarea
+                        rows="3"
+                        maxlength="1000"
+                        placeholder="Late arrival, quiet room, accessibility request..."
+                        formControlName="special_requests"
+                      ></textarea></label
+                    ><small>Requests are sent to the property but cannot be guaranteed.</small>
+                  </section>
+                  <button
+                    class="primary wide"
+                    type="button"
+                    (click)="review()"
+                    [disabled]="!quote()?.available || busy()"
+                  >
+                    Review booking
+                  </button>
+                } @else {
+                  <section class="panel">
+                    <h2>Review and {{ instant() ? 'confirm' : 'send request' }}</h2>
+                    <p>
+                      {{ form.controls.first_name.value }} {{ form.controls.last_name.value }} ·
+                      {{ auth.user()?.email }}
+                    </p>
+                    <p>{{ form.controls.phone.value }}</p>
+                    @if (form.controls.special_requests.value) {
+                      <p>{{ form.controls.special_requests.value }}</p>
+                    }
+                    <button type="button" (click)="reviewing.set(false)">Edit guest details</button>
+                  </section>
+                  <section class="panel">
+                    <sp-booking-policies [policy]="policy()" />
+                    <p></p>
+                    <label class="consent"
+                      ><input type="checkbox" formControlName="accepted" />I agree to the property's
+                      booking and cancellation policies.</label
+                    >
+                  </section>
+                  @if (changedPrice(); as p) {
+                    <section class="error" role="alert">
+                      <h3>The price for this stay has changed.</h3>
+                      <p>
+                        Old total: {{ money(p.old, r.currency) }}<br />New total:
+                        {{ money(p.new, r.currency) }}
+                      </p>
+                      <button type="button" (click)="acceptPrice()">Review new price</button>
+                    </section>
+                  }
+                  <button
+                    class="primary wide"
+                    type="submit"
+                    [disabled]="form.invalid || busy() || !quote()?.available || !!changedPrice()"
+                  >
+                    {{
+                      busy()
+                        ? instant()
+                          ? 'Creating booking...'
+                          : 'Sending request...'
+                        : instant()
+                          ? 'Confirm booking'
+                          : 'Send booking request'
+                    }}</button
+                  ><small>{{
+                    instant()
+                      ? 'Your reservation will be confirmed immediately.'
+                      : 'The property will review your request. Your room will be held temporarily while you wait.'
+                  }}</small>
+                }
+              </form>
+            }
+          </div>
+          <aside class="panel summary">
+            <details class="expandable-summary" open>
+              <summary>Your stay</summary>
+              <div class="room-info">
+                <sp-image [src]="s.images[0]?.image || null" [alt]="s.name" ratio="1 / 1" />
+                <div>
+                  <strong>{{ s.name }}</strong>
+                  <p>{{ r.name }} × {{ intent.state()?.rooms }}</p>
+                  <small>{{ s.town }}, Eswatini</small>
+                </div>
+              </div>
+              <dl>
+                <div>
+                  <dt>Dates</dt>
+                  <dd>
+                    {{ intent.state()?.check_in | date: 'd MMM' }} –
+                    {{ intent.state()?.check_out | date: 'd MMM y' }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Stay</dt>
+                  <dd>
+                    {{ nights() }} nights ·
+                    {{ (intent.state()?.adults || 0) + (intent.state()?.children || 0) }} guests
+                  </dd>
+                </div>
+                @if (quote(); as q) {
+                  <div>
+                    <dt>Room total</dt>
+                    <dd>{{ money(q.total, r.currency) }}</dd>
+                  </div>
+                  <div class="total">
+                    <dt>Total</dt>
+                    <dd>{{ money(q.total, r.currency) }}</dd>
+                  </div>
+                  <details>
+                    <summary>Nightly pricing per room</summary>
+                    @for (p of q.nightly_prices; track p.date) {
+                      <div>{{ p.date | date: 'd MMM' }} · {{ money(p.price, r.currency) }}</div>
+                    }
+                  </details>
+                } @else {
+                  <p class="notice">Check availability to see the current total.</p>
+                }
+              </dl>
+              <p class="muted">Pay at property · No online payment required</p>
+              <sp-booking-policies [policy]="policy()" />
+            </details>
+          </aside>
+        </div>
+      }
+    }
+  }
+</main>

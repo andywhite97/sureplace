@@ -1,4 +1,4 @@
-<main>
+<main class="stay-detail-page">
   @if (loading()) {
     <section class="loading" aria-label="Loading stay">
       <div class="gallery-skeleton"></div>
@@ -92,7 +92,9 @@
             <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
             <span>{{ locationLabel(item) }}</span>
             @if (markers().length) {
-              <a href="#location">Show on map</a>
+              <a [href]="sectionHref('location')" (click)="scrollToSection('location', $event)"
+                >Show on map</a
+              >
             }
           </p>
           @if (item.description) {
@@ -164,15 +166,23 @@
       </div>
 
       <nav class="section-nav" aria-label="Stay sections">
-        <a href="#overview">Overview</a>
-        <a href="#rooms">Rooms</a>
+        <a [href]="sectionHref('overview')" (click)="scrollToSection('overview', $event)"
+          >Overview</a
+        >
+        <a [href]="sectionHref('rooms')" (click)="scrollToSection('rooms', $event)">Rooms</a>
         @if (item.amenities.length) {
-          <a href="#amenities">Amenities</a>
+          <a [href]="sectionHref('amenities')" (click)="scrollToSection('amenities', $event)"
+            >Amenities</a
+          >
         }
         @if (markers().length) {
-          <a href="#location">Location</a>
+          <a [href]="sectionHref('location')" (click)="scrollToSection('location', $event)"
+            >Location</a
+          >
         }
-        <a href="#policies">Policies</a>
+        <a [href]="sectionHref('policies')" (click)="scrollToSection('policies', $event)"
+          >Policies</a
+        >
       </nav>
 
       <div class="content-grid">
@@ -204,7 +214,7 @@
               </div>
               <p>
                 @if (validCriteria()) {
-                  Available for {{ dateRangeLabel() }}
+                  {{ dateRangeLabel() }} · {{ nightsLabel() }} · {{ guestRoomLabel() }}
                 } @else {
                   Choose dates to check availability
                 }
@@ -267,6 +277,8 @@
                     [priority]="first"
                     [availability]="availabilityFor(room.id)"
                     [selected]="selectedRoomId() === room.id"
+                    [quantity]="criteria().rooms"
+                    (quantityChanged)="quantityChanged($event)"
                     (selectedRoom)="selectRoom($event)"
                   />
                 }
@@ -347,6 +359,20 @@
           <section class="policies detail-section" id="policies">
             <p class="section-kicker">Policies</p>
             <h2>Stay policies</h2>
+            <p>
+              {{
+                item.booking_mode === 'INSTANT_BOOK'
+                  ? 'Instant Book: available reservations confirm immediately.'
+                  : 'Request to Book: the property reviews your reservation before confirming.'
+              }}
+            </p>
+            <p>Pay at property · No online payment required.</p>
+            @if (item.cancellation_policy) {
+              <p><strong>Cancellation</strong><br />{{ item.cancellation_policy }}</p>
+            }
+            @if (item.house_rules) {
+              <p><strong>House rules</strong><br />{{ item.house_rules }}</p>
+            }
             <div>
               <p>
                 <i class="fa-regular fa-clock" aria-hidden="true"></i>
@@ -371,7 +397,8 @@
             [room]="selectedRoom()"
             [availability]="selectedAvailability()"
             [criteria]="criteria()"
-            (inventoryConflict)="loadAvailability()"
+            [error]="availabilityError()"
+            (availabilityRequested)="searchCriteria($event)"
           />
         </aside>
       </div>
@@ -396,15 +423,33 @@
     }
 
     <div class="mobile-booking">
-      <div>
-        <span>{{
-          minimumNightlyPrice(item) ? 'From ' + minimumNightlyPrice(item) : 'Choose a room'
-        }}</span>
-        <strong>{{ selectedRoom()?.name || 'Check availability' }}</strong>
-      </div>
-      <button type="button" (click)="mobileContact.message()">
-        <i class="fa-regular fa-message" aria-hidden="true"></i> Message host
+      <strong>From {{ minimumNightlyPrice(item) }} / night</strong>
+      <button type="button" (click)="openCriteriaEditor()">
+        {{ validCriteria() ? 'Choose a room' : 'Check availability' }}
       </button>
     </div>
+    <dialog #datesDialog class="dates-dialog" (close)="criteriaEditorOpen.set(false)">
+      <header>
+        <h2>When are you staying?</h2>
+        <button type="button" aria-label="Close date selection" (click)="datesDialog.close()">
+          ×
+        </button>
+      </header>
+      <form [formGroup]="searchForm" (ngSubmit)="applyAvailability()">
+        <label>Check-in<input type="date" formControlName="check_in" [min]="minDate" /></label
+        ><label
+          >Check-out<input
+            type="date"
+            formControlName="check_out"
+            [min]="searchForm.controls.check_in.value || minDate" /></label
+        ><label>Adults<input type="number" min="1" formControlName="adults" /></label
+        ><label>Children<input type="number" min="0" formControlName="children" /></label
+        ><label>Rooms<input type="number" min="1" formControlName="rooms" /></label>
+        @if (availabilityError()) {
+          <p role="alert">{{ availabilityError() }}</p>
+        }
+        <button type="submit">Search availability</button>
+      </form>
+    </dialog>
   }
 </main>

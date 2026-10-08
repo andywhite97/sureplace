@@ -25,6 +25,7 @@ import { ListingMapComponent } from '../../../shared/map/listing-map.component';
 import { IconComponent } from '../../../shared/ui/icon.component';
 import { formatMoney } from '../../../shared/listing/price-format';
 import { environment } from '../../../../environments/environment';
+import { listingDescription, listingSocialImage } from '../../../shared/listing/listing-seo';
 @Component({
   standalone: true,
   imports: [
@@ -74,6 +75,12 @@ export class PropertyDetailComponent {
       .pipe(
         map((p) => p.get('slug') || ''),
         tap(() => {
+          this.seo.apply({
+            title: 'Property',
+            description: 'Discover property for rent and sale on SurePlace.',
+            robots: 'noindex, follow',
+            image: null,
+          });
           this.loading.set(true);
           this.notFound.set(false);
           this.error.set(null);
@@ -81,8 +88,16 @@ export class PropertyDetailComponent {
         switchMap((slug) =>
           this.api.detail(slug).pipe(
             catchError((e) => {
-              if (e.status === 404) this.notFound.set(true);
-              else
+              if (e.status === 404) {
+                this.notFound.set(true);
+                this.seo.apply({
+                  title: 'Property unavailable',
+                  description: 'This property is no longer available on SurePlace.',
+                  path: '/properties',
+                  robots: 'noindex, follow',
+                  image: null,
+                });
+              } else
                 this.error.set({
                   message: e?.error?.message || 'We could not load this property.',
                   requestId: e?.error?.request_id || null,
@@ -96,15 +111,7 @@ export class PropertyDetailComponent {
       .subscribe((p) => {
         this.property.set(p);
         if (p) {
-          const path = `/properties/${p.slug}`;
-          this.seo.apply({
-            title: p.title,
-            description: `${p.listing_type === 'RENT' ? 'For rent' : 'For sale'} ${p.property_type.toLowerCase()} in ${p.town} from ${this.price()}.`,
-            path,
-            type: 'article',
-            image: this.coverImage(p),
-            jsonLd: this.propertyJsonLd(p, path),
-          });
+          this.updateSeo(p);
           this.relatedApi
             .for(p)
             .pipe(catchError(() => of([])))
@@ -160,7 +167,10 @@ export class PropertyDetailComponent {
   }
   share() {
     if (!isPlatformBrowser(this.platformId)) return;
-    const data = { title: this.property()?.title || 'SurePlace property', url: new URL(`/properties/${this.property()?.slug || ''}`, environment.frontendOrigin).href };
+    const data = {
+      title: this.property()?.title || 'SurePlace property',
+      url: new URL(`/properties/${this.property()?.slug || ''}`, environment.frontendOrigin).href,
+    };
     if (navigator.share) void navigator.share(data);
     else if (navigator.clipboard)
       void navigator.clipboard
@@ -178,6 +188,7 @@ export class PropertyDetailComponent {
           next: (p) => {
             this.property.set(p);
             this.error.set(null);
+            this.updateSeo(p);
           },
           error: (e) =>
             this.error.set({
@@ -188,7 +199,30 @@ export class PropertyDetailComponent {
     }
   }
   private coverImage(p: PropertyDetail) {
-    return p.images.find((image) => image.is_cover)?.image || p.images[0]?.image || null;
+    return listingSocialImage(p.images)?.image;
+  }
+  private updateSeo(p: PropertyDetail) {
+    const path = `/properties/${p.slug}`;
+    const cover = listingSocialImage(p.images);
+    const type = p.property_type.replaceAll('_', ' ').toLowerCase();
+    const location = [p.town, p.region, 'Eswatini'].filter(Boolean).join(', ');
+    const specs = [
+      p.bedrooms ? `${p.bedrooms} bedrooms` : '',
+      Number(p.bathrooms) ? `${Number(p.bathrooms)} bathrooms` : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    this.seo.apply({
+      title: p.title,
+      description: listingDescription(
+        `${type.charAt(0).toUpperCase() + type.slice(1)} for ${p.listing_type === 'RENT' ? 'rent' : 'sale'} in ${location} for ${formatMoney(p.price, p.currency)}${p.listing_type === 'RENT' ? ' per month' : ''}.${specs ? ` ${specs}.` : ''} ${p.description}`,
+      ),
+      path,
+      type: 'website',
+      image: cover?.image,
+      imageAlt: cover?.caption || `${p.title} in ${p.town}`,
+      jsonLd: this.propertyJsonLd(p, path),
+    });
   }
   private propertyJsonLd(p: PropertyDetail, path: string) {
     const url = this.seo.absoluteUrl(path);
@@ -200,7 +234,7 @@ export class PropertyDetailComponent {
         name: p.title,
         description: p.description,
         url,
-        image: image ? this.seo.absoluteUrl(image) : undefined,
+        image: image ? this.seo.absoluteImageUrl(image) : undefined,
         address: {
           '@type': 'PostalAddress',
           streetAddress: p.address || p.suburb,

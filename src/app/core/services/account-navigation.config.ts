@@ -94,6 +94,20 @@ const sections: AccountNavSection[] = [
         capability: 'canManageStays',
       },
       {
+        label: 'Bookings',
+        commands: '/account/manage/bookings',
+        icon: 'fa-regular fa-calendar-check',
+        feature: 'bookings',
+        capability: 'canManageStays',
+      },
+      {
+        label: 'Booking calendar',
+        commands: '/account/manage/bookings/calendar',
+        icon: 'fa-regular fa-calendar',
+        feature: 'bookings',
+        capability: 'canManageStays',
+      },
+      {
         label: 'Verification',
         commands: '/account/manage/verification',
         icon: 'fa-solid fa-shield-halved',
@@ -111,7 +125,11 @@ export const STAFF_NAVIGATION: AccountNavSection = {
     { label: 'Property Listings', commands: '/staff/listings', icon: 'fa-solid fa-building-user' },
     { label: 'Reports', commands: '/staff/reports', icon: 'fa-solid fa-flag' },
     { label: 'Agency Reviews', commands: '/staff/agencies', icon: 'fa-solid fa-building-shield' },
-    { label: 'Verification Queue', commands: '/staff/verification', icon: 'fa-solid fa-shield-halved' },
+    {
+      label: 'Verification Queue',
+      commands: '/staff/verification',
+      icon: 'fa-solid fa-shield-halved',
+    },
     { label: 'User Review', commands: '/staff/users', icon: 'fa-solid fa-user-shield' },
   ],
 };

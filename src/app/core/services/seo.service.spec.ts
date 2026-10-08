@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Meta, Title } from '@angular/platform-browser';
 import { SeoService } from './seo.service';
+import { environment } from '../../../environments/environment';
 
 describe('SeoService', () => {
   let service: SeoService;
@@ -58,6 +59,48 @@ describe('SeoService', () => {
     expect(scripts).toHaveLength(1);
     expect(scripts[0].textContent).toContain('"name":"Second"');
     expect(scripts[0].textContent).not.toContain('First');
+  });
+
+  it('uses cover images for social cards, includes alt text and removes stale image details', () => {
+    service.apply({
+      title: 'Garden stay',
+      description: 'A garden stay.',
+      image: 'https://cdn.example/cover.jpg',
+      imageAlt: 'Guest house and garden',
+    });
+    expect(prop('og:image')).toBe('https://cdn.example/cover.jpg');
+    expect(prop('og:image:secure_url')).toBe('https://cdn.example/cover.jpg');
+    expect(prop('og:image:alt')).toBe('Guest house and garden');
+    expect(meta('twitter:image')).toBe(prop('og:image'));
+    expect(meta('twitter:image:alt')).toBe(prop('og:image:alt'));
+    expect(meta('twitter:card')).toBe('summary_large_image');
+    service.privatePage('Account');
+    expect(prop('og:image')).toBeUndefined();
+    expect(prop('og:image:secure_url')).toBeUndefined();
+    expect(prop('og:image:alt')).toBeUndefined();
+    expect(meta('twitter:image:alt')).toBeUndefined();
+  });
+
+  it('resolves relative uploaded covers against the API host and keeps frontend assets on the site', () => {
+    const apiEnvironment = environment as { apiBaseUrl: string };
+    const originalApi = environment.apiBaseUrl;
+    try {
+      apiEnvironment.apiBaseUrl = 'https://api.example.com/api/v1';
+      expect(service.absoluteImageUrl('/media/stays/cover.jpg')).toBe(
+        'https://api.example.com/media/stays/cover.jpg',
+      );
+      expect(service.absoluteImageUrl('media/properties/cover.jpg')).toBe(
+        'https://api.example.com/media/properties/cover.jpg',
+      );
+      expect(service.absoluteImageUrl('/hero-eswatini-home.jpg')).toBe(
+        'http://localhost:4200/hero-eswatini-home.jpg',
+      );
+      expect(service.absoluteImageUrl('https://cdn.example.com/photo.jpg')).toBe(
+        'https://cdn.example.com/photo.jpg',
+      );
+    } finally {
+      apiEnvironment.apiBaseUrl = originalApi;
+    }
   });
 });
 
