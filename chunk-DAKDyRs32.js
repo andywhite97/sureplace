@@ -1,0 +1,1 @@
+import{Z as L,bn as g}from"./chunk-CvRcBZpB.js";import{t as d}from"./chunk-4WCxC3Pl.js";var s=class t{api=g(d);list(n={}){return this.api.get(`/agents/`,n)}detail(n){return this.api.get(`/agents/${encodeURIComponent(n)}/`)}static ɵfac=function(g){return new(g||t)};static ɵprov=L({token:t,factory:t.ɵfac,providedIn:`root`})};export{s as t};

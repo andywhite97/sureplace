@@ -1,0 +1,1 @@
+function n(e){let t=e.filter(r=>r.image?.trim());return t.find(r=>r.is_cover)||[...t].sort((r,i)=>r.sort_order-i.sort_order)[0]}function o(e,t=180){let r=e.replace(/\s+/g,` `).trim();return r.length>t?`${r.slice(0,t-3).trimEnd()}...`:r}export{o as n,n as t};

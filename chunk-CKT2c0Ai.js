@@ -1,0 +1,1 @@
+import{Bn as kD,Kr as zD,cn,n as $D}from"./chunk-CvRcBZpB.js";function p(n){return kD(()=>{let o=1;return n().pipe(zD(e=>e.next?n(String(++o)):cn,1),$D((e,t)=>({count:t.count,next:null,previous:null,results:[...e.results,...t.results]}),{count:0,next:null,previous:null,results:[]}))})}export{p as t};
