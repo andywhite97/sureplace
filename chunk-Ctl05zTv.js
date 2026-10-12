@@ -1,0 +1,1 @@
+import{Rn as jD,Zt as ZD,kr as un,pr as qD}from"./chunk-BbpYKy-6.js";function p(n){return jD(()=>{let o=1;return n().pipe(ZD(e=>e.next?n(String(++o)):un,1),qD((e,t)=>({count:t.count,next:null,previous:null,results:[...e.results,...t.results]}),{count:0,next:null,previous:null,results:[]}))})}export{p as t};
