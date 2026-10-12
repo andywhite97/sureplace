@@ -53,7 +53,9 @@ import { STAFF_NAVIGATION } from '../../core/services/account-navigation.config'
         position: sticky;
         top: 72px;
         align-self: start;
-        min-height: calc(100dvh - 72px);
+        height: calc(100dvh - 72px);
+        overflow-y: auto;
+        box-sizing: border-box;
         padding: 1.75rem 1rem;
         background: white;
         border-right: 1px solid var(--line);
@@ -170,17 +172,31 @@ export class StaffShellComponent {
     const permissions = new Set(user?.staff_permissions ?? []);
     const allowed = (permission: string) => !!user?.is_superuser || permissions.has(permission);
     const visible = STAFF_NAVIGATION.items.filter((item) => {
-      if (item.commands === '/staff' || item.commands === '/staff/listings') return allowed('properties.review_propertylisting');
+      if (item.commands === '/staff' || item.commands === '/staff/listings')
+        return allowed('properties.review_propertylisting');
+      if (item.commands === '/staff/stays') return allowed('stays.review_stay');
       if (item.commands === '/staff/reports') return allowed('moderation.view_listingreport');
-      if (item.commands === '/staff/agencies' || item.commands === '/staff/verification') return allowed('verification.review_verificationrequest');
+      if (item.commands === '/staff/agencies' || item.commands === '/staff/verification')
+        return allowed('verification.review_verificationrequest');
       if (item.commands === '/staff/users') return allowed('accounts.moderate_user');
       return false;
     });
     const groups = [
-      { title: 'Staff Console', items: visible.filter((item) => item.commands === '/staff').map((item) => ({ ...item, label: 'Overview' })) },
+      {
+        title: 'Staff Console',
+        items: visible
+          .filter((item) => item.commands === '/staff')
+          .map((item) => ({ ...item, label: 'Overview' })),
+      },
       { title: 'Moderation', items: visible.filter((item) => item.commands !== '/staff') },
     ].filter((group) => group.items.length);
-    if (user?.is_superuser) groups.push({ title: 'Administration', items: [{ label: 'Access & Roles', commands: '/staff/access', icon: 'fa-solid fa-user-lock' }] });
+    if (user?.is_superuser)
+      groups.push({
+        title: 'Administration',
+        items: [
+          { label: 'Access & Roles', commands: '/staff/access', icon: 'fa-solid fa-user-lock' },
+        ],
+      });
     return groups;
   });
 }

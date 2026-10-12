@@ -12,6 +12,7 @@ describe('serverRoutes', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     globalThis.fetch = originalFetch;
     warn.mockRestore();
   });
@@ -101,6 +102,17 @@ describe('serverRoutes', () => {
       expect.stringContaining('Dynamic routes will fall back to CSR'),
       expect.any(Error),
     );
+  });
+
+  it('bounds discovery when the API accepts a connection but never responds', async () => {
+    vi.useFakeTimers();
+    globalThis.fetch = vi.fn((_url, options) => new Promise<Response>((_resolve, reject) => {
+      options?.signal?.addEventListener('abort', () => reject(new Error('timeout')));
+    })) as typeof fetch;
+    const result = collectPublishedSlugs('/stays/');
+    await vi.advanceTimersByTimeAsync(6000);
+    await expect(result).resolves.toEqual([]);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   });
 });
 

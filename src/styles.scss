@@ -54,6 +54,10 @@ body {
   margin: 0;
   min-width: 320px;
 }
+// Staff layouts also fit the available width when a 320px viewport has a scrollbar.
+body:has(.staff-workspace) {
+  min-width: 0;
+}
 h1,
 h2,
 h3 {
@@ -314,12 +318,40 @@ html[data-page-motion='tab']::view-transition-old(sp-page) {
 html[data-page-motion='tab']::view-transition-new(sp-page) {
   animation: page-fade-in 180ms ease-out both;
 }
-@keyframes page-enter-right { from { opacity: 0; transform: translateX(24px); } }
-@keyframes page-enter-left { from { opacity: 0; transform: translateX(-24px); } }
-@keyframes page-exit-left { to { opacity: 0; transform: translateX(-12px); } }
-@keyframes page-exit-right { to { opacity: 0; transform: translateX(12px); } }
-@keyframes page-fade-in { from { opacity: 0; } }
-@keyframes page-fade-out { to { opacity: 0; } }
+@keyframes page-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes page-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes page-exit-left {
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+@keyframes page-exit-right {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),

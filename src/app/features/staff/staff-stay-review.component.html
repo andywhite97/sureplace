@@ -1,0 +1,349 @@
+<div class="review">
+  <div class="review-scroll">
+    <sp-staff-stay-gallery [images]="stay().images || []" [title]="stay().name" />
+    <section class="identity">
+      <div class="title-row">
+        <h2>{{ stay().name }}</h2>
+        <span [class]="'badge ' + stay().status.toLowerCase()">{{ stay().status_label }}</span>
+      </div>
+      <p class="muted">{{ (stay().stay_type || '').replaceAll('_', ' ') | titlecase }}</p>
+      <div class="listing-id">
+        <span>{{ stay().public_id }}</span
+        ><button type="button" aria-label="Copy public listing ID" (click)="copyId()">
+          <i class="fa-regular fa-copy" aria-hidden="true"></i>
+        </button>
+      </div>
+      <span class="sr-only" role="status">{{ copyMessage() }}</span>
+      <div class="facts">
+        <span
+          ><i class="fa-solid fa-location-dot" aria-hidden="true"></i
+          >{{ stay().town || 'Town not provided' }}, {{ stay().region }}</span
+        >
+        <span
+          ><i class="fa-solid fa-bed" aria-hidden="true"></i>{{ stay().room_types.length }} room
+          types</span
+        >
+        <span
+          ><i class="fa-regular fa-user" aria-hidden="true"></i>{{ stay().owner.first_name }}
+          {{ stay().owner.last_name }}</span
+        >
+        <span
+          ><i class="fa-regular fa-calendar" aria-hidden="true"></i
+          >{{ stay().submitted_at || stay().updated_at | date: 'd MMM y' }}</span
+        >
+      </div>
+    </section>
+    <div class="tabs" role="tablist" aria-label="Stay review sections">
+      @for (name of tabs; track name; let i = $index) {
+        <button
+          type="button"
+          role="tab"
+          [id]="'stay-tab-' + name"
+          aria-controls="stay-tab-content"
+          [attr.aria-selected]="tab() === name"
+          [attr.tabindex]="tab() === name ? 0 : -1"
+          (click)="tabChanged.emit(name)"
+          (keydown)="tabKey($event, i)"
+        >
+          {{ name | titlecase }}
+        </button>
+      }
+    </div>
+    <section
+      id="stay-tab-content"
+      role="tabpanel"
+      [attr.aria-labelledby]="'stay-tab-' + tab()"
+      tabindex="0"
+      class="tab-content"
+    >
+      @switch (tab()) {
+        @case ('overview') {
+          <h3>Description</h3>
+          <p class="text-box">{{ stay().description || 'Not provided' }}</p>
+          <h3>Location</h3>
+          @if (coordinates(); as point) {
+            <div class="map">
+              <sp-listing-map [markers]="markers()" [center]="point" [zoom]="15" />
+              <a [href]="mapUrl()" target="_blank" rel="noopener noreferrer"
+                >Open map <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i
+              ></a>
+            </div>
+            <p class="muted">
+              <i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ point[0] }},
+              {{ point[1] }}
+            </p>
+          } @else {
+            <p class="text-box">Map location not provided.</p>
+          }
+          <p>
+            {{ stay().address || 'Address not provided' }} · {{ stay().town }}, {{ stay().region }}
+          </p>
+          <h3>Host information</h3>
+          <dl class="host-info">
+            <div>
+              <dt>Name</dt>
+              <dd>{{ stay().owner.first_name }} {{ stay().owner.last_name }}</dd>
+            </div>
+            <div>
+              <dt>
+                Email
+                <span [class]="stay().owner.is_email_verified ? 'verified' : ''"
+                  >({{ stay().owner.is_email_verified ? 'Verified' : 'Unverified' }})</span
+                >
+              </dt>
+              <dd>{{ stay().owner.email }}</dd>
+            </div>
+          </dl>
+          @if (stay().host; as host) {
+            <p class="muted">
+              {{ host.kind | titlecase }} · {{ host.name
+              }}{{ host.representative_name ? ' · ' + host.representative_name : '' }}
+            </p>
+          }
+          <h3>Stay verification</h3>
+          <p class="verification-summary">
+            <span [class]="'badge verification-' + stay().verification_status.toLowerCase()">{{
+              stay().verification_status | titlecase
+            }}</span>
+            @if (can('verification.review_verificationrequest')) {
+              <span
+                >{{
+                  stay().verification_request_count ?? stay().verification_requests?.length ?? 0
+                }}
+                verification requests · {{ stay().verification_document_count ?? '—' }} supporting
+                documents</span
+              >
+            } @else {
+              <span>Evidence access requires verification-review permission.</span>
+            }
+          </p>
+          <h3>Amenities</h3>
+          <div class="amenities">
+            @for (amenity of stay().amenities; track amenity.id) {
+              <span>{{ amenity.name }}</span>
+            } @empty {
+              <p class="muted">Not provided.</p>
+            }
+          </div>
+        }
+        @case ('rooms') {
+          <h3>Room configuration</h3>
+          <p class="muted">
+            Inventory below is the configured total. Date-specific availability is managed
+            separately.
+          </p>
+          @for (room of stay().room_types; track room.id) {
+            <article class="room-card">
+              <div class="title-row">
+                <h4>{{ room.name }}</h4>
+                <strong>{{ money(room.base_price, room.currency) }}<small> / night</small></strong>
+              </div>
+              <sp-staff-stay-gallery [images]="room.images || []" [title]="room.name" />
+              <p>{{ room.description || 'Room description not provided.' }}</p>
+              <dl class="room-facts">
+                <div>
+                  <dt>Inventory</dt>
+                  <dd>{{ room.quantity }} rooms</dd>
+                </div>
+                <div>
+                  <dt>Maximum guests</dt>
+                  <dd>{{ room.total_capacity }}</dd>
+                </div>
+                <div>
+                  <dt>Adults / children</dt>
+                  <dd>{{ room.capacity_adults }} / {{ room.capacity_children }}</dd>
+                </div>
+                <div>
+                  <dt>Minimum stay</dt>
+                  <dd>{{ room.minimum_stay }} nights</dd>
+                </div>
+                <div>
+                  <dt>Beds</dt>
+                  <dd>
+                    {{ room.number_of_beds }} · {{ room.bed_configuration || 'Not provided' }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Bathroom</dt>
+                  <dd>{{ room.bathroom_type || 'Not provided' }}</dd>
+                </div>
+              </dl>
+            </article>
+          } @empty {
+            <div class="empty">
+              <i class="fa-solid fa-bed" aria-hidden="true"></i>
+              <h4>No active room types</h4>
+              <p>At least one valid active room is required before this stay can be approved.</p>
+            </div>
+          }
+        }
+        @case ('policies') {
+          <h3>Booking configuration</h3>
+          <dl class="room-facts">
+            <div>
+              <dt>Booking mode</dt>
+              <dd>
+                {{
+                  stay().booking_mode === 'INSTANT_BOOK'
+                    ? 'Instant Book'
+                    : stay().booking_mode === 'REQUEST_TO_BOOK'
+                      ? 'Request to Book'
+                      : 'Not provided'
+                }}
+              </dd>
+            </div>
+            <div>
+              <dt>Check-in / check-out</dt>
+              <dd>
+                {{ stay().check_in_time || 'Not provided' }} /
+                {{ stay().check_out_time || 'Not provided' }}
+              </dd>
+            </div>
+          </dl>
+          <h3>Cancellation policy</h3>
+          <p class="text-box">{{ stay().cancellation_policy || 'Not provided' }}</p>
+          <h3>House rules</h3>
+          <p class="text-box">{{ stay().house_rules || 'Not provided' }}</p>
+        }
+        @case ('verification') {
+          <h3>Verification evidence</h3>
+          <p>
+            <span [class]="'badge verification-' + stay().verification_status.toLowerCase()">{{
+              stay().verification_status | titlecase
+            }}</span>
+          </p>
+          <p class="muted">
+            Listing approval and evidence-based stay verification are separate decisions.
+          </p>
+          <p>Host email: {{ stay().owner.is_email_verified ? 'Verified' : 'Unverified' }}</p>
+          @if (can('verification.review_verificationrequest')) {
+            @for (request of stay().verification_requests || []; track request.id) {
+              <a class="evidence-link" [routerLink]="['/staff/verification', request.id]"
+                >Review stay verification
+                <span
+                  >{{ request.status | titlecase }}
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span
+              ></a>
+            } @empty {
+              <p class="notice">
+                No submitted verification requests for this stay. No verified badge will be granted
+                by listing approval.
+              </p>
+            }
+          } @else {
+            <p class="notice">
+              You need verification-review permission to inspect protected evidence.
+            </p>
+          }
+          <h3>Listing review history</h3>
+          @for (event of stay().audit_events || []; track event.id) {
+            <article class="history">
+              <strong>{{ event.action.replaceAll('_', ' ') | titlecase }}</strong
+              ><small>{{ event.actor_name }} · {{ event.created_at | date: 'medium' }}</small>
+              <p>{{ event.reason }}</p>
+            </article>
+          } @empty {
+            <p class="muted">No moderation decisions yet.</p>
+          }
+          <h3>Listing reports</h3>
+          @for (report of stay().reports || []; track report.id) {
+            <article class="history">
+              <strong>{{ report.reason }} · {{ report.status }}</strong>
+              <p>{{ report.details }}</p>
+            </article>
+          } @empty {
+            <p class="muted">No reports.</p>
+          }
+        }
+      }
+    </section>
+  </div>
+  <footer class="action-bar" aria-label="Stay moderation actions">
+    @if (available('start-review')) {
+      <button type="button" [disabled]="busy()" (click)="open('start-review')">Start review</button>
+    }
+    @if (available('notes')) {
+      <button type="button" [disabled]="busy()" (click)="open('notes')">Internal note</button>
+    }
+    <div class="decisions">
+      @if (available('reject')) {
+        <button type="button" class="reject" [disabled]="busy()" (click)="open('reject')">
+          Reject
+        </button>
+      }
+      @if (available('request-changes')) {
+        <button type="button" class="changes" [disabled]="busy()" (click)="open('request-changes')">
+          Request changes
+        </button>
+      }
+      @if (available('approve')) {
+        <button type="button" class="approve" [disabled]="busy()" (click)="open('approve')">
+          Approve stay
+        </button>
+      }
+      @if (available('suspend')) {
+        <button type="button" class="reject" [disabled]="busy()" (click)="open('suspend')">
+          Suspend
+        </button>
+      }
+      @if (available('restore')) {
+        <button type="button" class="approve" [disabled]="busy()" (click)="open('restore')">
+          Restore stay
+        </button>
+      }
+    </div>
+    @if (busy()) {
+      <span role="status">Saving decision…</span>
+    }
+    @if (error() && !decision()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  </footer>
+</div>
+<dialog #decisionDialog aria-labelledby="stay-decision-title" (cancel)="cancel($event)">
+  <form (ngSubmit)="submit()">
+    <h2 id="stay-decision-title">{{ label(decision()) }}</h2>
+    <p>
+      Confirm this action for <strong>{{ stay().name }}</strong> ({{ stay().public_id }}).
+    </p>
+    @if (decision() === 'approve') {
+      <p>This publishes the stay listing. Stay verification is reviewed separately.</p>
+    }
+    @if (decision() === 'notes') {
+      <p>This note stays in the staff audit record.</p>
+    }
+    @if (needsReason()) {
+      <label for="stay-decision-reason">{{
+        decision() === 'notes' ? 'Internal note (required)' : 'Reason / feedback (required)'
+      }}</label>
+      <textarea
+        id="stay-decision-reason"
+        name="reason"
+        rows="4"
+        [(ngModel)]="reason"
+        [required]="needsReason()"
+        [disabled]="busy()"
+        placeholder="Add clear feedback for this decision"
+      ></textarea>
+    }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="dialog-actions">
+      <button type="button" [disabled]="busy()" (click)="cancel()">Cancel</button
+      ><button
+        type="submit"
+        [class]="
+          decision() === 'reject' || decision() === 'suspend'
+            ? 'reject'
+            : decision() === 'request-changes'
+              ? 'changes'
+              : 'approve'
+        "
+        [disabled]="busy() || (needsReason() && !reason.trim())"
+      >
+        {{ busy() ? 'Saving…' : label(decision()) }}
+      </button>
+    </div>
+  </form>
+</dialog>

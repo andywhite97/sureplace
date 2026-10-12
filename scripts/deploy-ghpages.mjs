@@ -19,7 +19,7 @@ if (!outputDir) {
   process.exit(1);
 }
 
-await runLocalBin('angular-cli-ghpages', ['--dir', outputDir]);
+await runLocalBin('gh-pages', ['--dist', outputDir, '--dotfiles']);
 
 function runLocalBin(command, args) {
   const extension = process.platform === 'win32' ? '.cmd' : '';

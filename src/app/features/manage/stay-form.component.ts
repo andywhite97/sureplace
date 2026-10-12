@@ -1,8 +1,10 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { StayEntitlementsApiService } from '../../core/api/stay-entitlements-api.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { debounceTime, finalize, forkJoin, switchMap, of } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { debounceTime, finalize, forkJoin, switchMap, of, throwError } from 'rxjs';
 import { StayManagementApiService } from '../../core/api/manage-api.services';
 import { normalizeApiError } from '../../core/api/error-normalizer';
 import { ReferenceApiService } from '../../core/api/reference-api.service';
@@ -20,6 +22,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 @Component({
   standalone: true,
   imports: [
+    RouterLink,
     ReactiveFormsModule,
     EswatiniPhoneInputComponent,
     SmartImageComponent,
@@ -59,6 +62,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
+        @if (capacityFull()) { <p>Your draft, photos and room information are saved. <a routerLink="/pricing" [queryParams]="{section:'stays'}" fragment="extra-stays">View extra stay options</a> or <a routerLink="/pricing" [queryParams]="{section:'stays'}">compare hosting plans</a>. A granted extra unit will be allocated securely when publication needs it.</p> }
       }
 
       @if (submitted()) {
@@ -462,7 +466,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
             </button>
             @if (current().key === 'submit') {
               <button type="submit" class="primary" [disabled]="busy() || submitting()">
-                {{ submitting() ? 'Submitting...' : 'Submit Listing' }}
+                {{ submitting() ? 'Saving...' : stay()?.status === 'PUBLISHED' ? 'Save Updates' : 'Submit Listing' }}
               </button>
             } @else {
               <button
@@ -490,6 +494,8 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 })
 export class StayFormComponent {
   private destroyRef = inject(DestroyRef);
+  private entitlements = inject(StayEntitlementsApiService);
+  capacityFull = signal(false);
   private api = inject(StayManagementApiService);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
@@ -709,6 +715,7 @@ export class StayFormComponent {
       return;
     }
     this.submitting.set(true);
+    this.capacityFull.set(false);
     this.error.set('');
     this.api
       .update(id, this.payload())
@@ -716,9 +723,12 @@ export class StayFormComponent {
         switchMap(() => this.api.detail(id)),
         switchMap((stay) => {
           this.stay.set(stay);
-          return ['SUBMITTED', 'UNDER_REVIEW'].includes(stay.status)
-            ? of(stay)
-            : this.api.submit(id);
+          if (['SUBMITTED', 'UNDER_REVIEW', 'PUBLISHED'].includes(stay.status)) return of(stay);
+          return this.entitlements.summary(stay.agency || this.agencyId, id).pipe(
+            switchMap(usage => usage.can_publish_stay ? this.api.submit(id) : throwError(() => new HttpErrorResponse({
+              status: 400, error: { code: 'STAY_LISTING_LIMIT_REACHED', message: 'Your stay listing capacity is full. Your draft is saved. Manage existing stays or compare hosting plans.', errors: {} },
+            }))),
+          );
         }),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.submitting.set(false)),
@@ -726,6 +736,7 @@ export class StayFormComponent {
       .subscribe({
         next: (stay) => {
           this.stay.set(stay);
+          if (stay.status === 'PUBLISHED') { this.dirty.set(false); this.saveState.set('saved'); this.toast.show('Stay updates saved.', 'success'); return; }
           if (!['SUBMITTED', 'UNDER_REVIEW'].includes(stay.status)) {
             this.error.set('Submission could not be confirmed. Please try again.');
             return;
@@ -857,6 +868,9 @@ export class StayFormComponent {
 
   private handleSubmitError(error: unknown) {
     const normalized = normalizeApiError(error);
+    if (normalized.code === 'STAY_LISTING_LIMIT_REACHED') {
+      this.capacityFull.set(true); this.dirty.set(false); this.saveState.set('saved'); this.error.set(normalized.message); this.toast.show(normalized.message, 'error'); return;
+    }
     const fields = normalized.errors || {};
     if ((error as { status?: number }).status === 400) {
       const steps: Record<string, number> = {
@@ -885,7 +899,7 @@ export class StayFormComponent {
           void this.router.navigate(['/account/manage/stays', stay.id, 'submitted']);
           return;
         }
-        if (!['DRAFT', 'REJECTED'].includes(stay.status)) {
+        if (!['DRAFT', 'REJECTED', 'CHANGES_REQUESTED', 'PAUSED', 'PUBLISHED'].includes(stay.status)) {
           void this.router.navigate(['/account/manage/stays']);
           return;
         }

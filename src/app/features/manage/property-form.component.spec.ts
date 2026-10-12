@@ -1,3 +1,4 @@
+import { PropertyEntitlementsApiService } from '../../core/api/property-entitlements-api.service';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -12,6 +13,7 @@ describe('Property wizard back navigation', () => {
     TestBed.configureTestingModule({
       imports: [PropertyFormComponent],
       providers: [
+        { provide: PropertyEntitlementsApiService, useValue: { summary: vi.fn(() => of({ remaining_publication_capacity: 2, can_publish_property: true, current_plan: { display_name: 'Individual Free' }, activated_addons: [], active_listing_count: 0, listing_limit: 2, usage_percent: 0 })) } },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: {
           paramMap: convertToParamMap({}), queryParamMap: convertToParamMap({}),
@@ -71,6 +73,7 @@ describe('Property photo uploads', () => {
     TestBed.configureTestingModule({
       imports: [PropertyFormComponent],
       providers: [
+        { provide: PropertyEntitlementsApiService, useValue: { summary: vi.fn(() => of({ remaining_publication_capacity: 2, can_publish_property: true, current_plan: { display_name: 'Individual Free' }, activated_addons: [], active_listing_count: 0, listing_limit: 2, usage_percent: 0 })) } },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}), queryParamMap: convertToParamMap({}) } } },
         { provide: PropertyManagementApiService, useValue: api },

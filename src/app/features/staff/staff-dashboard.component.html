@@ -8,6 +8,9 @@
       <p class="intro">
         Review and manage marketplace activity to keep SurePlace safe, trusted and reliable.
       </p>
+      @if (auth.user()?.is_superuser || auth.user()?.staff_permissions?.includes('stays.review_stay')) {
+        <a routerLink="/staff/stays">Review stay listings →</a>
+      }
     </div>
     <div class="greeting">
       @if (auth.user()?.first_name; as name) {

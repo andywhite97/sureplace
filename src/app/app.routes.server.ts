@@ -157,7 +157,8 @@ export async function collectPublishedSlugs(endpoint: '/properties/' | '/stays/'
 async function fetchJson<T>(url: string) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    // Keep discovery below Angular's route-extraction timeout when the API is down.
+    const timeout = setTimeout(() => controller.abort(), 3000);
     try {
       const response = await fetch(url, { signal: controller.signal });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);

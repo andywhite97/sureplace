@@ -1,3 +1,4 @@
+import { StayEntitlementsApiService } from '../../core/api/stay-entitlements-api.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -46,6 +47,7 @@ describe('Stay final submission', () => {
     TestBed.configureTestingModule({
       imports: [StayFormComponent],
       providers: [
+        { provide: StayEntitlementsApiService, useValue: { summary: vi.fn(() => of({can_publish_stay:true})) } },
         provideRouter([]),
         {
           provide: ActivatedRoute,

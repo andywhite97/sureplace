@@ -1,3 +1,4 @@
+import { StayEntitlementsApiService, StayEntitlements } from '../../core/api/stay-entitlements-api.service';
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -28,7 +29,22 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
         ><i class="fa-solid fa-plus"></i> Add Stay</a
       >
     </header>
-    <section class="filters">
+    @if (capacity(); as usage) {
+      <section class="capacity" aria-label="Stay listing allowance">
+        <h2>{{ usage.current_plan.display_name }}</h2>
+        <p>{{ usage.active_stay_count }} of {{ usage.listing_limit }} active stays</p>
+        <progress [value]="usage.usage_percent" max="100" aria-label="Stay listing usage"></progress>
+        <p>{{ usage.remaining_publication_capacity }} listing slots remaining</p>
+        @if (!usage.remaining_publication_capacity) { <p>You've reached your stay listing limit. Drafts, room types and calendars remain available.</p> }
+        @if (usage.legacy_over_limit) { <p>Existing published stays are preserved. Restore capacity before publishing another stay.</p> }
+        @if (usage.protected_booking_over_limit) { <p class="protected">Existing reservations are protected. Booking workflows continue while you arrange renewal or administrator review.</p> }
+        @if (usage.subscription_expiration) { <p>Subscription expires {{ usage.subscription_expiration | date }}. Status: {{ usage.subscription_status }}.</p><p>Grace until {{ usage.subscription_grace_until | date }}.</p> }
+        @for (addon of usage.activated_addons; track addon.id) { @if (addon.status === 'ACTIVE') { <small>Extra stay allowance expires {{ addon.expires_at | date }}</small> } }
+        @for (review of usage.capacity_reviews; track review.stay_id) { @if (review.status === 'PROTECTED_BOOKINGS') { <a [routerLink]="['/account/manage/stays', review.stay_id, 'edit']">{{ review.stay_name }} · Manage protected bookings</a> } }
+        <nav><a href="#stay-list">Manage listings</a><a routerLink="/pricing" [queryParams]="{section:'stays'}" fragment="extra-stays">View extra listing options</a><a routerLink="/pricing" [queryParams]="{section:'stays'}">Compare hosting plans</a></nav>
+      </section>
+    } @else if (capacityError()) { <p role="status">Stay allowance could not be loaded. <button (click)="loadCapacity()">Retry allowance</button></p> }
+    <section class="filters" id="stay-list">
       <label
         ><i class="fa-solid fa-magnifying-glass"></i
         ><input
@@ -118,7 +134,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
                       <a [routerLink]="['/stays', s.slug]">View public stay</a
                       ><button (click)="pause(s)">Pause stay</button>
                     }
-                    @if (s.status === 'DRAFT' || s.status === 'REJECTED') {
+                    @if (s.status === 'DRAFT' || s.status === 'REJECTED' || s.status === 'CHANGES_REQUESTED' || s.status === 'PAUSED') {
                       <button (click)="submit(s)">Continue listing</button>
                     }
                   </div>
@@ -132,6 +148,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
   </section>`,
   styles: [
     `
+      .capacity{display:grid;gap:.6rem;padding:1rem;border:1px solid var(--teal);border-radius:1rem;background:var(--surface,#fff)}.capacity progress{width:100%;accent-color:var(--teal)}.capacity nav{display:flex;flex-wrap:wrap;gap:.5rem}.protected{color:var(--teal);font-weight:750}
       .workspace {
         display: grid;
         gap: 1rem;
@@ -394,6 +411,9 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
 export class StayManagementListComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private entitlements = inject(StayEntitlementsApiService);
+  capacity = signal<StayEntitlements | null>(null);
+  capacityError = signal(false);
   private api = inject(StayManagementApiService);
   private toast = inject(ToastService);
   rows = signal<ManagedStay[]>([]);
@@ -459,11 +479,20 @@ export class StayManagementListComponent {
           ? 'SurePlace is reviewing this stay.'
           : s.status === 'PAUSED'
             ? 'This stay is currently hidden.'
-            : s.status === 'REJECTED'
+            : s.status === 'CHANGES_REQUESTED'
+              ? 'Review the requested changes, update your stay and resubmit.'
+              : s.status === 'REJECTED'
               ? 'This stay was not approved.'
               : 'Manage your stay details and rooms.';
   }
+  loadCapacity() {
+    this.capacityError.set(false);
+    this.entitlements.summary(this.route.snapshot.queryParamMap.get('agency')).subscribe({
+      next: data => this.capacity.set(data), error: () => this.capacityError.set(true),
+    });
+  }
   load() {
+    this.loadCapacity();
     this.loading.set(true);
     this.error.set('');
     this.api
@@ -488,6 +517,7 @@ export class StayManagementListComponent {
       });
   }
   private replace(s: ManagedStay) {
+    this.loadCapacity();
     this.rows.update((xs) => xs.map((x) => (x.id === s.id ? s : x)));
   }
 }

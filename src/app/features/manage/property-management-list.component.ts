@@ -1,3 +1,4 @@
+import { PropertyEntitlementsApiService, PropertyEntitlements } from '../../core/api/property-entitlements-api.service';
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -28,7 +29,20 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
         ><i class="fa-solid fa-plus"></i> Add Property</a
       >
     </header>
-    <section class="filters">
+    @if (capacity(); as usage) {
+      <section class="capacity" aria-label="Property publication capacity">
+        <h2>{{ usage.current_plan.display_name }}</h2>
+        <p>Active Listings: {{ usage.active_listing_count }} of {{ usage.listing_limit }}</p>
+        <progress [value]="usage.usage_percent" max="100" aria-label="Active listing usage"></progress>
+        <p>{{ usage.remaining_publication_capacity }} listing slots remaining</p>
+        @if (!usage.remaining_publication_capacity) { <p>You've used all {{ usage.listing_limit }} listing slots. You can still save and edit drafts.</p> }
+        @if (usage.legacy_over_limit) { <p>Your existing listings are preserved. Capacity must become available before another publication.</p> }
+        @if (usage.subscription_expiration) { <p>Subscription expires {{ usage.subscription_expiration | date }}. Status: {{ usage.subscription_status }}.</p> }
+        @for (addon of usage.activated_addons; track addon.id) { @if (addon.status === 'ACTIVE') { <small>Extra allowance expires {{ addon.expires_at | date }}</small> } }
+        <nav><a routerLink="/pricing" fragment="extra-listings">View extra listing options</a> <a routerLink="/pricing">Compare available plans</a> <a href="#property-list">Manage existing listings</a></nav>
+      </section>
+    } @else if (capacityError()) { <p role="status">Capacity could not be loaded. <button (click)="loadCapacity()">Retry capacity</button></p> }
+    <section class="filters" id="property-list">
       <label
         ><i class="fa-solid fa-magnifying-glass"></i
         ><input
@@ -147,7 +161,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
   </section>`,
   styles: [
     `
-      .availability-help { margin:.25rem 0; color:var(--slate); font-size:.78rem; }
+      .capacity{display:grid;gap:.6rem;padding:1rem;border:1px solid var(--teal);border-radius:1rem;background:var(--surface,#fff)}.capacity progress{width:100%;accent-color:var(--teal)}.capacity nav{display:flex;gap:.5rem;flex-wrap:wrap}.availability-help { margin:.25rem 0; color:var(--slate); font-size:.78rem; }
       .workspace {
         display: grid;
         gap: 1rem;
@@ -411,6 +425,9 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
   ],
 })
 export class PropertyManagementListComponent {
+  private entitlements = inject(PropertyEntitlementsApiService);
+  capacity = signal<PropertyEntitlements | null>(null);
+  capacityError = signal(false);
   private api = inject(PropertyManagementApiService);
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
@@ -462,7 +479,7 @@ export class PropertyManagementListComponent {
     return this.rows().filter((p) => this.matches(p, f)).length;
   }
   canSubmit(p: ManagedProperty) {
-    return ['DRAFT', 'REJECTED', 'CHANGES_REQUESTED'].includes(p.status);
+    return ['DRAFT', 'REJECTED', 'CHANGES_REQUESTED', 'PAUSED', 'EXPIRED'].includes(p.status);
   }
   statusCopy(p: ManagedProperty) {
     return p.status === 'PUBLISHED'
@@ -479,7 +496,14 @@ export class PropertyManagementListComponent {
                 ? 'This listing was not approved.'
                 : 'Status unavailable.';
   }
+  loadCapacity() {
+    this.capacityError.set(false);
+    this.entitlements.summary(this.route.snapshot.queryParamMap.get('agency')).subscribe({
+      next: value => this.capacity.set(value), error: () => this.capacityError.set(true),
+    });
+  }
   load() {
+    this.loadCapacity();
     this.loading.set(true);
     this.error.set('');
     this.api
@@ -491,12 +515,22 @@ export class PropertyManagementListComponent {
       });
   }
   submit(p: ManagedProperty) {
+    this.entitlements.summary(this.route.snapshot.queryParamMap.get('agency'), p.id).subscribe({
+      next: usage => {
+        this.capacity.set(usage);
+        if (!usage.can_publish_property) { this.toast.show('Publication capacity is full. Your draft is saved. Compare plans or manage existing listings.', 'error'); return; }
+        this.submitChecked(p);
+      },
+      error: () => this.toast.show('Capacity could not be checked. Please try again.', 'error'),
+    });
+  }
+  private submitChecked(p: ManagedProperty) {
     this.api.submit(p.id).subscribe({
       next: (x) => {
         this.replace(x);
         this.toast.show('Property submitted for review.', 'success');
       },
-      error: () => this.toast.show('Property could not be submitted.', 'error'),
+      error: e => this.toast.show(e?.error?.message || 'Property could not be submitted.', 'error'),
     });
   }
   pause(p: ManagedProperty) {
@@ -524,10 +558,11 @@ export class PropertyManagementListComponent {
         this.replace(x);
         this.toast.show(available ? 'Property availability confirmed.' : 'Property marked unavailable.', 'success');
       },
-      error: () => this.toast.show('Availability could not be confirmed.', 'error'),
+      error: e => this.toast.show(e?.error?.message || 'Availability could not be confirmed.', 'error'),
     });
   }
   private replace(p: ManagedProperty) {
+    this.loadCapacity();
     this.rows.update((xs) => xs.map((x) => (x.id === p.id ? p : x)));
   }
 }

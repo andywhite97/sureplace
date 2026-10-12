@@ -1,3 +1,4 @@
+import { PropertyEntitlementsApiService } from '../../core/api/property-entitlements-api.service';
 import { isPlatformBrowser } from '@angular/common';
 import {
   Component,
@@ -101,6 +102,7 @@ type PhotoItem =
 
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
+        @if (capacityFull()) { <p>Your draft and photos are saved. <a routerLink="/pricing" fragment="extra-listings">View extra listing options</a> or <a routerLink="/pricing">compare plans</a>. You can also pause an existing property.</p> }
       }
 
       @if (submitted()) {
@@ -673,6 +675,8 @@ export class PropertyFormComponent implements OnDestroy {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private entitlements = inject(PropertyEntitlementsApiService);
+  capacityFull = signal(false);
   private toast = inject(ToastService);
   private platformId = inject(PLATFORM_ID);
   ref = inject(ReferenceApiService);
@@ -1072,7 +1076,21 @@ export class PropertyFormComponent implements OnDestroy {
     const id = this.listing()?.id;
     if (!id) return;
     if (!(await this.saveAvailability())) return;
+    this.capacityFull.set(false);
     this.submitting.set(true);
+    try {
+      const usage = await firstValueFrom(this.entitlements.summary(this.listing()?.agency?.id || this.agencyId, id));
+      if (!usage.can_publish_property) {
+        this.capacityFull.set(true);
+        this.error.set('You have used all available publication slots. Your draft is saved.');
+        this.submitting.set(false);
+        return;
+      }
+    } catch {
+      this.error.set('Capacity could not be checked. Your draft is saved. Please try again.');
+      this.submitting.set(false);
+      return;
+    }
     this.api
       .submit(id)
       .pipe(finalize(() => this.submitting.set(false)))
@@ -1084,6 +1102,7 @@ export class PropertyFormComponent implements OnDestroy {
           this.toast.show('Property submitted for review.', 'success');
         },
         error: (e) => {
+          if (e?.error?.code === 'PROPERTY_LISTING_LIMIT_REACHED') this.capacityFull.set(true);
           const message =
             e?.error?.detail || e?.error?.message || 'Property could not be submitted.';
           this.error.set(message);

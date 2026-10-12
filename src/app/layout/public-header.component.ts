@@ -60,13 +60,35 @@ type MenuState = 'closed' | 'open' | 'closing';
           <input
             #staffSearch
             type="search"
-            aria-label="Search property listings"
-            placeholder="Search listings by title, ID or agency"
+            [attr.aria-label]="
+              currentUrl().startsWith('/staff/stays')
+                ? 'Search stay listings'
+                : 'Search property listings'
+            "
+            [placeholder]="
+              currentUrl().startsWith('/staff/stays')
+                ? 'Search stays by name, ID, town or host email…'
+                : 'Search listings by title, ID or agency'
+            "
           />
           <button type="submit" aria-label="Search listings">
             <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
           </button>
         </form>
+        <a
+          class="notification-link staff-notifications"
+          routerLink="/account/notifications"
+          [attr.aria-label]="
+            badge('notifications')
+              ? badgeLabel('notifications', badge('notifications'))
+              : 'Notifications'
+          "
+        >
+          <i class="fa-regular fa-bell" aria-hidden="true"></i>
+          @if (badge('notifications')) {
+            <b aria-hidden="true">{{ badge('notifications') }}</b>
+          }
+        </a>
         <div class="staff-identity">
           <span class="staff-avatar" aria-hidden="true">{{ staffInitials() }}</span
           ><span
@@ -378,6 +400,12 @@ type MenuState = 'closed' | 'open' | 'closing';
             </section>
           }
         </nav>
+        @if (staffWorkspace()) {
+          <p class="staff-drawer-notice">
+            <strong>Trust & safety</strong>Review carefully. Every moderation decision leaves an
+            audit record.
+          </p>
+        }
       </aside>
     }`,
   styles: [
@@ -569,7 +597,7 @@ type MenuState = 'closed' | 'open' | 'closing';
       .console-label {
         font-size: 0.75rem;
         font-weight: 800;
-        color: var(--teal);
+        color: #08705f;
         background: var(--mist);
         padding: 0.4rem 0.6rem;
         border-radius: 0.5rem;
@@ -619,9 +647,28 @@ type MenuState = 'closed' | 'open' | 'closing';
         display: grid;
         place-items: center;
         background: var(--mist);
-        color: var(--teal);
+        color: #08705f;
         border-radius: 50%;
         font-weight: 800;
+      }
+      .staff-drawer-notice {
+        margin: 20px 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        color: var(--slate);
+        font-size: 0.75rem;
+        line-height: 1.6;
+      }
+      .staff-drawer-notice strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--midnight);
+      }
+      .staff-notifications {
+        margin-left: auto;
+      }
+      .staff-notifications + .staff-identity {
+        margin-left: 0;
       }
       .exit-console {
         display: flex;
@@ -648,6 +695,12 @@ type MenuState = 'closed' | 'open' | 'closing';
         }
       }
       @media (max-width: 560px) {
+        .staff-notifications {
+          display: none;
+        }
+        .staff-header .exit-console {
+          display: none;
+        }
         .staff-header .logo img {
           max-width: 100px;
           height: auto;
@@ -1094,9 +1147,12 @@ export class PublicHeaderComponent {
   );
   searchStaff(event: Event, search: string) {
     event.preventDefault();
-    void this.router.navigate(['/staff/listings'], {
-      queryParams: { search: search.trim(), status: '' },
-    });
+    void this.router.navigate(
+      [this.currentUrl().startsWith('/staff/stays') ? '/staff/stays' : '/staff/listings'],
+      {
+        queryParams: { search: search.trim(), status: '', page: null },
+      },
+    );
   }
 
   auth = inject(AuthService);
@@ -1197,15 +1253,56 @@ export class PublicHeaderComponent {
     ];
   }
 
-  accountSections = computed(() =>
-    accountNavigation({
+  accountSections = computed(() => {
+    const sections = accountNavigation({
       authenticated: this.auth.isAuthenticated(),
       staff: !!this.auth.user()?.is_staff,
       agencyLinks: this.agencyNavigation.links(),
       features: this.config.config().features,
       capabilities: this.capabilities.capabilities(),
-    }),
-  );
+    });
+    if (!this.staffWorkspace()) return sections;
+    return sections
+      .map((section) =>
+        section.id !== 'staff'
+          ? section
+          : {
+              ...section,
+              items: [
+                ...section.items.filter((item) => this.staffNavAllowed(item.commands)),
+                ...(this.auth.user()?.is_superuser
+                  ? [
+                      {
+                        label: 'Access & Roles',
+                        commands: '/staff/access',
+                        icon: 'fa-solid fa-user-lock',
+                      },
+                    ]
+                  : []),
+              ],
+            },
+      )
+      .filter((section) => section.items.length);
+  });
+  private staffNavAllowed(path: string) {
+    const user = this.auth.user();
+    if (user?.is_superuser) return true;
+    const permissions = user?.staff_permissions || [];
+    if (path === '/staff')
+      return (
+        permissions.includes('properties.review_propertylisting') ||
+        permissions.includes('stays.review_stay')
+      );
+    const required: Record<string, string> = {
+      '/staff/listings': 'properties.review_propertylisting',
+      '/staff/stays': 'stays.review_stay',
+      '/staff/reports': 'moderation.view_listingreport',
+      '/staff/agencies': 'verification.review_verificationrequest',
+      '/staff/verification': 'verification.review_verificationrequest',
+      '/staff/users': 'accounts.moderate_user',
+    };
+    return permissions.includes(required[path]);
+  }
   badgeLabel = unreadBadgeLabel;
   accountDropdownSections = computed(() =>
     this.accountSections().filter(
@@ -1237,6 +1334,33 @@ export class PublicHeaderComponent {
 
   authenticatedSections(): NavSection[] {
     const shared = this.accountSections();
+    if (this.staffWorkspace()) {
+      return [
+        ...mobileAccountNavigation(shared.filter((section) => section.id === 'staff')),
+        {
+          title: 'Account',
+          items: [
+            {
+              label: 'Notifications',
+              commands: '/account/notifications',
+              icon: 'fa-regular fa-bell',
+              badge: 'notifications',
+            },
+            {
+              label: 'Exit Console',
+              commands: '/account',
+              icon: 'fa-solid fa-arrow-right-from-bracket',
+            },
+            {
+              label: 'Log out',
+              commands: '#',
+              action: 'logout',
+              icon: 'fa-solid fa-right-from-bracket',
+            },
+          ],
+        },
+      ];
+    }
     const sections: NavSection[] = [
       {
         title: 'Explore',

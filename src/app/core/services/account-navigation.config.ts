@@ -123,6 +123,7 @@ export const STAFF_NAVIGATION: AccountNavSection = {
   items: [
     { label: 'Dashboard', commands: '/staff', exact: true, icon: 'fa-solid fa-gauge-high' },
     { label: 'Property Listings', commands: '/staff/listings', icon: 'fa-solid fa-building-user' },
+    { label: 'Stay Listings', commands: '/staff/stays', icon: 'fa-solid fa-bed' },
     { label: 'Reports', commands: '/staff/reports', icon: 'fa-solid fa-flag' },
     { label: 'Agency Reviews', commands: '/staff/agencies', icon: 'fa-solid fa-building-shield' },
     {

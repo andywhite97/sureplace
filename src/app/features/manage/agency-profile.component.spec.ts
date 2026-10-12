@@ -115,6 +115,8 @@ describe('AgencyProfileComponent', () => {
     expect(component.saveError()).toContain('Could not update');
   });
   it('uploads a permitted logo as multipart and refreshes the identity image', () => {
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:logo-preview');
+    const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     const component = create().componentInstance;
     const file = new File(['image'], 'logo.png', { type: 'image/png' });
     api.update.mockReturnValue(of({ ...dashboard.agency, logo: '/logo.png' }));
@@ -122,6 +124,10 @@ describe('AgencyProfileComponent', () => {
     const formData = api.update.mock.calls[0][1] as FormData;
     expect(formData.get('logo')).toBe(file);
     expect(component.logoPreview()).toBe('/logo.png');
+    expect(createUrl).toHaveBeenCalledWith(file);
+    expect(revokeUrl).toHaveBeenCalledWith('blob:logo-preview');
+    createUrl.mockRestore();
+    revokeUrl.mockRestore();
   });
   it('renders read-only for an agent while retaining profile data', () => {
     api.dashboard.mockReturnValue(

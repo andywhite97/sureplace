@@ -1,0 +1,341 @@
+<router-outlet />
+<section class="workspace" [class.selected]="detailId()">
+  <div class="queue">
+    <header class="page-heading">
+      <div>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a routerLink="/staff">Staff Console</a
+          ><i class="fa-solid fa-chevron-right" aria-hidden="true"></i><span>Stay listings</span>
+        </nav>
+        <h1>Stay listings</h1>
+        <p>Review accommodation, rooms and policies before publication.</p>
+      </div>
+      <section
+        class="metrics-card"
+        aria-label="Global stay moderation totals"
+        [attr.aria-busy]="summaryLoading()"
+      >
+        <div class="total">
+          <i class="fa-solid fa-bed" aria-hidden="true"></i>
+          <div>
+            <strong>{{ summary()?.total ?? '—' }}</strong
+            ><span>Total stays</span>
+          </div>
+        </div>
+        <div class="status-metrics">
+          <div class="pending">
+            <strong>{{ summary()?.submitted ?? '—' }}</strong
+            ><span>Pending review</span>
+          </div>
+          <div class="under-review">
+            <strong>{{ summary()?.under_review ?? '—' }}</strong
+            ><span>Under review</span>
+          </div>
+          <div class="approved">
+            <strong>{{ summary()?.approved ?? '—' }}</strong
+            ><span>Approved</span>
+          </div>
+          <div class="rejected">
+            <strong>{{ summary()?.rejected ?? '—' }}</strong
+            ><span>Rejected</span>
+          </div>
+        </div>
+        @if (summaryError()) {
+          <p role="status">
+            {{ summaryError() }} <button type="button" (click)="refreshSummary()">Retry</button>
+          </p>
+        }
+      </section>
+    </header>
+    <form class="filters" (ngSubmit)="applyFilters()" aria-label="Filter stay listings">
+      <label class="search-field"
+        >Search
+        <div class="search-input">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i
+          ><input
+            name="search"
+            type="search"
+            [(ngModel)]="search"
+            placeholder="Stay, public ID, town or host email…"
+          /></div
+      ></label>
+      <button
+        type="button"
+        class="mobile-filter-trigger"
+        aria-label="Filter stays"
+        aria-haspopup="dialog"
+        (click)="openFilters()"
+      >
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        <span class="sr-only">Filters</span>
+        @if (filterCount()) {
+          <span class="filter-count">{{ filterCount() }}</span>
+        }
+      </button>
+      <div class="desktop-filters">
+        <label
+          >Status<select name="status" [(ngModel)]="status" (change)="applyFilters()">
+            <option value="SUBMITTED,UNDER_REVIEW">Awaiting review</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="UNDER_REVIEW">Under review</option>
+            <option value="CHANGES_REQUESTED">Changes requested</option>
+            <option value="PUBLISHED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="SUSPENDED">Suspended</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PAUSED">Paused</option>
+            <option value="">All review statuses</option>
+          </select></label
+        >
+        <label
+          >Town<select name="town" [(ngModel)]="town" (change)="applyFilters()">
+            <option value="">All towns</option>
+            @for (location of summary()?.towns || []; track location) {
+              <option [value]="location">{{ location }}</option>
+            }
+          </select></label
+        >
+        <label class="host-filter"
+          >Host<select name="host" [(ngModel)]="host" (change)="applyFilters()">
+            <option value="">All hosts</option>
+            @for (person of summary()?.hosts || []; track person.id) {
+              <option [value]="person.id">{{ person.name }}</option>
+            }
+          </select></label
+        >
+        <div class="filter-actions">
+          <button type="button" class="clear" (click)="clearFilters()">Clear</button
+          ><button type="submit" class="primary">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search
+          </button>
+        </div>
+      </div>
+      @if (applied().length) {
+        <div class="applied" aria-label="Applied filters">
+          @for (value of applied(); track value) {
+            <span>{{ value }}</span>
+          }
+        </div>
+      }
+    </form>
+    <div class="results-heading">
+      <strong role="status">{{
+        loading()
+          ? 'Loading stays…'
+          : queueError()
+            ? 'Results unavailable'
+            : count() + ' stays found'
+      }}</strong
+      ><label
+        ><span class="sr-only">Sort stays</span
+        ><select name="ordering" [(ngModel)]="ordering" (change)="applyFilters()">
+          <option value="-submitted_at">Newest submissions</option>
+          <option value="submitted_at">Oldest submissions</option>
+          <option value="-updated_at">Recently updated</option>
+          <option value="name">Name A–Z</option>
+        </select></label
+      >
+    </div>
+    <div class="results" [attr.aria-busy]="loading()">
+      @if (loading()) {
+        @for (row of [0, 1, 2]; track row) {
+          <div class="skeleton-card" aria-hidden="true">
+            <div></div>
+            <span></span>
+          </div>
+        }
+      } @else if (queueError()) {
+        <div class="empty error" role="alert">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          <h2>Stays could not be loaded</h2>
+          <p>{{ queueError() }}</p>
+          <button type="button" (click)="retryQueue()">Try again</button>
+        </div>
+      } @else {
+        @for (item of stays(); track item.id) {
+          <a
+            class="stay-card"
+            [class.is-selected]="detailId() === item.id"
+            [routerLink]="['/staff/stays', item.id]"
+            queryParamsHandling="preserve"
+            [attr.aria-current]="detailId() === item.id ? 'page' : null"
+            [attr.aria-label]="'Review ' + item.name"
+          >
+            <div class="cover">
+              <sp-image
+                [src]="cover(item)"
+                [alt]="item.name"
+                [width]="360"
+                [height]="300"
+                [fill]="true"
+              /><span
+                ><i class="fa-regular fa-image" aria-hidden="true"></i>
+                {{ item.images?.length || 0 }}</span
+              >
+            </div>
+            <div class="card-copy">
+              <div class="card-heading">
+                <h2>{{ item.name }}</h2>
+                <span [class]="'badge ' + item.status.toLowerCase()">{{ item.status_label }}</span>
+              </div>
+              <p class="public-id">{{ item.public_id }}</p>
+              <p>
+                <i class="fa-solid fa-location-dot" aria-hidden="true"></i
+                >{{ item.town || 'Town not provided' }}, {{ item.region }}
+              </p>
+              <div class="metadata">
+                <span
+                  ><i class="fa-solid fa-bed" aria-hidden="true"></i>
+                  {{ item.room_types?.length || 0 }} room types</span
+                ><span
+                  ><i class="fa-solid fa-user" aria-hidden="true"></i> {{ hostName(item) }}</span
+                ><span
+                  ><i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                  {{ item.submitted_at ? 'Submitted' : 'Updated' }}
+                  {{ item.submitted_at || item.updated_at | date: 'd MMM y' }}</span
+                >
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right review-arrow" aria-hidden="true"></i>
+          </a>
+        } @empty {
+          <div class="empty">
+            <i class="fa-solid fa-bed" aria-hidden="true"></i>
+            <h2>{{ summary()?.total === 0 ? 'No stays available' : 'No matching stays' }}</h2>
+            <p>
+              {{
+                summary()?.total === 0
+                  ? 'Submitted accommodation will appear here for review.'
+                  : 'Try another search or clear the filters.'
+              }}
+            </p>
+            <button type="button" (click)="clearFilters()">Clear filters</button>
+          </div>
+        }
+      }
+    </div>
+    <nav class="pagination" aria-label="Stay queue pages">
+      <p>
+        {{
+          first() ? 'Showing ' + first() + '–' + last() + ' of ' + count() + ' stays' : '0 stays'
+        }}
+      </p>
+      <div>
+        <button
+          type="button"
+          aria-label="Previous page"
+          [disabled]="page() <= 1 || loading()"
+          (click)="changePage(-1)"
+        >
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button
+        ><span aria-current="page">{{ page() }}</span
+        ><button
+          type="button"
+          aria-label="Next page"
+          [disabled]="!hasNext() || loading()"
+          (click)="changePage(1)"
+        >
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </nav>
+  </div>
+  @if (detailId()) {
+    <section class="review-panel" aria-label="Selected stay review">
+      <header class="review-toolbar">
+        <button type="button" (click)="closeReview()">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>Stay listings</span>
+        </button>
+        <h1 class="mobile-review-title">Review stay</h1>
+        <button
+          class="close-review"
+          type="button"
+          aria-label="Close stay review"
+          (click)="closeReview()"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      @if (detailLoading()) {
+        <div class="detail-skeleton" role="status">
+          <div></div>
+          <p>Loading stay review…</p>
+        </div>
+      } @else if (detailError()) {
+        <div class="empty error" role="alert">
+          <h2>Review unavailable</h2>
+          <p>{{ detailError() }}</p>
+          <button type="button" (click)="retryDetail()">Try again</button>
+        </div>
+      } @else if (stay(); as item) {
+        <sp-staff-stay-review
+          [stay]="item"
+          [busy]="busy()"
+          [error]="actionError()"
+          [saved]="saved()"
+          [tab]="tab()"
+          (tabChanged)="selectTab($event)"
+          (action)="act($event)"
+        />
+      }
+    </section>
+  }
+</section>
+
+<dialog
+  #filterDialog
+  class="filter-dialog"
+  aria-labelledby="stay-filter-title"
+  (close)="filtersOpen.set(false)"
+  (cancel)="filtersOpen.set(false)"
+>
+  <header>
+    <div>
+      <h2 id="stay-filter-title">Filter stays</h2>
+      <p>Narrow down the review queue.</p>
+    </div>
+    <button type="button" aria-label="Close filters" (click)="closeFilters()" autofocus>
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </header>
+  @if (filtersOpen()) {
+    <form (ngSubmit)="applyMobileFilters()">
+      <div class="modal-fields">
+        <label
+          >Status<select name="mobile-status" [(ngModel)]="filterDraft.status">
+            <option value="SUBMITTED,UNDER_REVIEW">Awaiting review</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="UNDER_REVIEW">Under review</option>
+            <option value="CHANGES_REQUESTED">Changes requested</option>
+            <option value="PUBLISHED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="SUSPENDED">Suspended</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PAUSED">Paused</option>
+            <option value="">All review statuses</option>
+          </select></label
+        >
+        <label
+          >Town<select name="mobile-town" [(ngModel)]="filterDraft.town">
+            <option value="">All towns</option>
+            @for (location of summary()?.towns || []; track location) {
+              <option [value]="location">{{ location }}</option>
+            }
+          </select></label
+        >
+        <label class="host-filter"
+          >Host<select name="mobile-host" [(ngModel)]="filterDraft.host">
+            <option value="">All hosts</option>
+            @for (person of summary()?.hosts || []; track person.id) {
+              <option [value]="person.id">{{ person.name }}</option>
+            }
+          </select></label
+        >
+      </div>
+      <footer>
+        <button type="button" class="clear" (click)="resetMobileFilters()">Reset filters</button>
+        <button type="submit" class="primary">Apply filters</button>
+      </footer>
+    </form>
+  }
+</dialog>

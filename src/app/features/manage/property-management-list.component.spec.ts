@@ -1,3 +1,4 @@
+import { PropertyEntitlementsApiService } from '../../core/api/property-entitlements-api.service';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
@@ -13,6 +14,7 @@ describe('Property availability controls', () => {
       confirmAvailability: vi.fn(() => of({ ...property, availability_status: 'AVAILABLE' })),
       markUnavailable: vi.fn(() => of({ ...property, availability_status: 'UNAVAILABLE' })) };
     TestBed.configureTestingModule({ imports: [PropertyManagementListComponent], providers: [
+        { provide: PropertyEntitlementsApiService, useValue: { summary: vi.fn(() => of({ remaining_publication_capacity: 2, can_publish_property: true, current_plan: { display_name: 'Individual Free' }, activated_addons: [], active_listing_count: 0, listing_limit: 2, usage_percent: 0 })) } },
       provideRouter([]), { provide: PropertyManagementApiService, useValue: api },
       { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({}) } } },
     ] });

@@ -40,7 +40,13 @@ export const staffAccessGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =
       if (!user?.is_staff) return router.createUrlTree(['/account']);
       if (route.data['staffSuperuser'] && !user.is_superuser) return router.createUrlTree(['/staff/no-access']);
       const required = (route.data['staffPermissions'] as string[] | undefined) ?? [];
-      if (required.some((permission) => !(user.staff_permissions ?? []).includes(permission)))
+      if (route.routeConfig?.path === '' && !user.is_superuser
+          && required.includes('properties.review_propertylisting')
+          && !(user.staff_permissions ?? []).includes('properties.review_propertylisting')
+          && (user.staff_permissions ?? []).includes('stays.review_stay')) {
+        return router.createUrlTree(['/staff/stays']);
+      }
+      if (!user.is_superuser && required.some((permission) => !(user.staff_permissions ?? []).includes(permission)))
         return router.createUrlTree(['/staff/no-access']);
       return true;
     }),

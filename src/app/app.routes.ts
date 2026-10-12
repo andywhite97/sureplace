@@ -425,6 +425,24 @@ export const routes: Routes = [
         title: 'Staff dashboard | SurePlace',
       },
       {
+        path: 'stays',
+        canActivate: [staffAccessGuard],
+        data: { staffPermissions: ['stays.review_stay'] },
+        loadComponent: () =>
+          import('./features/staff/staff-stays.component').then((m) => m.StaffStaysComponent),
+        title: 'Stay listing moderation | SurePlace',
+        children: [
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/staff/staff-stays.component').then(
+                (m) => m.StaffStaySelectionComponent,
+              ),
+            title: 'Review stay listing | SurePlace',
+          },
+        ],
+      },
+      {
         path: 'listings',
         canActivate: [staffAccessGuard],
         data: { staffPermissions: ['properties.review_propertylisting'] },

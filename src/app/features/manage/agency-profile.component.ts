@@ -827,7 +827,8 @@ export class AgencyProfileComponent {
       this.saveError.set('Choose a JPG, PNG or WebP logo.');
       return;
     }
-    this.logoPreview.set(URL.createObjectURL(file));
+    const previewUrl = URL.createObjectURL(file);
+    this.logoPreview.set(previewUrl);
     this.logoUploading.set(true);
     this.saveError.set('');
     const data = new FormData();
@@ -835,7 +836,10 @@ export class AgencyProfileComponent {
     this.api
       .update(agency.id, data)
       .pipe(
-        finalize(() => this.logoUploading.set(false)),
+        finalize(() => {
+          this.logoUploading.set(false);
+          URL.revokeObjectURL(previewUrl);
+        }),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
