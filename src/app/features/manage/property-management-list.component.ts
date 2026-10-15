@@ -28,6 +28,7 @@ import { ManageStatusComponent, QualityScoreComponent } from './manage-ui';
       <a class="primary" routerLink="/account/manage/properties/new" [queryParams]="createQuery()"
         ><i class="fa-solid fa-plus"></i> Add Property</a
       >
+    <a routerLink="/account/transfers">Listing transfers</a>
     </header>
     @if (capacity(); as usage) {
       <section class="capacity" aria-label="Property publication capacity">

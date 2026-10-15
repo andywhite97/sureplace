@@ -50,6 +50,7 @@ const sections: AccountNavSection[] = [
         icon: 'fa-solid fa-inbox',
         badge: 'notifications',
       },
+      { label: 'Listing transfers', commands: '/account/transfers', icon: 'fa-solid fa-right-left' },
       { label: 'Profile', commands: '/account/profile', icon: 'fa-solid fa-user' },
       { label: 'Settings', commands: '/account/settings', icon: 'fa-solid fa-gear' },
     ],

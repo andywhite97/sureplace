@@ -130,6 +130,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/account-shell.component').then((m) => m.AccountShellComponent),
     children: [
+      { path: 'transfers', loadComponent: () => import('./features/manage/listing-transfers.component').then(m => m.ListingTransfersComponent), title: 'Listing transfers | SurePlace' },
       {
         path: '',
         loadComponent: () =>

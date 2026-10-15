@@ -1,14 +1,17 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { AuthService } from '../auth/auth.service';
 import { UserCapabilityService } from './user-capability.service';
 
 /** Navigation context from backend membership; never grants access to agency actions. */
 @Injectable({ providedIn: 'root' })
 export class AgencyNavigationService {
   private capabilities = inject(UserCapabilityService);
+  private auth = inject(AuthService);
   links = computed(() => {
     const access = this.capabilities.capabilities();
     if (!access.canAccessAgencyTools) {
-      return access.canCreateAgency
+      const listingAsAgency = this.auth.user()?.onboarding_intents?.includes('PROPERTY_AGENT');
+      return access.canCreateAgency && listingAsAgency
         ? [
             {
               label: 'Create an agency',

@@ -74,6 +74,7 @@ describe('AccountShellComponent grouped navigation', () => {
     return fixture;
   }
   it('groups account, activity, management and contextual agency links', () => {
+    user.update((value) => ({ ...value, onboarding_intents: ['PROPERTY_AGENT'] }));
     const f = create();
     const headings = [...f.nativeElement.querySelectorAll('nav h2')].map((h: any) =>
       h.textContent.trim(),
