@@ -1,3 +1,4 @@
+import { BusinessSocialLinksComponent } from '../../../shared/ui/business-social-links.component';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
@@ -29,6 +30,7 @@ import { listingDescription, listingSocialImage } from '../../../shared/listing/
 @Component({
   standalone: true,
   imports: [
+    BusinessSocialLinksComponent,
     RouterLink,
     DatePipe,
     PropertyGalleryComponent,

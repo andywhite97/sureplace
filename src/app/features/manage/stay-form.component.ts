@@ -198,6 +198,13 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                         <input formControlName="website" autocomplete="url" />
                       </label>
                     </div>
+                    <h2>Social & online presence</h2>
+                    <div class="pair">
+  <label class="field"><span>Facebook profile (optional)</span><input type="url" formControlName="facebook_url" placeholder="https://www.facebook.com/yourbusiness" /></label>
+  <label class="field"><span>Instagram profile (optional)</span><input type="url" formControlName="instagram_url" placeholder="https://www.instagram.com/yourbusiness" /></label>
+</div>
+<label class="field"><span>TikTok profile (optional)</span><input type="url" formControlName="tiktok_url" placeholder="https://www.tiktok.com/@yourbusiness" /></label>
+<p class="hint">Add your official public pages. Only links you provide will appear on your listing.</p>
                   </div>
                 </div>
               }
@@ -538,6 +545,9 @@ export class StayFormComponent {
     email: [''],
     whatsapp_number: [''],
     website: [''],
+    facebook_url: [''],
+    instagram_url: [''],
+    tiktok_url: [''],
     check_in_time: [''],
     check_out_time: [''],
     booking_mode: ['REQUEST_TO_BOOK' as 'REQUEST_TO_BOOK' | 'INSTANT_BOOK'],
@@ -919,6 +929,9 @@ export class StayFormComponent {
             email: stay.email,
             whatsapp_number: stay.whatsapp_number,
             website: stay.website,
+            facebook_url: stay.facebook_url || '',
+            instagram_url: stay.instagram_url || '',
+            tiktok_url: stay.tiktok_url || '',
             check_in_time: stay.check_in_time || '',
             booking_mode: stay.booking_mode || 'REQUEST_TO_BOOK',
             cancellation_policy: stay.cancellation_policy || '',
@@ -1014,6 +1027,9 @@ export class StayFormComponent {
       email: v.email,
       whatsapp_number: v.whatsapp_number,
       website: v.website,
+      facebook_url: v.facebook_url,
+      instagram_url: v.instagram_url,
+      tiktok_url: v.tiktok_url,
       check_in_time: v.check_in_time || null,
       booking_mode: v.booking_mode,
       cancellation_policy: v.cancellation_policy,
