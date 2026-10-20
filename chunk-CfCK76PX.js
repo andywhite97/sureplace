@@ -1,1 +1,0 @@
-import{Dn as g,J as L}from"./chunk-BbpYKy-6.js";import{t as d}from"./chunk-Clu6cizj.js";var s=class t{api=g(d);pricing(){return this.api.get(`/pricing/stays/`)}summary(i,n){return this.api.get(`/account/stay-entitlements/`,{agency:i,stay:n})}static ɵfac=function(n){return new(n||t)};static ɵprov=L({token:t,factory:t.ɵfac,providedIn:`root`})};export{s as t};

@@ -1,0 +1,1 @@
+import{Mn as g,Q as L}from"./chunk-Cp1kXygr.js";import{t as d}from"./chunk-BCqObNtp.js";var s=class t{api=g(d);pricing(){return this.api.get(`/pricing/properties/`)}summary(n,i){return this.api.get(`/account/property-entitlements/`,{agency:n,property:i})}static ɵfac=function(i){return new(i||t)};static ɵprov=L({token:t,factory:t.ɵfac,providedIn:`root`})};export{s as t};

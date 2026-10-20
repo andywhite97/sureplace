@@ -1,0 +1,1 @@
+import{n as E}from"./chunk-BSBkmeAX.js";var s=class extends E{constructor(){super(),this._lastWindow=null}async open(n){this._lastWindow=window.open(n.url,n.windowName||`_blank`)}async close(){return new Promise((n,l)=>{this._lastWindow!=null?(this._lastWindow.close(),this._lastWindow=null,n()):l(`No active window to close!`)})}};var i=new s;export{s as BrowserWeb};
