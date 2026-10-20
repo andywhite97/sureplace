@@ -1,3 +1,5 @@
+import { BusinessLinksEditorComponent } from '../../shared/ui/business-links-editor.component';
+import { businessUrl, businessPhone } from '../../shared/ui/business-links';
 import { PropertyEntitlementsApiService } from '../../core/api/property-entitlements-api.service';
 import { isPlatformBrowser } from '@angular/common';
 import {
@@ -57,7 +59,7 @@ type PhotoItem =
 
 @Component({
   standalone: true,
-  imports: [
+  imports: [BusinessLinksEditorComponent,
     ReactiveFormsModule,
     RouterLink,
     SmartImageComponent,
@@ -664,7 +666,7 @@ type PhotoItem =
               </button>
             }
           </footer>
-        </form>
+        <sp-business-links-editor [form]="form" [includeContact]="true" /></form>
       }
     </section>
   </main>`,
@@ -709,6 +711,11 @@ export class PropertyFormComponent implements OnDestroy {
   locationError = signal('');
   selectedRegionValue = signal('');
   form = this.fb.nonNullable.group({
+    facebook_url: ['', businessUrl('facebook')],
+    instagram_url: ['', businessUrl('instagram')],
+    tiktok_url: ['', businessUrl('tiktok')],
+    website: ['', businessUrl()],
+    whatsapp_number: ['', businessPhone],
     title: ['', [Validators.required, Validators.maxLength(255)]],
     description: ['', [Validators.required, Validators.maxLength(1200)]],
     listing_type: ['RENT'],
@@ -873,13 +880,6 @@ export class PropertyFormComponent implements OnDestroy {
   }
 
   exitWizard() {
-    const hasUnsavedChanges =
-      this.dirty() || this.saveState() === 'unsaved' || this.saveState() === 'error';
-    const hasQueuedPhotos = this.pendingImages().length > 0;
-    if (isPlatformBrowser(this.platformId) && (hasUnsavedChanges || hasQueuedPhotos)) {
-      const leave = confirm('Leave this listing? Unsaved changes or queued photos may be lost.');
-      if (!leave) return;
-    }
     void this.router.navigate(['/account/manage/listings/new']);
   }
 
@@ -1215,6 +1215,7 @@ export class PropertyFormComponent implements OnDestroy {
         {
           title: property.title,
           description: property.description,
+            facebook_url: property.facebook_url || '', instagram_url: property.instagram_url || '', tiktok_url: property.tiktok_url || '', website: property.website || '', whatsapp_number: property.whatsapp_number || '',
           listing_type: property.listing_type,
           property_type: property.property_type,
           price: property.price,
@@ -1515,6 +1516,7 @@ export class PropertyFormComponent implements OnDestroy {
     return {
       title: v.title,
       description: v.description,
+      facebook_url: v.facebook_url, instagram_url: v.instagram_url, tiktok_url: v.tiktok_url, website: v.website, whatsapp_number: v.whatsapp_number,
       listing_type: v.listing_type,
       property_type: v.property_type,
       price: v.price,

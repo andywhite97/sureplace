@@ -1,3 +1,5 @@
+import { BusinessLinksEditorComponent } from '../../shared/ui/business-links-editor.component';
+import { businessUrl, businessPhone } from '../../shared/ui/business-links';
 import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,7 +14,7 @@ import { EswatiniPhoneInputComponent } from '../../shared/ui/eswatini-phone-inpu
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
+  imports: [BusinessLinksEditorComponent, ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
   template: `<section class="profile-page">
     <header class="page-heading">
       <p class="eyebrow">Agency</p>
@@ -177,7 +179,7 @@ import { EswatiniPhoneInputComponent } from '../../shared/ui/eswatini-phone-inpu
             @if (canEdit() && !dirty() && !busy()) {
               <small class="save-hint">Make a change to this profile to enable saving.</small>
             }
-          </form>
+          <sp-business-links-editor [form]="form" /></form>
         </main>
         <aside class="right-rail">
           <section class="summary-card">
@@ -657,13 +659,16 @@ export class AgencyProfileComponent {
   logoPreview = signal<string | null>(null);
   private initial: ReturnType<typeof this.form.getRawValue> | null = null;
   form = this.fb.nonNullable.group({
+    facebook_url: ['', businessUrl('facebook')],
+    instagram_url: ['', businessUrl('instagram')],
+    tiktok_url: ['', businessUrl('tiktok')],
     name: ['', Validators.required],
     trading_name: [''],
     description: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     phone: ['', Validators.required],
-    whatsapp_number: [''],
-    website: ['', [Validators.pattern(/^$|https?:\/\/[^\s]+$/)]],
+    whatsapp_number: ['', businessPhone],
+    website: ['', businessUrl()],
     region: ['', Validators.required],
     town: ['', Validators.required],
     suburb: [''],

@@ -147,7 +147,8 @@
       <div class="content-flow">
         <section class="copy">
           <h2>About this property</h2>
-          <p [class.collapsed]="!expanded()">{{ p.description }}</p>
+          <sp-business-links [business]="p" />
+<p [class.collapsed]="!expanded()">{{ p.description }}</p>
           @if (p.description.length > 450) {
             <button type="button" (click)="expanded.set(!expanded())">
               {{ expanded() ? 'Show less' : 'Read more' }}

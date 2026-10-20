@@ -1,3 +1,4 @@
+import { SuriGuideComponent } from '../../shared/ui/suri-guide.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -44,11 +45,12 @@ const intentOptions: Intent[] = [
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
+  imports: [SuriGuideComponent, ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
   template: `<main class="auth-page">
     <section class="auth-card register-card" [class.done]="created()">
       @if (!created()) {
         <header class="intro">
+          <sp-suri-guide message="Hi, I’m Suri. Let’s get you settled in." />
           <h1>Create your account</h1>
           <p>Join SurePlace to find, save, list and manage properties and stays across Eswatini.</p>
         </header>
@@ -284,7 +286,7 @@ const intentOptions: Intent[] = [
         </form>
       } @else {
         <section class="success">
-          <i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i>
+          <sp-suri-guide message="You’re nearly there. Check your inbox for the next step." />
           <h1>Check your email</h1>
           <p>
             We sent a verification link to {{ maskedEmail() }}. Confirm your email to finish setting

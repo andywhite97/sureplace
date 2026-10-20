@@ -1,3 +1,4 @@
+import { SuriGuideComponent } from '../../shared/ui/suri-guide.component';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -8,8 +9,8 @@ import { normalizeApiError } from '../../core/api/error-normalizer';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
-  template: `<main class="auth-page"><section class="auth-card"><h1>Reset your password</h1><p>Enter your email. If an account exists, we'll send secure reset instructions.</p>@if(sent()){<p role="status">Check your inbox for the next step.</p>}@else{<form [formGroup]="form" (ngSubmit)="submit()"><label>Email address<input type="email" formControlName="email" placeholder="you@example.com" autocomplete="email"></label>@if(error()){<p class="api-error" role="alert">{{error()}}</p>}<sp-button type="submit" [disabled]="form.invalid || busy()">{{busy() ? 'Sending...' : 'Send instructions'}}</sp-button></form>}<p><a routerLink="/login">Back to login</a></p></section></main>`,
+  imports: [SuriGuideComponent, ReactiveFormsModule, RouterLink, ButtonComponent],
+  template: `<main class="auth-page"><section class="auth-card"><sp-suri-guide pose="support" message="Let’s help you get back into your account." /><h1>Reset your password</h1><p>Enter your email. If an account exists, we'll send secure reset instructions.</p>@if(sent()){<p role="status">Check your inbox for the next step.</p>}@else{<form [formGroup]="form" (ngSubmit)="submit()"><label>Email address<input type="email" formControlName="email" placeholder="you@example.com" autocomplete="email"></label>@if(error()){<p class="api-error" role="alert">{{error()}}</p>}<sp-button type="submit" [disabled]="form.invalid || busy()">{{busy() ? 'Sending...' : 'Send instructions'}}</sp-button></form>}<p><a routerLink="/login">Back to login</a></p></section></main>`,
   styleUrl: './auth-pages.scss',
 })
 export class ForgotPasswordComponent {

@@ -174,6 +174,7 @@ export class StaffShellComponent {
     const visible = STAFF_NAVIGATION.items.filter((item) => {
       if (item.commands === '/staff' || item.commands === '/staff/listings')
         return allowed('properties.review_propertylisting');
+      if (item.commands === '/staff/onboarding') return allowed('core.view_onboardingprospect');
       if (item.commands === '/staff/stays') return allowed('stays.review_stay');
       if (item.commands === '/staff/reports') return allowed('moderation.view_listingreport');
       if (item.commands === '/staff/agencies' || item.commands === '/staff/verification')

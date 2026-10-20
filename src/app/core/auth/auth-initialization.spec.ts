@@ -21,6 +21,7 @@ describe('Authentication bootstrap and routing', () => {
   let tokens: AuthTokens | null;
   let remembered: boolean;
   const storage = {
+    initialize: vi.fn(),
     read: vi.fn(() => tokens),
     write: vi.fn((value: AuthTokens, remember = false) => {
       tokens = value;

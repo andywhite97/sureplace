@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AccountActivityStore } from './account-activity.store';
+import { AppStateService } from './app-state.service';
 import {
   catchError,
   filter,
@@ -24,6 +25,7 @@ import { MessagingApiService } from '../api/messaging-api.service';
 import { ConversationDetail, ConversationSummary, Message } from '../models/messaging.models';
 @Injectable()
 export class MessagingStore {
+  private state = inject(AppStateService);
   private api = inject(MessagingApiService);
   private document = inject(DOCUMENT);
   private destroy = inject(DestroyRef);
@@ -164,7 +166,7 @@ export class MessagingStore {
   }
   pollThread() {
     const c = this.selected();
-    if (!c || this.document.hidden || this.pollingThread === c.id) return;
+    if (!c || this.document.hidden || !this.state.active() || !this.state.online() || this.pollingThread === c.id) return;
     this.pollingThread = c.id;
     this.api
       .messages(c.id)
@@ -203,12 +205,12 @@ export class MessagingStore {
     this.zone.runOutsideAngular(() => {
       this.polls.add(
         interval(5000)
-          .pipe(filter(() => !this.document.hidden))
+          .pipe(filter(() => !this.document.hidden && this.state.active() && this.state.online()))
           .subscribe(() => this.zone.run(() => this.loadList(true))),
       );
       this.polls.add(
         interval(3000)
-          .pipe(filter(() => !this.document.hidden))
+          .pipe(filter(() => !this.document.hidden && this.state.active() && this.state.online()))
           .subscribe(() => this.zone.run(() => this.pollThread())),
       );
     });

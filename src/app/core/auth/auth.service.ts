@@ -6,6 +6,7 @@ import {
   catchError,
   defer,
   finalize,
+  from,
   map,
   Observable,
   of,
@@ -50,9 +51,7 @@ export class AuthService {
     const version = ++this.sessionVersion;
     this.loading.set(true);
     return this.api.login(body).pipe(
-      tap((tokens) => {
-        if (version === this.sessionVersion) this.storage.write(tokens, remember);
-      }),
+      switchMap((tokens) => this.persist(tokens, remember, version)),
       switchMap(() => this.api.me()),
       tap((user) => {
         if (version === this.sessionVersion) this.setUser(user);
@@ -85,6 +84,9 @@ export class AuthService {
     if (this.initializationRequest) return this.initializationRequest;
     const version = this.sessionVersion;
     this.initializationRequest = defer(() => {
+      const ready = this.storage.initialize();
+      return ready ? from(ready) : of(undefined);
+    }).pipe(switchMap(() => {
       const tokens = this.storage.read();
       if (!tokens?.access && !tokens?.refresh) return of(null);
       this.loading.set(true);
@@ -98,10 +100,10 @@ export class AuthService {
           return this.refresh().pipe(switchMap(() => this.currentUser()));
         }),
       );
-    }).pipe(
+    }),
       catchError((error) => {
         // Preserve credentials on network/server failures; never grant unverified access.
-        if (version === this.sessionVersion && this.invalidCredentials(error)) this.storage.clear();
+        if (version === this.sessionVersion && this.invalidCredentials(error)) this.clearStorage();
         return of(null);
       }),
       tap((user) => {
@@ -114,6 +116,10 @@ export class AuthService {
     return this.initializationRequest;
   }
   restore() {
+    if (this.status() === 'unauthenticated' && this.storage.read()?.refresh) {
+      this.status.set('initializing');
+      this.initializationRequest = null;
+    }
     return this.initialize();
   }
 
@@ -131,10 +137,7 @@ export class AuthService {
       .pipe(
         timeout(15000),
         map((tokens) => ({ access: tokens.access, refresh: tokens.refresh ?? refresh })),
-        tap((tokens) => {
-          if (version !== this.sessionVersion) throw new Error('Session changed during refresh.');
-          this.storage.write(tokens, remembered);
-        }),
+        switchMap((tokens) => this.persist(tokens, remembered, version).pipe(map(() => tokens))),
         catchError((error) =>
           throwError(() =>
             version === this.sessionVersion ? error : new Error('Session changed during refresh.'),
@@ -172,7 +175,7 @@ export class AuthService {
   }
   clear() {
     ++this.sessionVersion;
-    this.storage.clear();
+    this.clearStorage();
     this.refreshRequest = null;
     this.setUser(null);
     this.loading.set(false);
@@ -180,6 +183,24 @@ export class AuthService {
   private setUser(user: User | null) {
     this.user.set(user);
     this.status.set(user ? 'authenticated' : 'unauthenticated');
+  }
+  private persist(tokens: AuthTokens, remember: boolean, version: number) {
+    return defer(() => {
+      if (version !== this.sessionVersion) throw new Error('Session changed during authentication.');
+      const saved = this.storage.write(tokens, remember);
+      return saved ? from(saved) : of(undefined);
+    }).pipe(tap(() => {
+      if (version !== this.sessionVersion) throw new Error('Session changed during authentication.');
+    }), catchError((error) => {
+      if (version === this.sessionVersion) this.clear();
+      return throwError(() => error);
+    }));
+  }
+
+  private clearStorage() {
+    const cleared = this.storage.clear();
+    // The logout marker remains set if secure storage is temporarily unavailable.
+    if (cleared) void cleared.catch(() => undefined);
   }
   private currentUser() {
     const access = this.accessToken();

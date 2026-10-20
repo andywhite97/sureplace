@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { unsavedListingGuard } from './core/guards/unsaved-listing.guard';
 import {
   authGuard,
   capabilityGuard,
@@ -7,6 +8,8 @@ import {
   staffGuard,
 } from './core/guards/auth.guard';
 export const routes: Routes = [
+  {path:'private-preview',loadComponent:()=>import('./features/staff/private-preview.component').then(m=>m.PrivatePreviewComponent),title:'Private preview | SurePlace'},
+  {path:'account/onboarding-claim/:id',canActivate:[authGuard],loadComponent:()=>import('./features/staff/private-preview.component').then(m=>m.OnboardingClaimComponent),title:'Accept business draft | SurePlace'},
   {
     path: '',
     loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
@@ -291,6 +294,7 @@ export const routes: Routes = [
       },
       {
         path: 'manage/properties/new',
+        canDeactivate: [unsavedListingGuard],
         canActivate: [capabilityGuard],
         data: { capability: 'canCreatePropertyListing', capabilityIntent: 'PROPERTY_OWNER' },
         loadComponent: () =>
@@ -299,6 +303,7 @@ export const routes: Routes = [
       },
       {
         path: 'manage/properties/:id/edit',
+        canDeactivate: [unsavedListingGuard],
         canActivate: [capabilityGuard],
         data: { capability: 'canManageProperties' },
         loadComponent: () =>
@@ -317,6 +322,7 @@ export const routes: Routes = [
       },
       {
         path: 'manage/stays/new',
+        canDeactivate: [unsavedListingGuard],
         canActivate: [capabilityGuard],
         data: { capability: 'canCreateStayListing', capabilityIntent: 'HOSPITALITY_OPERATOR' },
         loadComponent: () =>
@@ -335,6 +341,7 @@ export const routes: Routes = [
       },
       {
         path: 'manage/stays/:id/edit',
+        canDeactivate: [unsavedListingGuard],
         canActivate: [capabilityGuard],
         data: { capability: 'canManageStays' },
         loadComponent: () =>
@@ -415,6 +422,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/staff/staff-shell.component').then((m) => m.StaffShellComponent),
     children: [
+      {path:'onboarding',canDeactivate:[unsavedListingGuard],canActivate:[staffAccessGuard],data:{staffPermissions:['core.view_onboardingprospect']},loadComponent:()=>import('./features/staff/onboarding.component').then(m=>m.OnboardingComponent),title:'Onboarding prospects | SurePlace'},
       {
         path: '',
         canActivate: [staffAccessGuard],

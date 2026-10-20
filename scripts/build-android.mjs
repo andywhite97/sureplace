@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const android = join(root, 'android');
@@ -33,7 +34,24 @@ if (!existsSync(join(android, 'local.properties')) && env.ANDROID_HOME) {
   writeFileSync(join(android, 'local.properties'), `sdk.dir=${env.ANDROID_HOME.replaceAll('\\', '/')}`);
 }
 run(java, ['-classpath', 'gradle/wrapper/gradle-wrapper.jar', 'org.gradle.wrapper.GradleWrapperMain', 'assembleDebug', '--console=plain'], android);
+const tools = env.ANDROID_HOME && join(env.ANDROID_HOME, 'build-tools');
+if (tools && existsSync(tools)) {
+  const version = readdirSync(tools).filter((name) => /^\d+\.\d+\.\d+$/.test(name)).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0];
+  if (version) run(java, ['-jar', join(tools, version, 'lib', 'apksigner.jar'), 'verify', join(android, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')]);
+}
 const destination = join(root, 'dist', 'android', 'SurePlace-prototype-debug.apk');
 mkdirSync(dirname(destination), { recursive: true });
 copyFileSync(join(android, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk'), destination);
+const gradle = readFileSync(join(android, 'app', 'build.gradle'), 'utf8');
+const versionName = gradle.match(/versionName\s+"([^"]+)"/)[1];
+const versionCode = Number(gradle.match(/versionCode\s+(\d+)/)[1]);
+const versioned = join(dirname(destination), `SurePlace-${versionName}.apk`);
+copyFileSync(destination, versioned);
+const sha256 = createHash('sha256').update(readFileSync(versioned)).digest('hex');
+writeFileSync(versioned + '.sha256', `${sha256}  SurePlace-${versionName}.apk\n`);
+writeFileSync(join(dirname(destination), 'build-info.json'), JSON.stringify({
+  versionName, versionCode, applicationId: 'com.twinpeaksinvestment.sureplace.prototype',
+  channel: 'test-apk', debuggable: true, createdAt: new Date().toISOString(), sha256,
+}, null, 2));
+console.log(`Versioned test APK: ${versioned}`);
 console.log(`Android prototype: ${destination}`);

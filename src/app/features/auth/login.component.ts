@@ -1,3 +1,4 @@
+import { SuriGuideComponent } from '../../shared/ui/suri-guide.component';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -11,7 +12,7 @@ import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [SuriGuideComponent, ReactiveFormsModule, RouterLink],
   template: `<main class="login-page">
     <section class="login-shell" aria-label="Log in to SurePlace">
       <aside class="welcome-panel" aria-labelledby="welcome-brand-title">
@@ -39,6 +40,7 @@ import { SeoService } from '../../core/services/seo.service';
       </aside>
 
       <section class="form-panel" aria-labelledby="login-title">
+        <sp-suri-guide class="mobile-suri" message="Welcome back. Your next chapter starts here." />
         <header>
           <p class="eyebrow">Your SurePlace account</p>
           <h2 id="login-title">Welcome back</h2>
@@ -208,6 +210,8 @@ import { SeoService } from '../../core/services/seo.service';
         color: var(--slate);
         line-height: 1.65;
       }
+      .mobile-suri { display:none; }
+      @media(max-width:767px) { .mobile-suri { display:block; margin-bottom:.75rem; } }
       .mascot-stage {
         position: relative;
         align-self: center;

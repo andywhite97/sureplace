@@ -1,5 +1,6 @@
+import { BusinessLinksComponent } from '../../../shared/ui/business-links.component';
 import { isPlatformBrowser } from '@angular/common';
-import { environment } from '../../../../environments/environment';
+import { ShareService } from '../../../core/services/share.service';
 import {
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
@@ -31,7 +32,7 @@ import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { formatMoney } from '../../../shared/listing/price-format';
 @Component({
   standalone: true,
-  imports: [
+  imports: [BusinessLinksComponent,
     ReactiveFormsModule,
     RouterLink,
     StayGalleryComponent,
@@ -56,6 +57,7 @@ export class StayDetailComponent {
   private query = inject(StayQueryService);
   private seo = inject(SeoService);
   private toast = inject(ToastService);
+  private sharing = inject(ShareService);
   private fb = inject(FormBuilder);
   private platformId = inject(PLATFORM_ID);
 
@@ -344,13 +346,7 @@ export class StayDetailComponent {
     if (!isPlatformBrowser(this.platformId)) return;
     const s = this.stay();
     if (!s) return;
-    const url = new URL(`/stays/${s.slug}`, environment.frontendOrigin).href,
-      data = { title: s.name, url };
-    if (navigator.share) void navigator.share(data);
-    else if (navigator.clipboard)
-      void navigator.clipboard
-        .writeText(url)
-        .then(() => this.toast.show('Link copied.', 'success'));
+    void this.sharing.open(`/stays/${s.slug}`, s.name);
   }
   locationLabel(s: StayDetail) {
     return [s.suburb, s.town, s.region, s.country_code === 'SZ' ? 'Eswatini' : s.country_code]

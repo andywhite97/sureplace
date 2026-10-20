@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { TokenStorage } from './token-storage.service';
+import { firstValueFrom } from 'rxjs';
 import { User } from '../models/api.models';
 
 describe('AuthService', () => {
@@ -53,6 +54,30 @@ describe('AuthService', () => {
     expect(auth.status()).toBe('authenticated');
     expect(auth.isAuthenticated()).toBe(true);
     expect(storage.read()?.access).toBe('access');
+  });
+
+  it('waits for asynchronous secure storage before restoring the authenticated user', async () => {
+    storage.write({ access: 'access', refresh: 'refresh' }, true);
+    let ready!: () => void;
+    vi.spyOn(storage, 'initialize').mockReturnValue(new Promise<void>((resolve) => { ready = resolve; }));
+    const restored = firstValueFrom(auth.initialize());
+    http.expectNone('/api/v1/auth/me/');
+    ready();
+    await Promise.resolve();
+    const request = http.expectOne('/api/v1/auth/me/');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer access');
+    request.flush(user);
+    expect(await restored).toEqual(user);
+  });
+
+  it('does not authenticate when secure persistence fails', async () => {
+    vi.spyOn(storage, 'write').mockRejectedValue(new Error('Secure storage unavailable'));
+    const login = firstValueFrom(auth.login({ email: 'user@example.com', password: 'secret' }, true));
+    http.expectOne('/api/v1/auth/login/').flush({ access: 'access', refresh: 'refresh' });
+    await expect(login).rejects.toThrow('Secure storage unavailable');
+    http.expectNone('/api/v1/auth/me/');
+    expect(auth.status()).toBe('unauthenticated');
+    expect(storage.read()).toBeNull();
   });
 
   it('shares one token refresh between concurrent subscribers', () => {

@@ -1,12 +1,14 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
 import { environment } from '../../../environments/environment';
+import { AppStateService } from './app-state.service';
 
 const PING_INTERVAL_MS = 14 * 60 * 1000;
 const PING_TIMEOUT_MS = 20 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class BackendKeepAliveService {
+  private state = inject(AppStateService);
   private readonly document = inject(DOCUMENT);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly zone = inject(NgZone);
@@ -25,7 +27,7 @@ export class BackendKeepAliveService {
 
     this.zone.runOutsideAngular(() => {
       const pingIfDue = () => {
-        if (browser.navigator.onLine && Date.now() - this.lastPingAt >= PING_INTERVAL_MS) {
+        if (this.state.active() && this.state.online() && browser.navigator.onLine && Date.now() - this.lastPingAt >= PING_INTERVAL_MS) {
           void this.ping(browser);
         }
       };

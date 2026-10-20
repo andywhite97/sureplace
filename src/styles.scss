@@ -36,6 +36,18 @@
   --transition: var(--motion-fast) var(--ease-sureplace);
   color-scheme: light;
 }
+.connection-status {
+  position: fixed;
+  top: calc(var(--app-header-height, 72px) + env(safe-area-inset-top));
+  inset-inline: 0;
+  z-index: 1100;
+  padding: .8rem 1rem;
+  background: #fff4d6;
+  color: #523b09;
+  text-align: center;
+  font-size: .875rem;
+  box-shadow: 0 3px 12px #152b2a15;
+}
 
 #sureplace-overlay-root {
   position: relative;

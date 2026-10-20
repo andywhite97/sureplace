@@ -1,3 +1,5 @@
+import { BusinessLinksEditorComponent } from '../../shared/ui/business-links-editor.component';
+import { businessUrl, businessPhone } from '../../shared/ui/business-links';
 import { HttpErrorResponse } from '@angular/common/http';
 import { StayEntitlementsApiService } from '../../core/api/stay-entitlements-api.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -21,7 +23,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
 
 @Component({
   standalone: true,
-  imports: [
+  imports: [BusinessLinksEditorComponent,
     RouterLink,
     ReactiveFormsModule,
     EswatiniPhoneInputComponent,
@@ -195,7 +197,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
                       </label>
                       <label class="field">
                         <span>Website</span>
-                        <input formControlName="website" autocomplete="url" />
+                        <input formControlName="website" autocomplete="url" /><small>Use a public HTTPS website.</small>@if (form.controls.website.invalid && form.controls.website.touched) {<small role="alert">Enter a valid public HTTPS website.</small>}
                       </label>
                     </div>
                   </div>
@@ -486,7 +488,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'unsaved' | 'error';
               </button>
             }
           </footer>
-        </form>
+        <sp-business-links-editor [form]="form" /></form>
       }
     </section>
   </main>`,
@@ -525,6 +527,9 @@ export class StayFormComponent {
   saveState = signal<SaveState>('idle');
   stay = signal<ManagedStay | null>(null);
   form = this.fb.nonNullable.group({
+    facebook_url: ['', businessUrl('facebook')],
+    instagram_url: ['', businessUrl('instagram')],
+    tiktok_url: ['', businessUrl('tiktok')],
     name: ['', [Validators.required, Validators.maxLength(255)]],
     description: ['', [Validators.required, Validators.maxLength(1200)]],
     stay_type: ['HOTEL'],
@@ -536,8 +541,8 @@ export class StayFormComponent {
     longitude: ['', Validators.required],
     phone: [''],
     email: [''],
-    whatsapp_number: [''],
-    website: [''],
+    whatsapp_number: ['', businessPhone],
+    website: ['', businessUrl()],
     check_in_time: [''],
     check_out_time: [''],
     booking_mode: ['REQUEST_TO_BOOK' as 'REQUEST_TO_BOOK' | 'INSTANT_BOOK'],
@@ -908,6 +913,7 @@ export class StayFormComponent {
           {
             name: stay.name,
             description: stay.description,
+            facebook_url: stay.facebook_url || '', instagram_url: stay.instagram_url || '', tiktok_url: stay.tiktok_url || '',
             stay_type: stay.stay_type,
             region: stay.region,
             town: stay.town,
@@ -1003,6 +1009,7 @@ export class StayFormComponent {
     return {
       name: v.name,
       description: v.description,
+      facebook_url: v.facebook_url, instagram_url: v.instagram_url, tiktok_url: v.tiktok_url,
       stay_type: v.stay_type,
       region: v.region,
       town: v.town,
