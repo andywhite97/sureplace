@@ -1,0 +1,330 @@
+.register-card {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 1.1rem;
+}
+.registration-intro h1 {
+  margin: 0 0 0.4rem;
+}
+.registration-intro > p {
+  margin: 0;
+}
+.registration-intro sp-suri-guide {
+  margin-bottom: 0.9rem;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.steps li {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  color: var(--ux-muted);
+  font-size: 0.7rem;
+}
+.steps li:before {
+  content: '';
+  width: 100%;
+  height: 3px;
+  background: var(--ux-border);
+  border-radius: 10px;
+}
+.steps span {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.steps .active:before,
+.steps .done:before {
+  background: var(--ux-primary);
+}
+.steps .active {
+  color: var(--ux-primary);
+  font-weight: 750;
+}
+.steps .done span {
+  border-radius: 50%;
+  background: var(--ux-tint);
+  color: var(--ux-primary);
+}
+.steps small {
+  font-size: 0.7rem;
+}
+form,
+.step-panel {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+}
+.step-panel h2 {
+  font-size: 1.1rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.step-panel h2:focus {
+  outline: none;
+}
+.step-panel > p {
+  margin: 0;
+}
+.step-panel label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.step-panel label > span {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--ux-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.step-panel label > span > i {
+  width: 38px;
+  flex: 0 0 38px;
+  text-align: center;
+  color: var(--ux-primary);
+}
+.step-panel input {
+  border: 0 !important;
+  outline: 0 !important;
+  flex: 1;
+  padding: 0.65rem 0.6rem 0.65rem 0 !important;
+  min-width: 0;
+}
+.step-panel label button {
+  width: 44px;
+  flex: 0 0 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--ux-muted);
+}
+.step-panel label > span:focus-within {
+  outline: 2px solid var(--ux-primary);
+  outline-offset: 2px;
+}
+.step-panel label small {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 400;
+  color: var(--ux-muted);
+}
+.step-panel label small:empty {
+  display: none;
+}
+.step-panel .invalid > span {
+  border-color: var(--danger);
+}
+.step-panel .invalid small {
+  color: var(--danger);
+}
+.primary,
+.secondary,
+.primary-link {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+.primary,
+.primary-link {
+  color: white;
+  background: var(--ux-primary);
+}
+.primary:disabled {
+  opacity: 0.6;
+}
+.secondary {
+  border: 1px solid var(--ux-border);
+  color: var(--ux-muted);
+  background: #fff;
+}
+.actions-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.65rem;
+}
+.login-link {
+  text-align: center;
+  font-size: 0.8rem;
+}
+.login-link a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+.intent-grid {
+  display: grid;
+  gap: 0.55rem;
+}
+.intent-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 22px;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 76px;
+  padding: 0.75rem;
+  text-align: left;
+  border: 1px solid var(--ux-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--midnight);
+}
+.intent-card > i {
+  color: var(--ux-primary);
+  text-align: center;
+}
+.intent-card > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.intent-card strong {
+  font-size: 0.85rem;
+}
+.intent-card small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ux-muted);
+}
+.intent-card b {
+  border: 1px solid var(--ux-border);
+  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  color: transparent;
+  display: grid;
+  place-items: center;
+}
+.intent-card.selected {
+  border-color: var(--ux-primary);
+  background: var(--ux-tint);
+}
+.intent-card.selected b {
+  background: var(--ux-primary);
+  color: #fff;
+}
+.browse-note,
+.policy-note {
+  font-size: 0.75rem !important;
+  line-height: 1.5;
+}
+.summary {
+  display: grid;
+  gap: 0.65rem;
+}
+.summary article {
+  border-bottom: 1px solid var(--ux-border);
+  padding: 0 0 0.8rem;
+}
+.summary header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.summary h3 {
+  font-size: 0.8rem;
+  margin: 0;
+}
+.summary header button {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ux-primary);
+  font-size: 0.8rem;
+}
+.summary dl {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+}
+.summary dl > div {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+.summary dt {
+  color: var(--ux-muted);
+}
+.summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  text-align: right;
+}
+.intent-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.intent-summary span {
+  background: var(--ux-tint);
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.intent-summary i {
+  margin-right: 0.3rem;
+  color: var(--ux-primary);
+}
+.success {
+  text-align: center;
+  display: grid;
+  gap: 0.75rem;
+}
+.success p {
+  margin: 0;
+}
+@media (max-width: 360px) {
+  .actions-row {
+    grid-template-columns: 1fr;
+  }
+  .summary dl > div {
+    display: grid;
+    gap: 0.3rem;
+  }
+  .summary dd {
+    text-align: left;
+  }
+}
+
+// Allow enlarged labels and controls to reflow within the wizard rather than widen it.
+.register-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+form,
+.step-panel {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+.steps li {
+  min-width: 0;
+}
+.steps small {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  text-align: center;
+}

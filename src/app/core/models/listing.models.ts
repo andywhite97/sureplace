@@ -99,6 +99,7 @@ export interface PropertyDetail extends Omit<PropertyCard, 'cover_image'> {
   facebook_url?: string;
   instagram_url?: string;
   tiktok_url?: string;
+  facebook_url?: string; instagram_url?: string; tiktok_url?: string; website?: string; whatsapp_number?: string;
   description: string;
   address: string;
   floor_area: string | null;
@@ -163,6 +164,7 @@ export interface StayDetail extends Omit<
   StayCard,
   'cover_image' | 'minimum_nightly_price' | 'available_room_type_count'
 > {
+  facebook_url?: string; instagram_url?: string; tiktok_url?: string;
   description: string;
   country_code: string;
   address: string;

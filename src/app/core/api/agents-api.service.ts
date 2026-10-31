@@ -9,6 +9,7 @@ export interface AgentListItem {
   avatar: string | null;
   bio: string | null;
   agency: {
+    facebook_url?: string; instagram_url?: string; tiktok_url?: string; website?: string; whatsapp_number?: string;
     id: string;
     name: string;
     slug: string | null;

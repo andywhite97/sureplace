@@ -1,3 +1,4 @@
+import { BusinessLinksComponent } from '../../shared/ui/business-links.component';
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, finalize, of, switchMap } from 'rxjs';
@@ -8,6 +9,7 @@ import { SeoService } from '../../core/services/seo.service';
 import { listingDescription } from '../../shared/listing/listing-seo';
 
 interface PublicAgency {
+  facebook_url?: string; instagram_url?: string; tiktok_url?: string; whatsapp_number?: string;
   id: string;
   name: string;
   slug: string;
@@ -46,7 +48,7 @@ interface PublicAgencyDetail {
 @Component({
   selector: 'sp-public-agency',
   standalone: true,
-  imports: [RouterLink, SmartImageComponent],
+  imports: [BusinessLinksComponent, RouterLink, SmartImageComponent],
   template: `
     <main class="agency-page">
       <nav class="crumb" aria-label="Breadcrumb">
@@ -100,7 +102,7 @@ interface PublicAgencyDetail {
               >
             }
           </div>
-        </header>
+        </header><sp-business-links [business]="profile.agency" />
         <div class="body-grid">
           <div class="content">
             <section class="card about">

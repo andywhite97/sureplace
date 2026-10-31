@@ -323,6 +323,7 @@ describe('StayDetailComponent', () => {
       ],
     });
 
+    vi.spyOn(TestBed.inject(StayQueryService), 'today').mockReturnValue('2026-10-01');
     const fixture = TestBed.createComponent(StayDetailComponent);
     fixture.detectChanges();
 

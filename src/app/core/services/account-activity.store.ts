@@ -14,9 +14,11 @@ import { catchError, finalize, forkJoin, fromEvent, interval, merge, of, Subscri
 import { AccountSummaryApiService, NotificationsApiService } from '../api/account-api.services';
 import { AuthService } from '../auth/auth.service';
 import { AccountNotification, SeekerSummary } from '../models/account.models';
+import { AppStateService } from './app-state.service';
 
 @Injectable({ providedIn: 'root' })
 export class AccountActivityStore {
+  private state = inject(AppStateService);
   private summaryApi = inject(AccountSummaryApiService);
   private notificationsApi = inject(NotificationsApiService);
   private auth = inject(AuthService);
@@ -131,7 +133,7 @@ export class AccountActivityStore {
         : interval(5000);
       this.poll.add(
         events.subscribe(() => {
-          if (this.auth.isAuthenticated() && !this.document.hidden)
+            if (this.auth.isAuthenticated() && !this.document.hidden && this.state.active() && this.state.online())
             this.zone.run(() => this.refresh(true));
         }),
       );

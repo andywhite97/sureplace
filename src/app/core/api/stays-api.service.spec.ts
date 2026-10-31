@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { StaysApiService } from './stays-api.service';
+import { StayQueryService } from '../services/stay-query.service';
 
 describe('StaysApiService', () => {
   beforeEach(() =>
@@ -10,6 +11,7 @@ describe('StaysApiService', () => {
     }),
   );
   it('requests backend filters and availability parameters', () => {
+    vi.spyOn(TestBed.inject(StayQueryService), 'today').mockReturnValue('2026-10-01');
     TestBed.inject(StaysApiService)
       .search({
         town: 'Ezulwini',

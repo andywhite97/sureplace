@@ -1,5 +1,7 @@
 # Android prototype
 
+Current test distribution: see [Android test release 0.2.0](mobile-test-release.md). The notes below describe the original prototype and its subsequent fixes; secure storage and native integrations have since been updated for the current test release.
+
 This is a debug build for testing the existing SurePlace login and mobile screens. It packages the Angular frontend locally and calls the existing HTTPS Django API at `https://sureplace-back-e1u4.onrender.com/api/v1`. It does not deploy changes to the website or backend.
 
 ## Install and test

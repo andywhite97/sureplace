@@ -81,6 +81,7 @@ describe('StayQueryService', () => {
     expect([state.adults, state.children, state.rooms]).toEqual([1, 0, 1]);
   });
   it('sends a complete availability query without datetime conversion', () => {
+    const clock = vi.spyOn(service, 'today').mockReturnValue('2026-10-01');
     expect(
       service.apiParams({
         check_in: '2026-10-12',
@@ -96,6 +97,7 @@ describe('StayQueryService', () => {
       children: '0',
       rooms: '1',
     });
+    clock.mockRestore();
   });
   it('removes all geographic bounds together', () =>
     expect(

@@ -24,6 +24,7 @@ export interface ManagedStay extends StayDetail {
 }
 
 export interface PropertyWriteRequest {
+  facebook_url?: string; instagram_url?: string; tiktok_url?: string; website?: string; whatsapp_number?: string;
   title: string;
   description: string;
   listing_type: string;
@@ -51,6 +52,7 @@ export interface PropertyWriteRequest {
 }
 
 export interface StayWriteRequest {
+  facebook_url?: string; instagram_url?: string; tiktok_url?: string;
   booking_mode?: 'REQUEST_TO_BOOK' | 'INSTANT_BOOK';
   cancellation_policy?: string;
   house_rules?: string;
@@ -201,6 +203,7 @@ export interface VerificationEligibility {
 export type AgencyRole = 'OWNER' | 'ADMIN' | 'AGENT';
 
 export interface Agency {
+  facebook_url?: string; instagram_url?: string; tiktok_url?: string;
   id: string;
   name: string;
   trading_name: string;

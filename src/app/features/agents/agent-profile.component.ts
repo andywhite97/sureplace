@@ -1,3 +1,4 @@
+import { BusinessLinksComponent } from '../../shared/ui/business-links.component';
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,12 +9,13 @@ import { MessagingApiService } from '../../core/api/messaging-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ShareService } from '../../core/services/share.service';
 import { SmartImageComponent } from '../../shared/ui/smart-image.component';
 
 @Component({
   selector: 'sp-agent-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, SmartImageComponent],
+  imports: [BusinessLinksComponent, CommonModule, RouterLink, SmartImageComponent],
   template: `
     @if (loading()) {
       <section class="page state">
@@ -139,6 +141,7 @@ import { SmartImageComponent } from '../../shared/ui/smart-image.component';
                     }
                   </div>
                 </div>
+                <sp-business-links [business]="profile.agency" />
                 @if (profile.agency_description) {
                   <p>{{ profile.agency_description }}</p>
                 }
@@ -670,6 +673,7 @@ export class AgentProfileComponent {
   private messaging = inject(MessagingApiService);
   private seo = inject(SeoService);
   private toast = inject(ToastService);
+  private sharing = inject(ShareService);
 
   agent = signal<AgentDetail | null>(null);
   loading = signal(true);
@@ -786,17 +790,6 @@ export class AgentProfileComponent {
   share() {
     const profile = this.agent();
     if (!profile) return;
-    const url = `${window.location.origin}/agents/${profile.id}`;
-    if (navigator.share) {
-      void navigator.share({
-        title: profile.name,
-        text: `View ${profile.name}'s profile on SurePlace`,
-        url,
-      });
-    } else if (navigator.clipboard) {
-      void navigator.clipboard
-        .writeText(url)
-        .then(() => this.toast.show('Profile link copied.', 'success'));
-    }
+    void this.sharing.open(`/agents/${profile.id}`, profile.name, `View ${profile.name}'s profile on SurePlace`);
   }
 }

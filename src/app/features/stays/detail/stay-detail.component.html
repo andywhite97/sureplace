@@ -193,7 +193,8 @@
             [stay]="item"
             [dates]="criteria()"
           />
-          <section class="description detail-section" id="overview">
+          <sp-business-links [business]="item" />
+<section class="description detail-section" id="overview">
             <p class="section-kicker">Overview</p>
             <h2>About this stay</h2>
             <div [class.clamped]="!expanded()">

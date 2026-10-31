@@ -1,4 +1,5 @@
 import { BusinessSocialLinksComponent } from '../../../shared/ui/business-social-links.component';
+import { BusinessLinksComponent } from '../../../shared/ui/business-links.component';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
@@ -25,12 +26,13 @@ import { AvailabilityStatusComponent } from '../../../shared/ui/availability-sta
 import { ListingMapComponent } from '../../../shared/map/listing-map.component';
 import { IconComponent } from '../../../shared/ui/icon.component';
 import { formatMoney } from '../../../shared/listing/price-format';
-import { environment } from '../../../../environments/environment';
+import { ShareService } from '../../../core/services/share.service';
 import { listingDescription, listingSocialImage } from '../../../shared/listing/listing-seo';
 @Component({
   standalone: true,
   imports: [
     BusinessSocialLinksComponent,
+  imports: [BusinessLinksComponent,
     RouterLink,
     DatePipe,
     PropertyGalleryComponent,
@@ -53,6 +55,7 @@ export class PropertyDetailComponent {
   private fav = inject(FavouritesApiService);
   auth = inject(AuthService);
   private toast = inject(ToastService);
+  private sharing = inject(ShareService);
   private seo = inject(SeoService);
   private platformId = inject(PLATFORM_ID);
 
@@ -169,15 +172,8 @@ export class PropertyDetailComponent {
   }
   share() {
     if (!isPlatformBrowser(this.platformId)) return;
-    const data = {
-      title: this.property()?.title || 'SurePlace property',
-      url: new URL(`/properties/${this.property()?.slug || ''}`, environment.frontendOrigin).href,
-    };
-    if (navigator.share) void navigator.share(data);
-    else if (navigator.clipboard)
-      void navigator.clipboard
-        .writeText(data.url)
-        .then(() => this.toast.show('Link copied.', 'success'));
+    const property = this.property();
+    if (property) void this.sharing.open(`/properties/${property.slug}`, property.title);
   }
   retry() {
     const slug = this.route.snapshot.paramMap.get('slug');

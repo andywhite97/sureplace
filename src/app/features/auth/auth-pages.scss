@@ -1,1 +1,165 @@
-.auth-page{min-height:calc(100dvh - 72px);display:grid;place-items:center;padding:var(--space-6);background:var(--mist)}.auth-card{width:min(100%,480px);background:white;padding:clamp(1.5rem,5vw,2.5rem);border-radius:var(--radius);box-shadow:var(--shadow)}h1{margin:0 0 .5rem;font-size:2rem}p{color:var(--slate)}form{display:grid;gap:1rem;margin-top:1.5rem}form>label{display:grid;gap:.35rem;color:var(--midnight);font-size:.88rem;font-weight:800}input{width:100%;min-height:48px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:.75rem;font:inherit;font-size:16px}input:focus{outline:3px solid color-mix(in srgb,var(--teal) 25%,transparent);border-color:var(--teal)}.password{position:relative}.password button{position:absolute;right:.6rem;top:.5rem;border:0;background:none;padding:.5rem}.links{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem}a{color:var(--teal);font-weight:700}.intent{display:grid;gap:.55rem}.intent label{display:flex;gap:.6rem;align-items:flex-start;border:1px solid var(--line);padding:.8rem;border-radius:var(--radius-sm)}.api-error{color:var(--danger);font-size:.9rem}@media(max-width:560px){.auth-page{padding:1rem}.auth-card{padding:1.2rem;border-radius:1.1rem}h1{font-size:1.75rem}input{min-height:50px;border-radius:.8rem}form{gap:.85rem}}
+:host {
+  display: block;
+}
+.auth-page {
+  min-height: calc(100dvh - var(--app-header-height, 72px));
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(1rem, 3vw, 2rem) 1rem;
+  background: var(--mist);
+}
+.auth-card {
+  width: min(100%, 460px);
+  min-width: 0;
+  background: var(--ux-surface);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius);
+  box-shadow: var(--ux-shadow);
+}
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.6rem, 5vw, 1.9rem);
+  letter-spacing: -0.035em;
+}
+p {
+  color: var(--ux-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+form > label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--midnight);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ux-field-height);
+  border: 1px solid var(--ux-border);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  font-size: 16px;
+  background: #fff;
+  color: var(--midnight);
+}
+input:focus {
+  outline: 2px solid var(--ux-primary);
+  outline-offset: 2px;
+  border-color: var(--ux-primary);
+}
+.password {
+  position: relative;
+}
+.password input {
+  padding-right: 3.25rem;
+}
+.password button {
+  position: absolute;
+  right: 0.1rem;
+  top: 0.1rem;
+  width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ux-muted);
+}
+a {
+  color: var(--ux-primary);
+  font-weight: 650;
+  text-underline-offset: 3px;
+}
+.links {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+.api-error,
+.field-error {
+  color: var(--danger);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.auth-error {
+  margin: 0;
+}
+.auth-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+.auth-submit {
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ux-primary);
+  color: white;
+  padding: 0.7rem 1rem;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+.auth-submit:disabled {
+  opacity: 0.6;
+}
+.auth-submit:not(:disabled):hover {
+  background: var(--ux-primary-hover);
+}
+.auth-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+.auth-support {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+}
+.auth-support a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.auth-confirmation {
+  padding: 0.9rem 0;
+  color: var(--midnight);
+}
+@media (min-width: 768px) {
+  .auth-page {
+    padding-top: 2.5rem;
+  }
+}
+@media (max-width: 560px) {
+  .auth-page {
+    padding: 1rem 0.75rem max(1rem, env(safe-area-inset-bottom));
+  }
+  .auth-card {
+    padding: 1.1rem;
+    border-radius: 16px;
+  }
+  form {
+    gap: 0.85rem;
+  }
+  .auth-card > sp-suri-guide {
+    margin-bottom: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

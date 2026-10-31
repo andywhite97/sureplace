@@ -49,7 +49,11 @@ type MenuState = 'closed' | 'open' | 'closing';
   selector: 'sp-header',
   standalone: true,
   imports: [RouterLink, RouterLinkActive, ProfileImageComponent],
-  template: `<header [class.staff-header]="staffWorkspace()">
+  template: `<header
+      [class.staff-header]="staffWorkspace()"
+      [class.auth-header]="focusedAuth()"
+      [class.guest-header]="!auth.isAuthenticated()"
+    >
       <a routerLink="/" class="logo" aria-label="SurePlace home" (click)="closeMenu()">
         <img src="/logo_dark.png" alt="SurePlace" width="420" height="140" />
       </a>
@@ -243,7 +247,7 @@ type MenuState = 'closed' | 'open' | 'closing';
           }
         </div>
         <div class="mobile-shortcuts" aria-label="Quick account actions">
-          @if (auth.status() !== 'initializing') {
+          @if (auth.isAuthenticated()) {
             <a
               class="notification-link"
               [routerLink]="auth.isAuthenticated() ? '/account/notifications' : '/login'"
@@ -268,8 +272,13 @@ type MenuState = 'closed' | 'open' | 'closing';
                 <b aria-hidden="true">{{ badge('notifications') }}</b>
               }
             </a>
+          } @else if (auth.status() !== 'initializing') {
+            <a class="guest-signin" routerLink="/login" aria-label="Sign in">Sign in</a>
           }
         </div>
+        @if (focusedAuth()) {
+          <a class="auth-help" routerLink="/help">Help</a>
+        }
       }
       <button
         #menuButton
@@ -1133,10 +1142,93 @@ type MenuState = 'closed' | 'open' | 'closing';
         }
       }
     `,
+    `
+      .mobile-shortcuts .guest-signin {
+        width: auto;
+        min-width: 66px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0.5rem 0.65rem;
+        color: var(--ux-primary);
+        font-size: 0.8rem;
+        font-weight: 650;
+        text-decoration: none;
+      }
+      header.auth-header:not(.staff-header) {
+        display: flex;
+        grid-template-columns: none;
+        justify-content: space-between;
+        gap: 12px;
+        padding-inline: clamp(12px, 3vw, 24px);
+      }
+      .auth-header .desktop-nav,
+      .auth-header .actions,
+      .auth-header .mobile-shortcuts {
+        display: none;
+      }
+      .auth-header .logo {
+        position: static;
+        transform: none;
+        margin-right: auto;
+        flex: 1;
+        min-width: 0;
+        max-width: 140px;
+      }
+      .auth-header .auth-help {
+        width: auto;
+        min-width: max-content;
+        height: auto;
+        padding: 8px 12px;
+        flex: 0 0 auto;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: var(--ux-primary);
+        font-size: 0.85rem;
+        font-weight: 650;
+        text-decoration: none;
+      }
+      .auth-header .menu-button {
+        position: static;
+        order: -1;
+        flex: 0 0 44px;
+        font-size: 20px;
+      }
+      .auth-header .logo img {
+        height: 34px;
+        width: 100%;
+        max-width: 140px;
+      }
+    `,
+    `
+      @media (max-width: 850px) {
+        header.guest-header:not(.staff-header):not(.auth-header) {
+          grid-template-columns: 44px minmax(0, 1fr) auto;
+          gap: 8px;
+        }
+        .guest-header .mobile-shortcuts {
+          justify-self: end;
+          width: auto;
+          min-width: max-content;
+        }
+        .guest-header .logo {
+          min-width: 0;
+          max-width: 100%;
+        }
+        .guest-header .logo img {
+          max-width: 100%;
+        }
+      }
+    `,
   ],
 })
 export class PublicHeaderComponent {
   staffWorkspace = input(false);
+  focusedAuth = input(false);
   staffInitials = computed(
     () =>
       [this.auth.user()?.first_name, this.auth.user()?.last_name]

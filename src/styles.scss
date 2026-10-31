@@ -18,6 +18,17 @@
   --space-4: 1rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --ux-primary: #007e6c;
+  --ux-primary-hover: #006858;
+  --ux-muted: #506861;
+  --ux-surface: #fff;
+  --ux-tint: #edf8f3;
+  --ux-border: #d6e6de;
+  --ux-radius: 1.25rem;
+  --ux-shadow: 0 8px 28px #153b2910;
+  --ux-field-height: 48px;
+  --ux-gap: 1rem;
+  --ux-motion: 180ms var(--ease-sureplace);
   --radius-sm: 0.55rem;
   --radius: 1rem;
   --shadow: 0 12px 35px rgba(21, 43, 42, 0.09);
@@ -35,6 +46,18 @@
   --motion-reveal: 360ms;
   --transition: var(--motion-fast) var(--ease-sureplace);
   color-scheme: light;
+}
+.connection-status {
+  position: fixed;
+  top: calc(var(--app-header-height, 72px) + env(safe-area-inset-top));
+  inset-inline: 0;
+  z-index: 1100;
+  padding: .8rem 1rem;
+  background: #fff4d6;
+  color: #523b09;
+  text-align: center;
+  font-size: .875rem;
+  box-shadow: 0 3px 12px #152b2a15;
 }
 
 #sureplace-overlay-root {
