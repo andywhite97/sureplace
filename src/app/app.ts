@@ -25,20 +25,31 @@ import { AppStateService } from './core/services/app-state.service';
     ToastRegionComponent,
     CookieConsentComponent,
   ],
-  template: `@if (intro.visible()) {<sp-mobile-intro />}
+  template: `@if (intro.visible()) {
+      <sp-mobile-intro />
+    }
     <div [hidden]="intro.visible()" [attr.inert]="intro.visible() ? '' : null">
-    @if (!privatePreview()) {<sp-header [staffWorkspace]="staffWorkspace()" />}
-    @if (nativeApp && (!state.online() || native.error())) {
-      <aside class="connection-status" role="status">{{ !state.online() ? 'You are offline. Reconnect to load listings and send messages.' : native.error() }}</aside>
-    }
-    <div class="route-viewport"><router-outlet /></div>
-    @if (!staffWorkspace() && !privatePreview()) {
-      @if (!nativeApp) {
-        <sp-footer />
+      @if (!privatePreview()) {
+        <sp-header [staffWorkspace]="staffWorkspace()" [focusedAuth]="authPage()" />
       }
-      <sp-mobile-nav />
-    }
-    <sp-toast-region /><sp-cookie-consent /></div>`,
+      @if (nativeApp && (!state.online() || native.error())) {
+        <aside class="connection-status" role="status">
+          {{
+            !state.online()
+              ? 'You are offline. Reconnect to load listings and send messages.'
+              : native.error()
+          }}
+        </aside>
+      }
+      <div class="route-viewport"><router-outlet /></div>
+      @if (!staffWorkspace() && !privatePreview()) {
+        @if (!nativeApp && !authPage()) {
+          <sp-footer />
+        }
+        <sp-mobile-nav />
+      }
+      <sp-toast-region /><sp-cookie-consent />
+    </div>`,
 })
 export class App {
   readonly intro = inject(MobileIntroService);
@@ -50,6 +61,9 @@ export class App {
   private activity = inject(AccountActivityStore);
   private url = signal(this.router.url);
   privatePreview = computed(() => /^\/private-preview(?:[?#]|$)/.test(this.url()));
+  authPage = computed(() =>
+    /^\/(login|register|forgot-password|reset-password|verify-email)(?:\/|[?#]|$)/.test(this.url()),
+  );
   staffWorkspace = computed(() => /^\/staff(?:\/|[?#]|$)/.test(this.url()));
   constructor() {
     afterNextRender(() => this.activity.startGlobalUpdates());

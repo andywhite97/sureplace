@@ -1,3 +1,17 @@
+# SurePlace Android test release 0.3.0
+
+Rebuild requested 20 October 2026. Version `0.3.0-test`, Android version code `3`, with the existing application ID and debug signing key.
+
+- APK: `dist/android/SurePlace-0.3.0-test.apk`; adjacent SHA-256 and `build-info.json` identify the build.
+- Includes Suri greetings on login/registration/help/password recovery and the four-screen native first-launch introduction.
+- Update the installed app without uninstalling. The tour appears once after this update and can be replayed from Help Centre.
+- Staff assisted onboarding and social-link source changes are bundled, but their new backend APIs/migrations have not been deployed. Test those features only after the backend rollout.
+- Phone checks: introduction Next/Back/Skip, relaunch persistence, Help Centre replay, Android Back, login persistence and compact Suri layouts.
+
+The prior release details below remain as the original secure-storage/network acceptance checklist.
+
+---
+
 # SurePlace Android test release 0.2.0
 
 Distribution target: test APKs, as requested. This is a debug-signed test build; it is not a store release. The existing application ID is preserved so testers can install it over SurePlace Prototype without deliberately clearing app data. The launcher label is now **SurePlace Test**.

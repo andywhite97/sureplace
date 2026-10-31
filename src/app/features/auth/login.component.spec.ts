@@ -81,8 +81,8 @@ describe('LoginComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Welcome back');
     expect(text).toContain('Suri is here to help you find your SurePlace.');
-    expect(text).toContain('Log in to your SurePlace account.');
-    expect(fixture.nativeElement.querySelector('.suri-crop img')?.getAttribute('alt')).toBe('');
+    expect(text).toContain('Sign in to continue your SurePlace journey.');
+    expect(fixture.nativeElement.querySelector('sp-suri-guide img')?.getAttribute('alt')).toBe('');
     expect(fixture.nativeElement.querySelector('#email[autocomplete="email"]')).toBeTruthy();
     expect(
       fixture.nativeElement.querySelector('#password[autocomplete="current-password"]'),

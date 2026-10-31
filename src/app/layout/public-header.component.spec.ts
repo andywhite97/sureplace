@@ -161,16 +161,16 @@ describe('PublicHeaderComponent mobile navigation', () => {
     expect(activity.refresh).not.toHaveBeenCalled();
   });
 
-  it('renders a mobile notification shortcut for guests', () => {
+  it('renders a sign-in action instead of guest notifications', () => {
     const fixture = TestBed.createComponent(PublicHeaderComponent);
     fixture.detectChanges();
     const shortcuts = fixture.nativeElement.querySelectorAll('.mobile-shortcuts a');
     const menu = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
 
     expect(shortcuts.length).toBe(1);
-    expect(shortcuts[0].getAttribute('aria-label')).toBe('Sign in to view notifications');
+    expect(shortcuts[0].getAttribute('aria-label')).toBe('Sign in');
     expect(shortcuts[0].getAttribute('href')).toBe('/login');
-    expect(shortcuts[0].querySelector('svg.notification-icon[aria-hidden="true"]')).toBeTruthy();
+    expect(shortcuts[0].querySelector('svg.notification-icon')).toBeNull();
     expect(menu.querySelector('.fa-bars')).toBeTruthy();
   });
 

@@ -4,13 +4,60 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthApiService } from '../../core/auth/auth-api.service';
 import { SeoService } from '../../core/services/seo.service';
-import { ButtonComponent } from '../../shared/ui/button.component';
 import { normalizeApiError } from '../../core/api/error-normalizer';
 
 @Component({
   standalone: true,
-  imports: [SuriGuideComponent, ReactiveFormsModule, RouterLink, ButtonComponent],
-  template: `<main class="auth-page"><section class="auth-card"><sp-suri-guide pose="support" message="Let’s help you get back into your account." /><h1>Reset your password</h1><p>Enter your email. If an account exists, we'll send secure reset instructions.</p>@if(sent()){<p role="status">Check your inbox for the next step.</p>}@else{<form [formGroup]="form" (ngSubmit)="submit()"><label>Email address<input type="email" formControlName="email" placeholder="you@example.com" autocomplete="email"></label>@if(error()){<p class="api-error" role="alert">{{error()}}</p>}<sp-button type="submit" [disabled]="form.invalid || busy()">{{busy() ? 'Sending...' : 'Send instructions'}}</sp-button></form>}<p><a routerLink="/login">Back to login</a></p></section></main>`,
+  imports: [SuriGuideComponent, ReactiveFormsModule, RouterLink],
+  template: `<main class="auth-page">
+    <section class="auth-card" aria-labelledby="recovery-title">
+      <sp-suri-guide
+        size="small"
+        pose="support"
+        variant="support"
+        message="Need help getting back in? I've got you."
+      />
+      <h1 id="recovery-title">{{ sent() ? 'Check your inbox' : 'Reset your password' }}</h1>
+      @if (sent()) {
+        <div class="auth-confirmation" role="status">
+          <p>If an account exists for that email, we'll send password reset instructions.</p>
+          <p>
+            Check your spam folder too. For more guidance, visit the
+            <a routerLink="/help">Help Centre</a>.
+          </p>
+        </div>
+      } @else {
+        <p>Enter your email and we'll send instructions to help you access your account.</p>
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="busy()">
+          <label for="recovery-email">Email address</label
+          ><input
+            id="recovery-email"
+            type="email"
+            formControlName="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+            aria-describedby="recovery-email-error"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <small id="recovery-email-error" class="field-error"
+              >Enter a valid email address.</small
+            >
+          }
+          @if (error()) {
+            <p class="api-error auth-error" role="alert">{{ error() }}</p>
+          }
+          <button class="auth-submit" type="submit" [disabled]="busy()">
+            @if (busy()) {
+              <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+            }
+            {{ busy() ? 'Sending…' : 'Send reset link' }}
+          </button>
+        </form>
+      }
+      <a class="auth-back" routerLink="/login">Back to login</a>
+    </section>
+  </main>`,
   styleUrl: './auth-pages.scss',
 })
 export class ForgotPasswordComponent {
@@ -22,15 +69,25 @@ export class ForgotPasswordComponent {
   error = signal('');
   form = this.fb.nonNullable.group({ email: ['', [Validators.required, Validators.email]] });
   constructor() {
-    this.seo.privatePage('Reset your SurePlace password', 'Request a secure SurePlace password reset link.');
+    this.seo.privatePage(
+      'Reset your SurePlace password',
+      'Request a secure SurePlace password reset link.',
+    );
   }
   submit() {
+    this.form.markAllAsTouched();
     if (!this.form.valid || this.busy()) return;
     this.busy.set(true);
     this.error.set('');
     this.api.requestReset(this.form.getRawValue().email).subscribe({
-      next: () => { this.busy.set(false); this.sent.set(true); },
-      error: (error) => { this.busy.set(false); this.error.set(normalizeApiError(error).message); },
+      next: () => {
+        this.busy.set(false);
+        this.sent.set(true);
+      },
+      error: (error) => {
+        this.busy.set(false);
+        this.error.set(normalizeApiError(error).message);
+      },
     });
   }
 }

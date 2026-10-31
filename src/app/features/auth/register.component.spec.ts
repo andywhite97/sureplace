@@ -47,11 +47,19 @@ describe('RegisterComponent', () => {
   }
 
   function accountValid(component: RegisterComponent) {
-    component.form.patchValue({ email: 'ava@example.com', password: 'password123', confirm: 'password123' });
+    component.form.patchValue({
+      email: 'ava@example.com',
+      password: 'password123',
+      confirm: 'password123',
+    });
   }
 
   function detailsValid(component: RegisterComponent) {
-    component.form.patchValue({ first_name: 'Ava', last_name: 'Dlamini', phone_number: '+26876123456' });
+    component.form.patchValue({
+      first_name: 'Ava',
+      last_name: 'Dlamini',
+      phone_number: '+26876123456',
+    });
   }
 
   it('starts on the Account step', () => {
@@ -103,13 +111,15 @@ describe('RegisterComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('ava@example.com');
     expect(fixture.nativeElement.textContent).toContain('Ava Dlamini');
-    expect(fixture.nativeElement.textContent).toContain('List properties as an agent');
+    expect(fixture.nativeElement.textContent).toContain('I’m a real estate agent');
     component.edit(1);
     expect(component.step()).toBe(1);
   });
 
   it('submits the registration payload only from the final step and prevents duplicates', () => {
-    auth.register.mockReturnValue(of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }));
+    auth.register.mockReturnValue(
+      of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }),
+    );
     const fixture = create();
     const component = fixture.componentInstance;
     accountValid(component);
@@ -133,7 +143,11 @@ describe('RegisterComponent', () => {
   });
 
   it('maps backend email and phone errors back to their steps', () => {
-    auth.register.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 400, error: { email: ['Already registered.'] } })));
+    auth.register.mockReturnValueOnce(
+      throwError(
+        () => new HttpErrorResponse({ status: 400, error: { email: ['Already registered.'] } }),
+      ),
+    );
     const fixture = create();
     const component = fixture.componentInstance;
     accountValid(component);
@@ -145,7 +159,11 @@ describe('RegisterComponent', () => {
     expect(component.step()).toBe(0);
     expect(fixture.nativeElement.textContent).toContain('Already registered.');
 
-    auth.register.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 400, error: { phone_number: ['Invalid phone.'] } })));
+    auth.register.mockReturnValueOnce(
+      throwError(
+        () => new HttpErrorResponse({ status: 400, error: { phone_number: ['Invalid phone.'] } }),
+      ),
+    );
     component.step.set(3);
     component.submit();
     fixture.detectChanges();
@@ -154,7 +172,9 @@ describe('RegisterComponent', () => {
   });
 
   it('routes to verification pending without auto-login', () => {
-    auth.register.mockReturnValue(of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }));
+    auth.register.mockReturnValue(
+      of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }),
+    );
     const fixture = create();
     const component = fixture.componentInstance;
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
@@ -165,13 +185,19 @@ describe('RegisterComponent', () => {
     component.submit();
     fixture.detectChanges();
 
-    expect(navigate).toHaveBeenCalledWith(['/verify-email/pending'], { queryParams: { email: 'ava@example.com' } });
-    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Check your email', kind: 'success' }));
+    expect(navigate).toHaveBeenCalledWith(['/verify-email/pending'], {
+      queryParams: { email: 'ava@example.com' },
+    });
+    expect(toast.show).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Check your email', kind: 'success' }),
+    );
     expect(component.selected()).toEqual(['HOSPITALITY_OPERATOR']);
   });
 
   it('shows a check-email completion state when registration succeeds', () => {
-    auth.register.mockReturnValue(of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }));
+    auth.register.mockReturnValue(
+      of({ user: { id: 'u1' }, email_verification_required: true, detail: 'Check email' }),
+    );
     const fixture = create();
     const component = fixture.componentInstance;
     accountValid(component);
@@ -184,5 +210,19 @@ describe('RegisterComponent', () => {
     expect(component.created()).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Check your email');
     expect(fixture.nativeElement.querySelector('a[href^="/verify-email/pending"]')).toBeTruthy();
+  });
+  it('updates password-match feedback when the original password is corrected', () => {
+    const f = create(),
+      c = f.componentInstance;
+    c.form.patchValue({
+      email: 'qa@example.com',
+      password: 'oldPassword123',
+      confirm: 'newPassword123',
+    });
+    c.next();
+    expect(c.fieldError('confirm')).toBe('Passwords do not match.');
+    c.form.controls.password.setValue('newPassword123');
+    expect(c.fieldError('confirm')).toBe('');
+    expect(c.canAdvance()).toBe(true);
   });
 });
