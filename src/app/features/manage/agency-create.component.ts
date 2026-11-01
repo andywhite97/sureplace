@@ -7,13 +7,14 @@ import { ReferenceApiService } from '../../core/api/reference-api.service';
 import { AgencyNavigationService } from '../../core/services/agency-navigation.service';
 import { ToastService } from '../../core/services/toast.service';
 import { EswatiniPhoneInputComponent } from '../../shared/ui/eswatini-phone-input.component';
+import { SuriGuideComponent } from '../../shared/ui/suri-guide.component';
 
 type FormStep = 0 | 1 | 2 | 3;
 type WizardStep = FormStep | 4;
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent],
+  imports: [ReactiveFormsModule, RouterLink, EswatiniPhoneInputComponent, SuriGuideComponent],
   template: `<section class="agency-flow">
     @if (step() < 4) {
       <a class="back-link" (click)="cancel()"
@@ -247,42 +248,57 @@ type WizardStep = FormStep | 4;
         </section>
       </form>
     } @else {
-      <section class="panel success" role="status" aria-live="polite">
-        <span class="success-icon"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
-        <p class="eyebrow">Agency created</p>
-        <h1>Agency Created!</h1>
-        <p>
-          <strong>{{ createdName() }}</strong> has been successfully created.
-        </p>
-        <p>You are the agency owner.</p>
+      <section class="panel success" aria-labelledby="agency-success-title">
+        <header class="success-heading" role="status">
+          <div>
+            <p class="success-badge">
+              <i class="fa-solid fa-check" aria-hidden="true"></i> Agency created
+            </p>
+            <h1 id="agency-success-title">Your agency journey starts here.</h1>
+            <p>
+              <strong>{{ createdName() }}</strong> is ready to set up. You're the agency owner.
+            </p>
+          </div>
+          <sp-suri-guide variant="illustration" pose="welcome" />
+        </header>
+        <div class="next-heading">
+          <h2>Make it yours</h2>
+          <p>A few next steps to help clients get to know your agency.</p>
+        </div>
         <div class="onboarding">
           <a routerLink="/account/manage/agency/profile"
             ><i class="fa-solid fa-id-card" aria-hidden="true"></i
             ><span
               ><strong>Complete your profile</strong
-              ><small>Add more details, photos and branding.</small></span
-            ><b>→</b></a
+              ><small>Add your story, photos and branding.</small></span
+            ><b aria-hidden="true">→</b></a
           ><a routerLink="/account/manage/agency/team"
             ><i class="fa-solid fa-users" aria-hidden="true"></i
             ><span
               ><strong>Invite team members</strong
               ><small>Add agents to your agency and work together.</small></span
-            ><b>→</b></a
+            ><b aria-hidden="true">→</b></a
           ><a routerLink="/account/manage/agency/verification"
             ><i class="fa-solid fa-shield-halved" aria-hidden="true"></i
             ><span
               ><strong>Start verification</strong
-              ><small>Build trust with a verified agency.</small></span
-            ><b>→</b></a
+              ><small>Submit your details for review.</small></span
+            ><b aria-hidden="true">→</b></a
           >
         </div>
-        <div class="actions">
-          <a class="primary" routerLink="/account/manage/agency">Go to Agency Dashboard</a
-          ><a class="secondary" routerLink="/account/manage/listings/new">Create a Listing</a>
+        <div class="success-actions">
+          <a class="primary" routerLink="/account/manage/agency"
+            >Go to agency dashboard <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a
+          ><a class="secondary" routerLink="/account/manage/listings/new">Create a listing</a>
         </div>
+        <p class="success-note">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Your agency starts
+          unverified. You can complete setup at your own pace.
+        </p>
       </section>
     }
   </section>`,
+  styleUrl: './agency-create-success.scss',
   styles: [
     `
       .agency-flow {
@@ -585,56 +601,6 @@ type WizardStep = FormStep | 4;
         background: #f4f8f7;
         border: 1px solid var(--line);
       }
-      .success {
-        justify-items: center;
-        max-width: 690px;
-        margin: auto;
-        text-align: center;
-        padding: 2rem;
-      }
-      .success-icon {
-        display: grid;
-        place-items: center;
-        width: 62px;
-        height: 62px;
-        border-radius: 50%;
-        background: var(--teal);
-        color: #fff;
-        font-size: 1.6rem;
-      }
-      .success > p:not(.eyebrow) {
-        color: var(--slate);
-      }
-      .onboarding {
-        display: grid;
-        width: 100%;
-        margin-top: 0.5rem;
-        text-align: left;
-      }
-      .onboarding a {
-        display: grid;
-        grid-template-columns: 28px 1fr auto;
-        gap: 0.65rem;
-        align-items: center;
-        padding: 0.85rem 0;
-        border-top: 1px solid var(--line);
-        color: var(--midnight);
-        text-decoration: none;
-      }
-      .onboarding i,
-      .onboarding b {
-        color: var(--teal);
-      }
-      .onboarding span {
-        display: grid;
-        gap: 0.18rem;
-      }
-      .onboarding small {
-        color: var(--slate);
-      }
-      .success .actions {
-        margin-top: 0.25rem;
-      }
       @keyframes enter {
         from {
           opacity: 0;
@@ -691,9 +657,6 @@ type WizardStep = FormStep | 4;
         .actions > * {
           width: 100%;
         }
-        .success {
-          padding: 1.25rem;
-        }
         .review-section dl {
           grid-template-columns: 1fr;
         }
@@ -702,9 +665,6 @@ type WizardStep = FormStep | 4;
         }
         .review-section dd {
           margin-top: -0.3rem;
-        }
-        .onboarding {
-          gap: 0.15rem;
         }
       }
     `,
