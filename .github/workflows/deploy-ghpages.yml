@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # GitHub cron schedules use UTC. Refresh static listing HTML four times daily.
+  schedule:
+    - cron: '17 */6 * * *'
+  # Optional authenticated signal from Django after published content changes.
+  repository_dispatch:
+    types: [content-published]
 
 permissions:
   contents: read
@@ -39,6 +45,7 @@ jobs:
         env:
           GH_PAGES_CUSTOM_DOMAIN: ${{ vars.GH_PAGES_CUSTOM_DOMAIN }}
           SUREPLACE_PRERENDER_API_BASE: ${{ vars.SUREPLACE_PRERENDER_API_BASE }}
+          SUREPLACE_PRERENDER_STRICT: 'true'
 
       - name: Prepare Pages artifact
         id: prepare

@@ -48,6 +48,10 @@ const prerenderApiBase = (
   environment.apiBaseUrl
 ).replace(/\/$/, '');
 
+// Avoid publishing incomplete prerender output during automated refreshes.
+const strictPrerender =
+  (globalThis as ProcessGlobal).process?.env?.['SUREPLACE_PRERENDER_STRICT'] === 'true';
+
 const privateClientRoutes: ServerRoute[] = PRIVATE_CLIENT_ROUTES.map((path) => ({
   path,
   renderMode: RenderMode.Client,
@@ -109,6 +113,7 @@ export async function publicProfileParams(kind: 'agent' | 'agency') {
       }
       url = page.next;
     } catch (error) {
+      if (strictPrerender) throw error;
       console.warn(
         `[prerender] Could not fetch ${kind} profiles. Dynamic routes will fall back to CSR.`,
         error,
@@ -139,6 +144,7 @@ export async function collectPublishedSlugs(endpoint: '/properties/' | '/stays/'
       }
       url = responsePage.next;
     } catch (error) {
+      if (strictPrerender) throw error;
       console.warn(
         `[prerender] Could not fetch ${endpoint} slugs from ${url}. Dynamic routes will fall back to CSR.`,
         error,
