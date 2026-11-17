@@ -98,7 +98,7 @@ Dynamic listing detail routes use `PrerenderFallback.Client`:
 - `/properties/:slug`
 - `/stays/:slug`
 
-During a production build, `src/app/app.routes.server.ts` tries to fetch public listing slugs from the production API. If the API is unavailable or rejects the request, the build logs a warning and ships those detail routes through the GitHub Pages `404.html` client fallback instead of failing.
+During a production build, `src/app/app.routes.server.ts` tries to fetch public listing slugs from the production API. For local builds, if the API is unavailable or rejects the request, the build logs a warning and ships those detail routes through the GitHub Pages `404.html` client fallback. In the GitHub Actions deployment, `SUREPLACE_PRERENDER_STRICT=true` makes the build fail instead, preserving the last successful Pages deployment rather than publishing incomplete prerendered pages.
 
 To override the API used for build-time slug discovery:
 
@@ -126,7 +126,7 @@ Angular still handles truly unknown routes through the existing `**` not-found r
 
 ## GitHub Actions
 
-The workflow lives at `.github/workflows/deploy-ghpages.yml` and runs on pushes to `main` plus manual `workflow_dispatch`.
+The workflow lives at `.github/workflows/deploy-ghpages.yml` and runs on pushes to `main`, manual `workflow_dispatch`, an authenticated `repository_dispatch` event of type `content-published`, and a UTC cron schedule every six hours (`17 */6 * * *`).
 
 It performs:
 
@@ -148,6 +148,29 @@ Settings -> Pages -> Build and deployment -> Source: GitHub Actions
 ```
 
 Set repository variable `GH_PAGES_CUSTOM_DOMAIN` if using a custom domain. Set optional repository variable `SUREPLACE_PRERENDER_API_BASE` only when slug discovery should use a different public API base than `environment.production.ts`. Non-secret public URLs can be GitHub Actions variables. Do not store backend secrets in frontend variables.
+
+## Refreshing Prerendered Pages
+
+Since GitHub Pages serves static files, listing detail HTML and its SEO metadata are generated at build time. The frontend still fetches current data through Django in the browser, but search crawlers and social sharing previews may see an older build until the next deployment.
+
+The deployment workflow now rebuilds the site every six hours (UTC), including freshly published property and stay slugs, public agent profiles, agency profiles, and the generated sitemap. The schedule is best-effort and may run later during high GitHub Actions load. Changes do not become visible in prerendered HTML immediately.
+
+To refresh on demand, run **Actions → Deploy GitHub Pages → Run workflow** in GitHub.
+
+For faster updates, Django can make an authenticated GitHub API call when a listing is published, changed, or withdrawn:
+
+```http
+POST https://api.github.com/repos/andywhite97/sureplace/dispatches
+Authorization: Bearer <backend-only GitHub token>
+Accept: application/vnd.github+json
+Content-Type: application/json
+
+{"event_type": "content-published"}
+```
+
+Use a fine-grained token with suitable repository Contents write permission for repository dispatch, or a GitHub App token. Store it in Django's backend secret environment, never in Angular, browser code, public logs, or GitHub Pages. Trigger only after the database transaction commits and debounce bursts of edits to avoid repetitive deployments. Backend dispatch integration is **not** included in the frontend change.
+
+On all GitHub Actions rebuilds, strict prerender API discovery is enabled to prevent temporary API errors from silently reducing the set of prerendered pages. The previous live deployment stays online when a new build fails. If a listing is removed from Django, it is removed from the refreshed sitemap and prerender output at the next successful deployment; callers should still receive appropriate unavailable/noindex behavior.
 
 ## Manual Deployment
 
