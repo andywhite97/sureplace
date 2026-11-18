@@ -45,6 +45,9 @@ export interface PropertyWriteRequest {
   furnished: boolean;
   pet_friendly: boolean;
   amenities: string[];
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
   agency?: string;
 }
 
@@ -66,9 +69,15 @@ export interface StayWriteRequest {
   email: string;
   whatsapp_number: string;
   website: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
   check_in_time: string | null;
   check_out_time: string | null;
   amenities: string[];
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
   agency?: string;
 }
 
@@ -205,6 +214,9 @@ export interface Agency {
   email: string;
   whatsapp_number: string;
   website: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
   address: string;
   region: string;
   town: string;

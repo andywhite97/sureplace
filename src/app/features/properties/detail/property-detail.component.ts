@@ -1,3 +1,4 @@
+import { BusinessSocialLinksComponent } from '../../../shared/ui/business-social-links.component';
 import { BusinessLinksComponent } from '../../../shared/ui/business-links.component';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import {
@@ -29,6 +30,8 @@ import { ShareService } from '../../../core/services/share.service';
 import { listingDescription, listingSocialImage } from '../../../shared/listing/listing-seo';
 @Component({
   standalone: true,
+  imports: [
+    BusinessSocialLinksComponent,
   imports: [BusinessLinksComponent,
     RouterLink,
     DatePipe,

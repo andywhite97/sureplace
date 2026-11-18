@@ -1,3 +1,4 @@
+import { BusinessSocialLinksComponent } from '../../../shared/ui/business-social-links.component';
 import { BusinessLinksComponent } from '../../../shared/ui/business-links.component';
 import { isPlatformBrowser } from '@angular/common';
 import { ShareService } from '../../../core/services/share.service';
@@ -32,6 +33,8 @@ import { FeedbackComponent } from '../../../shared/ui/feedback.component';
 import { formatMoney } from '../../../shared/listing/price-format';
 @Component({
   standalone: true,
+  imports: [
+    BusinessSocialLinksComponent,
   imports: [BusinessLinksComponent,
     ReactiveFormsModule,
     RouterLink,

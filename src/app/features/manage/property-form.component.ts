@@ -736,6 +736,9 @@ export class PropertyFormComponent implements OnDestroy {
     furnished: [false],
     pet_friendly: [false],
     amenities: [[] as string[]],
+    facebook_url: [''],
+    instagram_url: [''],
+    tiktok_url: [''],
     confirmed: [false, Validators.requiredTrue],
     available: [true],
   });
@@ -1234,6 +1237,9 @@ export class PropertyFormComponent implements OnDestroy {
           furnished: property.furnished,
           pet_friendly: property.pet_friendly,
           amenities: property.amenities.map((a) => a.id),
+          facebook_url: property.facebook_url || '',
+          instagram_url: property.instagram_url || '',
+          tiktok_url: property.tiktok_url || '',
           available: property.availability_status !== 'UNAVAILABLE',
         },
         { emitEvent: false },
@@ -1535,6 +1541,9 @@ export class PropertyFormComponent implements OnDestroy {
       furnished: v.furnished,
       pet_friendly: v.pet_friendly,
       amenities: v.amenities,
+      facebook_url: v.facebook_url,
+      instagram_url: v.instagram_url,
+      tiktok_url: v.tiktok_url,
       agency: this.agencyId || undefined,
     };
   }
